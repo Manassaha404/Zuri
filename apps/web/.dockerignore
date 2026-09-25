@@ -1,0 +1,17 @@
+.git
+node_modules
+.next
+.turbo
+out
+dist
+build
+.vercel
+docker-compose.yml
+docker-compose.override.yml
+*.md
+
+# Ignore all environment variables from the build context
+# (Docker Compose will still be able to inject them securely at runtime)
+.env
+.env.*
+!.env.example

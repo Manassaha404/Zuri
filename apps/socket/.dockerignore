@@ -1,0 +1,14 @@
+.git
+node_modules
+.next
+.turbo
+out
+dist
+build
+.vercel
+docker-compose.yml
+docker-compose.override.yml
+*.md
+.env
+.env.*
+!.env.example
