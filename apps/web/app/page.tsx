@@ -1,893 +1,1599 @@
+
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowDownRight,
-  ArrowRight,
+  ArrowUp,
   ArrowUpRight,
-  Brain,
-  CalendarDays,
+  BookOpen,
   Check,
-  CheckCheck,
-  ChevronRight,
-  CircleDollarSign,
-  Clock3,
-  FileText,
-  Flame,
-  Focus,
-  GraduationCap,
-  LayoutDashboard,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  HardDrive,
   Menu,
-  NotebookPen,
+  MessageSquare,
+  PanelLeft,
+  PanelLeftClose,
+  Paperclip,
+  Pin,
+  Plug,
+  Plus,
+  RotateCw,
   Sparkles,
+  Sun,
+  Moon,
   Target,
-  Users,
-  Wallet,
+  X,
   Zap,
 } from "lucide-react";
 
-const features = [
+
+type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  code?: string;
+};
+
+type ChatGroup = {
+  group: string;
+  items: string[];
+};
+
+type Connector = {
+  name: string;
+  enabled: boolean;
+  icon: typeof HardDrive;
+};
+
+type PinnedMessage = {
+  id: number;
+  title: string;
+};
+
+type User = {
+  name: string;
+  email: string;
+};
+
+
+const initialChatGroups: ChatGroup[] = [
   {
-    number: "01",
-    icon: NotebookPen,
-    title: "Notes that think with you.",
-    description:
-      "Capture ideas, organize nested pages, and let AI summarize, rewrite, fix grammar, expand notes, or create flashcards.",
-    tags: ["AI NOTES", "FLASHCARDS", "SMART SEARCH"],
-    color: "bg-[#FFF0A8]",
+    group: "TODAY",
+    items: ["Debounce in TypeScript", "Trip ideas: Berlin"],
   },
   {
-    number: "02",
-    icon: CalendarDays,
-    title: "Your semester, under control.",
-    description:
-      "Plan assignments, track deadlines, prioritize tasks, and turn your syllabus PDF into an actionable study plan.",
-    tags: ["TASKS", "CALENDAR", "KANBAN"],
-    color: "bg-[#DCE8D5]",
+    group: "YESTERDAY",
+    items: ["RAG pipeline notes"],
   },
   {
-    number: "03",
-    icon: Flame,
-    title: "Small habits. Real progress.",
-    description:
-      "Build routines, maintain streaks, complete daily challenges, and earn XP every time you show up.",
-    tags: ["HABITS", "STREAKS", "XP & LEVELS"],
-    color: "bg-[#F8DCD0]",
-  },
-  {
-    number: "04",
-    icon: Focus,
-    title: "Get in the zone.",
-    description:
-      "Use customizable Pomodoro sessions, distraction-free focus mode, and ambient sounds to stay on track.",
-    tags: ["POMODORO", "FOCUS MODE", "LO-FI"],
-    color: "bg-[#DED8F5]",
-  },
-  {
-    number: "05",
-    icon: Wallet,
-    title: "Make your money make sense.",
-    description:
-      "Track expenses and income, set budget limits, split bills with friends, and understand your spending.",
-    tags: ["BUDGETS", "EXPENSES", "INSIGHTS"],
-    color: "bg-[#D9E9F7]",
-  },
-  {
-    number: "06",
-    icon: Users,
-    title: "Better together.",
-    description:
-      "Create study groups, share goals, keep each other accountable, and work together in virtual Study Rooms.",
-    tags: ["STUDY ROOMS", "SHARED GOALS", "TEAMWORK"],
-    color: "bg-[#E7E6B9]",
+    group: "LAST 7 DAYS",
+    items: ["Kubernetes basics"],
   },
 ];
 
-const tasks = [
-  { title: "Revise Data Structures", time: "09:00 AM", done: true },
-  { title: "Complete DBMS assignment", time: "12:30 PM", done: false },
-  { title: "Physics chapter 04", time: "04:00 PM", done: false },
+const initialConnectors: Connector[] = [
+  { name: "Google Drive", enabled: false, icon: HardDrive },
+  { name: "Notion", enabled: false, icon: BookOpen },
 ];
 
-function SectionLabel({ children }) {
-  return (
-    <div className="mb-5 flex items-center gap-3">
-      <span className="h-3 w-3 border-2 border-black bg-[#FFE500]" />
-      <span className="text-xs font-black uppercase tracking-[0.18em]">
-        {children}
-      </span>
-    </div>
-  );
+const demoMessages: ChatMessage[] = [
+  {
+    id: "demo-user",
+    role: "user",
+    content: "How do I debounce a search input in TypeScript?",
+  },
+  {
+    id: "demo-assistant",
+    role: "assistant",
+    content:
+      "Debouncing delays a function until the user stops triggering it for a specified time. Here's a simple implementation:",
+    code: `export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  ms = 300
+) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  return (...args: Parameters<T>) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}`,
+  },
+];
+
+
+function getInitials(name: string): string {
+  return (name || "U")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-function ActionLink({ href, children, secondary = false }) {
+function addChatToGroups(
+  groups: ChatGroup[],
+  title: string
+): ChatGroup[] {
+  const remaining = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item !== title),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const today = remaining.find(
+    (group) => group.group === "TODAY"
+  );
+
+  if (today) {
+    return remaining.map((group) =>
+      group.group === "TODAY"
+        ? { ...group, items: [title, ...group.items] }
+        : group
+    );
+  }
+
+  return [{ group: "TODAY", items: [title] }, ...remaining];
+}
+
+function useDashboardTheme(darkMode: boolean) {
+  return {
+    muted: darkMode ? "text-zinc-400" : "text-zinc-600",
+    heading: darkMode ? "text-zinc-100" : "text-zinc-950",
+    divider: darkMode ? "border-zinc-800" : "border-zinc-200",
+    hover: darkMode
+      ? "hover:bg-white/[0.05]"
+      : "hover:bg-zinc-100",
+  };
+}
+
+const primaryButton =
+  "bg-lime-400 text-zinc-950 hover:bg-lime-300";
+
+
+
+function getLocalResponse(prompt: string): string {
+  const text = prompt.toLowerCase().trim();
+
+  if (
+    /^(hi|hello|hey|hii|hiii|good morning|good evening)[!. ]*$/.test(
+      text
+    )
+  ) {
+    return "Hey! 👋 Welcome to FRIDAY.\n\nI'm running in local demo mode right now. You can explore the interface, test the chat layout, and try the available controls.";
+  }
+
+  if (
+    text.includes("who are you") ||
+    text.includes("what are you")
+  ) {
+    return "I'm FRIDAY, your personal productivity workspace. 🚀\n\nThis version is a frontend-only demo. It can show predefined responses, but it isn't connected to a real AI model.";
+  }
+
+  if (
+    text.includes("javascript") ||
+    text.includes("typescript") ||
+    text.includes("programming") ||
+    text.includes("coding")
+  ) {
+    return "Let's work on programming! 💻\n\nHere is a useful approach:\n\n1. Understand the problem.\n2. Break it into smaller steps.\n3. Write a simple solution.\n4. Test different inputs.\n5. Improve the code when it works.\n\nThis is a predefined demo response. No live AI is being used.";
+  }
+
+  if (
+    text.includes("debounce") ||
+    text.includes("search input")
+  ) {
+    return "Debouncing delays a function until a certain amount of time has passed since the last call.\n\nIt is useful for search inputs because it prevents a function from running on every keystroke.\n\nFor example, you can wait 300 milliseconds after the user stops typing before filtering results.\n\nThis demo can explain the concept, but it does not execute code or generate live AI answers.";
+  }
+
+  if (
+    text.includes("project") ||
+    text.includes("build") ||
+    text.includes("website") ||
+    text.includes("startup")
+  ) {
+    return "Let's plan your project! 🚀\n\n1. Define the problem you want to solve.\n2. Identify your target users.\n3. List the essential features.\n4. Choose a suitable tech stack.\n5. Build a small MVP.\n6. Test it with real users.\n7. Improve it using feedback.\n\nWhat are you planning to build?";
+  }
+
+  if (
+    text.includes("study") ||
+    text.includes("learn") ||
+    text.includes("roadmap") ||
+    text.includes("career")
+  ) {
+    return "Here's a simple learning strategy:\n\n1. Choose one clear goal.\n2. Divide it into smaller topics.\n3. Learn the fundamentals.\n4. Practice by building projects.\n5. Review your mistakes.\n6. Track your progress every week.\n\nThis is a local demo response, not a personalized AI-generated roadmap.";
+  }
+
+  if (
+    text.includes("error") ||
+    text.includes("debug") ||
+    text.includes("bug") ||
+    text.includes("not working")
+  ) {
+    return "Let's troubleshoot the problem. 🔧\n\n1. Read the complete error message.\n2. Identify the file and line involved.\n3. Check variables and function arguments.\n4. Reproduce the issue with a small example.\n5. Test one fix at a time.\n\nYou can paste your code into the chat UI, but this frontend-only demo cannot analyze it with a real AI model.";
+  }
+
+  if (
+    text.includes("thank") ||
+    text.includes("thanks")
+  ) {
+    return "You're welcome! 😊\n\nFeel free to continue exploring FRIDAY.";
+  }
+
+  return `I received your message:\n\n"${prompt}"\n\nFRIDAY is currently running in local demo mode. This response comes from predefined frontend logic, not a live AI model.`;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               CHAT INTERFACE                               */
+/* -------------------------------------------------------------------------- */
+
+function ChatInterface({
+  selectedChat,
+  darkMode,
+  onPinMessage,
+}: {
+  selectedChat: string;
+  darkMode: boolean;
+  onPinMessage: (title: string) => void;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [model, setModel] = useState("Friday Fast");
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [attachmentName, setAttachmentName] = useState("");
+  const [copiedId, setCopiedId] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Browser setTimeout returns a number, not NodeJS.Timeout.
+  const responseTimerRef = useRef<number | null>(null);
+
+  const theme = useDashboardTheme(darkMode);
+
+  function clearResponseTimer() {
+    if (responseTimerRef.current !== null) {
+      window.clearTimeout(responseTimerRef.current);
+      responseTimerRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    setMessages([]);
+    setInput("");
+    setAttachmentName("");
+    setModelMenuOpen(false);
+    setLoading(false);
+
+    clearResponseTimer();
+
+    return () => {
+      clearResponseTimer();
+    };
+  }, [selectedChat]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
+  async function copyMessage(message: ChatMessage) {
+    try {
+      const content = message.code
+        ? `${message.content}\n\n${message.code}`
+        : message.content;
+
+      await navigator.clipboard.writeText(content);
+      setCopiedId(message.id);
+
+      window.setTimeout(() => {
+        setCopiedId((current) =>
+          current === message.id ? "" : current
+        );
+      }, 1500);
+    } catch {
+      setCopiedId("");
+    }
+  }
+
+  function sendMessage(
+    event?: React.FormEvent<HTMLFormElement>
+  ) {
+    event?.preventDefault();
+
+    const text = input.trim();
+
+    if ((!text && !attachmentName) || loading) return;
+
+    const userContent = attachmentName
+      ? `${text || "Please review this attachment."}\n\nAttachment: ${attachmentName}`
+      : text;
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: userContent,
+    };
+
+    const prompt = text || userContent;
+
+    setMessages((previous) => [...previous, userMessage]);
+    setInput("");
+    setAttachmentName("");
+    setLoading(true);
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+
+    clearResponseTimer();
+
+    // Frontend-only demo response.
+    responseTimerRef.current = window.setTimeout(() => {
+      const answer = getLocalResponse(prompt);
+
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: answer,
+        },
+      ]);
+
+      setLoading(false);
+      responseTimerRef.current = null;
+      textareaRef.current?.focus();
+    }, 600);
+  }
+
+  function handleTextareaChange(
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ) {
+    setInput(event.target.value);
+    event.target.style.height = "auto";
+    event.target.style.height =
+      `${Math.min(event.target.scrollHeight, 180)}px`;
+  }
+
+  function handleComposerKeyDown(
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function retryLastMessage() {
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((message) => message.role === "user");
+
+    if (!lastUserMessage || loading) return;
+
+    const content = lastUserMessage.content;
+
+    const attachmentMatch = content.match(
+      /\n\nAttachment: (.+)$/
+    );
+
+    const cleanContent = content
+      .replace(/\n\nAttachment: .+$/, "")
+      .replace(/^Please review this attachment\.$/, "")
+      .trim();
+
+    setAttachmentName(attachmentMatch?.[1] ?? "");
+    setInput(cleanContent);
+    textareaRef.current?.focus();
+  }
+
+  const assistantAvatar = (
+    <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-lime-400/20 bg-lime-400/10 text-lime-400">
+      <Zap size={19} fill="currentColor" />
+    </div>
+  );
+
   return (
-    <Link
-      href={href}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 border-2 border-black px-5 py-3 text-sm font-black transition-all duration-150 ${
-        secondary
-          ? "bg-[#F7F4EC] text-black hover:bg-white"
-          : "bg-[#FFE500] text-black shadow-[4px_4px_0_#111] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+    <section
+      className={`flex h-full min-h-0 flex-col ${
+        darkMode ? "bg-[#09090b]" : "bg-zinc-50"
       }`}
     >
-      {children}
-      <ArrowUpRight size={17} />
-    </Link>
-  );
-}
+      {/* Chat header */}
 
-function DashboardPreview() {
-  return (
-    <div className="relative mx-auto w-full max-w-[550px]">
-      <div className="absolute -right-2 -top-2 z-10 rotate-3 border-2 border-black bg-[#FFE500] px-4 py-2 text-xs font-black shadow-[3px_3px_0_#111] sm:-right-5">
-        YOUR SPACE. YOUR RULES.
-      </div>
-
-      <div className="border-[3px] border-black bg-white shadow-[8px_8px_0_#111] sm:shadow-[12px_12px_0_#111]">
-        <div className="flex items-center justify-between border-b-[3px] border-black bg-[#F7F4EC] px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center border-2 border-black bg-[#FFE500]">
-              <GraduationCap size={18} />
-            </div>
-            <span className="text-sm font-black">MY WORKSPACE</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full border border-black bg-[#FF8175]" />
-            <span className="h-2.5 w-2.5 rounded-full border border-black bg-[#FFE500]" />
-            <span className="h-2.5 w-2.5 rounded-full border border-black bg-[#8FCF8A]" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-[125px_1fr]">
-          <aside className="hidden border-r-2 border-black bg-[#F7F4EC] p-3 sm:block">
-            <div className="mb-5 flex items-center gap-2 bg-[#FFE500] p-2 text-xs font-black">
-              <LayoutDashboard size={15} />
-              Overview
-            </div>
-            {[
-              [NotebookPen, "My notes"],
-              [CalendarDays, "My tasks"],
-              [Target, "Habits"],
-              [Wallet, "My money"],
-              [Users, "Study group"],
-            ].map(([Icon, label]) => (
-              <div
-                key={label}
-                className="mb-4 flex items-center gap-2 text-xs font-bold text-zinc-600"
-              >
-                <Icon size={14} />
-                {label}
-              </div>
-            ))}
-          </aside>
-
-          <div className="min-w-0 p-4 sm:p-5">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <p className="mb-1 text-xs font-bold text-zinc-500">
-                  MONDAY, YOUR NEXT CHAPTER
-                </p>
-                <h3 className="text-2xl font-black tracking-tight sm:text-3xl">
-                  Let&apos;s get
-                  <br />
-                  things done<span className="text-[#D5B900]">.</span>
-                </h3>
-              </div>
-              <div className="grid h-10 w-10 shrink-0 place-items-center border-2 border-black bg-[#DED8F5]">
-                <Sparkles size={20} />
-              </div>
-            </div>
-
-            <div className="mb-4 grid grid-cols-2 gap-3">
-              <div className="border-2 border-black bg-[#FFF0A8] p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <NotebookPen size={18} />
-                  <ArrowUpRight size={15} />
-                </div>
-                <p className="text-2xl font-black">12</p>
-                <p className="text-xs font-bold">Notes created</p>
-              </div>
-              <div className="border-2 border-black bg-[#DCE8D5] p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <Flame size={18} />
-                  <span className="text-xs font-black">+1</span>
-                </div>
-                <p className="text-2xl font-black">7 days</p>
-                <p className="text-xs font-bold">Sample streak</p>
-              </div>
-            </div>
-
-            <div className="border-2 border-black">
-              <div className="flex items-center justify-between border-b-2 border-black bg-[#F7F4EC] px-3 py-2.5">
-                <span className="text-xs font-black">TODAY&apos;S PLAN</span>
-                <span className="text-xs font-bold">3 tasks</span>
-              </div>
-              {tasks.map((task) => (
-                <div
-                  key={task.title}
-                  className="flex items-center gap-3 border-b border-zinc-200 px-3 py-3 last:border-b-0"
-                >
-                  <div
-                    className={`grid h-5 w-5 shrink-0 place-items-center border-2 border-black ${
-                      task.done ? "bg-[#FFE500]" : "bg-white"
-                    }`}
-                  >
-                    {task.done && <Check size={13} strokeWidth={3} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-xs font-bold ${
-                        task.done ? "text-zinc-400 line-through" : ""
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    <p className="mt-1 text-[10px] font-medium text-zinc-500">
-                      {task.time}
-                    </p>
-                  </div>
-                  {!task.done && (
-                    <ChevronRight size={15} className="shrink-0" />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex items-center gap-3 border-2 border-black bg-[#DED8F5] p-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center border-2 border-black bg-white">
-                <Brain size={19} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black">Let AI help you out.</p>
-                <p className="text-[10px] font-medium">
-                  Notes into flashcards, in seconds.
-                </p>
-              </div>
-              <Sparkles size={18} />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-2 border-t-[3px] border-black bg-[#FFE500] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Zap size={17} />
-            <span className="text-xs font-black">
-              ONE SPACE. MORE PROGRESS.
-            </span>
-          </div>
-          <span className="hidden text-[10px] font-bold sm:block">
-            SAMPLE PREVIEW
-          </span>
-        </div>
-      </div>
-
-      <div className="absolute -bottom-5 -left-2 -z-10 h-20 w-20 bg-[#DCE8D5] sm:-left-5" />
-    </div>
-  );
-}
-
-function FeatureCard({ feature }) {
-  const Icon = feature.icon;
-
-  return (
-    <article className="group flex h-full flex-col border-2 border-black bg-[#F7F4EC] transition-all duration-200 hover:-translate-y-1 hover:shadow-[5px_5px_0_#111]">
-      <div
-        className={`flex items-center justify-between border-b-2 border-black p-5 ${feature.color}`}
+      <header
+        className={`flex h-[60px] shrink-0 items-center justify-between border-b px-4 sm:px-8 ${
+          darkMode
+            ? "border-zinc-800/80 bg-[#09090b]"
+            : "border-zinc-200 bg-white"
+        }`}
       >
-        <div className="grid h-12 w-12 place-items-center border-2 border-black bg-white">
-          <Icon size={23} strokeWidth={2.2} />
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-lime-400 text-zinc-950 sm:flex">
+            <Zap size={17} fill="currentColor" />
+          </div>
+
+          <div className="min-w-0">
+            <p
+              className={`truncate text-sm font-semibold ${theme.heading}`}
+            >
+              {selectedChat || "New chat"}
+            </p>
+
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              Your personal AI workspace
+            </p>
+          </div>
         </div>
-        <span className="text-xs font-black">{feature.number} / 06</span>
-      </div>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <h3 className="max-w-sm text-2xl font-black leading-tight tracking-tight">
-          {feature.title}
-        </h3>
-        <p className="mt-3 flex-1 text-sm leading-7 text-zinc-700">
-          {feature.description}
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {feature.tags.map((tag) => (
+        <div className="flex items-center gap-2">
+          <span
+            className={`hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] sm:inline-flex ${
+              darkMode
+                ? "border-zinc-800 text-zinc-400"
+                : "border-zinc-200 text-zinc-500"
+            }`}
+          >
             <span
-              key={tag}
-              className="border border-black px-2 py-1 text-[9px] font-black tracking-wide"
-            >
-              {tag}
-            </span>
-          ))}
+              className={`h-1.5 w-1.5 rounded-full ${
+                loading
+                  ? "animate-pulse bg-yellow-400"
+                  : "bg-emerald-400"
+              }`}
+            />
+            {loading ? "Thinking..." : "Ready"}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              clearResponseTimer();
+              setMessages([]);
+              setInput("");
+              setAttachmentName("");
+              setLoading(false);
+
+              if (textareaRef.current) {
+                textareaRef.current.style.height = "auto";
+              }
+            }}
+            title="Clear conversation"
+            aria-label="Clear conversation"
+            className={`rounded-lg p-2 transition ${theme.muted} ${theme.hover}`}
+          >
+            <RotateCw size={16} />
+          </button>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between border-t-2 border-black px-5 py-3">
-        <span className="text-xs font-black uppercase">Explore the idea</span>
-        <ArrowDownRight
-          size={18}
-          className="transition-transform group-hover:translate-x-1 group-hover:translate-y-1"
-        />
-      </div>
-    </article>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <main className="min-h-screen overflow-hidden bg-[#F7F4EC] text-[#111111] selection:bg-[#FFE500] selection:text-black">
-      {/* Navigation */}
-      <header className="border-b-2 border-black">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-10 w-10 place-items-center border-2 border-black bg-[#FFE500] text-xl font-black">
-              F
-            </span>
-            <span className="text-xl font-black tracking-tight">
-              FRIDAY<span className="text-[#B69D00]">.</span>
-            </span>
-          </Link>
-
-          <div className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm font-bold hover:underline">
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-sm font-bold hover:underline"
-            >
-              How it works
-            </a>
-            <a
-              href="#study-together"
-              className="text-sm font-bold hover:underline"
-            >
-              Study together
-            </a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden text-sm font-black hover:underline sm:block"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 border-2 border-black bg-[#FFE500] px-3 py-2.5 text-xs font-black shadow-[3px_3px_0_#111] transition-all hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:px-4 sm:text-sm"
-            >
-              Get started <ArrowUpRight size={16} />
-            </Link>
-          </div>
-        </nav>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto grid max-w-7xl items-center gap-16 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-24">
-        <div>
-          <div className="mb-7 inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2">
-            <Sparkles size={15} />
-            <span className="text-[10px] font-black tracking-[0.12em] sm:text-xs">
-              YOUR ALL-IN-ONE STUDENT WORKSPACE
-            </span>
-          </div>
+      {/* Conversation */}
 
-          <h1 className="text-[clamp(3.5rem,8vw,6.8rem)] font-black leading-[0.84] tracking-[-0.075em]">
-            GET YOUR
-            <br />
-            LIFE
-            <br />
-            TOGETHER<span className="text-[#C4AA00]">.</span>
-          </h1>
+      <div
+        className="min-h-0 flex-1 overflow-y-auto scroll-smooth"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#3f3f46 transparent",
+          overscrollBehavior: "contain",
+        }}
+      >
+        <div className="mx-auto w-full max-w-[920px] px-4 pb-8 pt-8 sm:px-8 sm:pt-10">
+          {messages.length === 0 ? (
+            <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-lime-400/20 bg-lime-400/[0.07] text-lime-400 shadow-[0_0_50px_rgba(163,230,53,0.06)]">
+                <Sparkles size={29} />
+              </div>
 
-          <div className="mt-8 max-w-lg border-l-[5px] border-[#FFE500] pl-5">
-            <p className="text-lg font-bold leading-8 sm:text-xl">
-              One space for your notes, deadlines, habits, money, and people.
-            </p>
-            <p className="mt-3 text-sm leading-7 text-zinc-600 sm:text-base">
-              College is already chaotic. Your productivity system
-              shouldn&apos;t be. Plan smarter, focus better, and make progress
-              that actually feels good.
-            </p>
-          </div>
+              <p className="mb-3 text-[10px] font-semibold tracking-[0.22em] text-lime-400">
+                YOUR PERSONAL AI
+              </p>
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <ActionLink href="/signup">Build your workspace</ActionLink>
-            <a
-              href="#features"
-              className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-black px-5 py-3 text-sm font-black transition-colors hover:bg-white"
-            >
-              See what&apos;s inside <ArrowDownRight size={17} />
-            </a>
-          </div>
+              <h1
+                className={`text-3xl font-semibold tracking-tight sm:text-4xl ${theme.heading}`}
+              >
+                What&apos;s on your mind?
+              </h1>
 
-          <div className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-xs font-bold text-zinc-600">
-            <span className="flex items-center gap-1.5">
-              <CheckCheck size={15} /> One organized space
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCheck size={15} /> AI-powered tools
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCheck size={15} /> Study with friends
-            </span>
-          </div>
-        </div>
+              <p
+                className={`mt-3 max-w-md text-sm leading-6 ${theme.muted}`}
+              >
+                Ask questions, explore ideas, debug code, or make
+                progress on something that matters.
+              </p>
 
-        <DashboardPreview />
-      </section>
+              <div className="mt-8 grid w-full max-w-[620px] gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    title: "Learn something",
+                    description: "Explain a programming concept",
+                    icon: BookOpen,
+                  },
+                  {
+                    title: "Solve a problem",
+                    description: "Help me debug my code",
+                    icon: Zap,
+                  },
+                  {
+                    title: "Build something",
+                    description: "Plan my next project",
+                    icon: Target,
+                  },
+                ].map(
+                  ({ title, description, icon: Icon }) => (
+                    <button
+                      key={title}
+                      type="button"
+                      onClick={() => {
+                        setInput(description);
+                        textareaRef.current?.focus();
+                      }}
+                      className={`group rounded-2xl border p-4 text-left transition ${
+                        darkMode
+                          ? "border-zinc-800 bg-zinc-900/40 hover:border-lime-400/30 hover:bg-lime-400/[0.04]"
+                          : "border-zinc-200 bg-white hover:border-lime-500/50 hover:bg-lime-50/50"
+                      }`}
+                    >
+                      <Icon
+                        size={19}
+                        className="mb-4 text-lime-400 transition group-hover:scale-110"
+                      />
 
-      {/* Ticker */}
-      <div className="overflow-hidden border-y-[3px] border-black bg-[#FFE500] py-4">
-        <div className="flex min-w-max items-center justify-around gap-8 px-5 text-sm font-black tracking-[0.12em] sm:text-base">
-          <span>TAKE NOTES.</span>
-          <span>✳</span>
-          <span>PLAN YOUR SEMESTER.</span>
-          <span>✳</span>
-          <span>BUILD BETTER HABITS.</span>
-          <span>✳</span>
-          <span>FOCUS DEEPER.</span>
-          <span>✳</span>
-          <span>LEVEL UP.</span>
-          <span>✳</span>
-          <span>STUDY TOGETHER.</span>
-          <span>✳</span>
+                      <p
+                        className={`text-sm font-semibold ${theme.heading}`}
+                      >
+                        {title}
+                      </p>
+
+                      <p
+                        className={`mt-1 text-xs leading-5 ${theme.muted}`}
+                      >
+                        {description}
+                      </p>
+
+                      <ArrowUpRight
+                        size={15}
+                        className="mt-3 text-zinc-500 transition group-hover:translate-x-0.5 group-hover:text-lime-400"
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMessages(demoMessages)}
+                className="mt-6 text-xs text-zinc-500 transition hover:text-lime-400"
+              >
+                Preview example conversation
+              </button>
+
+              <p className="mt-3 text-[10px] text-zinc-600">
+                Local demo mode · No AI connection
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-9">
+              {messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={
+                    message.role === "user"
+                      ? "flex justify-end"
+                      : "flex items-start gap-3 sm:gap-4"
+                  }
+                >
+                  {message.role === "assistant" && assistantAvatar}
+
+                  <div
+                    className={
+                      message.role === "user"
+                        ? "max-w-[90%] sm:max-w-[78%]"
+                        : "min-w-0 flex-1"
+                    }
+                  >
+                    {message.role === "user" ? (
+                      <div
+                        className={`whitespace-pre-wrap break-words rounded-2xl border px-4 py-3.5 text-sm leading-6 ${
+                          darkMode
+                            ? "border-zinc-800 bg-zinc-900 text-zinc-100"
+                            : "border-zinc-200 bg-white text-zinc-900"
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className={`whitespace-pre-wrap break-words text-sm leading-7 sm:text-[15px] ${
+                            darkMode
+                              ? "text-zinc-200"
+                              : "text-zinc-800"
+                          }`}
+                        >
+                          {message.content}
+                        </div>
+
+                        {message.code && (
+                          <div
+                            className={`mt-4 overflow-hidden rounded-2xl border ${
+                              darkMode
+                                ? "border-zinc-800 bg-[#0c0c0e]"
+                                : "border-zinc-200 bg-white"
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center justify-between border-b px-4 py-3 ${
+                                darkMode
+                                  ? "border-zinc-800"
+                                  : "border-zinc-200"
+                              }`}
+                            >
+                              <span className="text-xs font-medium text-zinc-400">
+                                Code
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => void copyMessage(message)}
+                                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-400 transition hover:bg-lime-400/10 hover:text-lime-400"
+                              >
+                                {copiedId === message.id ? (
+                                  <Check size={13} />
+                                ) : (
+                                  <Copy size={13} />
+                                )}
+
+                                {copiedId === message.id
+                                  ? "Copied"
+                                  : "Copy"}
+                              </button>
+                            </div>
+
+                            <pre className="overflow-x-auto p-4 text-[12px] leading-7 text-lime-100 sm:p-5 sm:text-[13px]">
+                              <code>{message.code}</code>
+                            </pre>
+                          </div>
+                        )}
+
+                        <div className="mt-3 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => void copyMessage(message)}
+                            title="Copy response"
+                            aria-label="Copy response"
+                            className={`rounded-lg p-2 transition ${theme.muted} ${theme.hover}`}
+                          >
+                            {copiedId === message.id ? (
+                              <Check
+                                size={16}
+                                className="text-lime-400"
+                              />
+                            ) : (
+                              <Copy size={16} />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onPinMessage(
+                                message.content.slice(0, 70)
+                              )
+                            }
+                            title="Pin response"
+                            aria-label="Pin response"
+                            className={`rounded-lg p-2 transition ${theme.muted} ${theme.hover}`}
+                          >
+                            <Pin size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={retryLastMessage}
+                            title="Retry last message"
+                            aria-label="Retry last message"
+                            className={`rounded-lg p-2 transition ${theme.muted} ${theme.hover}`}
+                          >
+                            <RotateCw size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </article>
+              ))}
+
+              {loading && (
+                <div className="flex items-start gap-3">
+                  {assistantAvatar}
+
+                  <div className="flex items-center gap-1.5 pt-4">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-lime-400/60 [animation-delay:-0.2s]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-lime-400/60 [animation-delay:-0.1s]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-lime-400/60" />
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Features */}
-      <section
-        id="features"
-        className="mx-auto max-w-7xl scroll-mt-10 px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
+      {/* Composer */}
+
+      <div
+        className={`shrink-0 px-3 pb-3 pt-3 sm:px-6 sm:pb-5 ${
+          darkMode ? "bg-[#09090b]" : "bg-zinc-50"
+        }`}
       >
-        <div className="mb-12 grid gap-6 md:grid-cols-[1fr_0.65fr] md:items-end">
-          <div>
-            <SectionLabel>Everything in one place</SectionLabel>
-            <h2 className="max-w-3xl text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
-              LESS CHAOS.
-              <br />
-              MORE <span className="bg-[#FFE500] px-2">PROGRESS.</span>
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-7 text-zinc-600 md:justify-self-end">
-            Six connected tools designed around real student life. No need to
-            jump between a dozen apps just to get through the week.
+        <div className="mx-auto w-full max-w-[900px]">
+          {attachmentName && (
+            <div
+              className={`mb-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+                darkMode
+                  ? "border-zinc-800 bg-zinc-900 text-zinc-300"
+                  : "border-zinc-200 bg-white text-zinc-600"
+              }`}
+            >
+              <Paperclip size={14} />
+
+              <span className="min-w-0 flex-1 truncate">
+                {attachmentName}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setAttachmentName("")}
+                aria-label="Remove attachment"
+                className="rounded p-1 hover:text-red-400"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <form
+            onSubmit={sendMessage}
+            className={`rounded-2xl border p-3 transition focus-within:border-lime-400/50 focus-within:ring-1 focus-within:ring-lime-400/10 sm:p-4 ${
+              darkMode
+                ? "border-zinc-800 bg-zinc-900/80"
+                : "border-zinc-200 bg-white shadow-sm"
+            }`}
+          >
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={handleTextareaChange}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="Message Friday..."
+              aria-label="Message Friday"
+              className={`block max-h-[180px] min-h-[32px] w-full resize-none bg-transparent py-1 text-sm leading-6 outline-none placeholder:text-zinc-500 sm:text-[15px] ${theme.heading}`}
+            />
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (file) {
+                    setAttachmentName(file.name);
+                  }
+
+                  event.target.value = "";
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach file"
+                aria-label="Attach file"
+                className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${
+                  darkMode
+                    ? "border-zinc-800 text-zinc-400 hover:border-lime-400/30 hover:text-lime-400"
+                    : "border-zinc-200 text-zinc-600 hover:border-lime-500 hover:text-lime-700"
+                }`}
+              >
+                <Plus size={20} />
+              </button>
+
+              <button
+                type="button"
+                title="Connect tools"
+                aria-label="Connect tools"
+                onClick={() =>
+                  window.alert(
+                    "Connectors are frontend-only demo settings. No accounts are connected."
+                  )
+                }
+                className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${
+                  darkMode
+                    ? "border-zinc-800 text-zinc-400 hover:border-lime-400/30 hover:text-lime-400"
+                    : "border-zinc-200 text-zinc-600 hover:border-lime-500 hover:text-lime-700"
+                }`}
+              >
+                <Plug size={17} />
+              </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setModelMenuOpen((open) => !open)
+                  }
+                  className={`flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-medium transition ${
+                    darkMode
+                      ? "border-zinc-800 text-zinc-300 hover:bg-white/[0.04]"
+                      : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  <Sparkles
+                    size={14}
+                    className="text-lime-400"
+                  />
+
+                  {model}
+
+                  <ChevronDown size={14} />
+                </button>
+
+                {modelMenuOpen && (
+                  <div
+                    className={`absolute bottom-12 left-0 z-30 w-48 overflow-hidden rounded-xl border p-1 shadow-2xl ${
+                      darkMode
+                        ? "border-zinc-700 bg-zinc-900"
+                        : "border-zinc-200 bg-white"
+                    }`}
+                  >
+                    {[
+                      "Friday Fast",
+                      "Friday Thinking",
+                    ].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setModel(item);
+                          setModelMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                          darkMode
+                            ? "text-zinc-200 hover:bg-white/[0.05]"
+                            : "text-zinc-800 hover:bg-zinc-100"
+                        }`}
+                      >
+                        {item}
+
+                        {model === item && (
+                          <Check
+                            size={14}
+                            className="text-lime-400"
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  (!input.trim() && !attachmentName)
+                }
+                aria-label="Send message"
+                title="Send message"
+                className={`ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-30 ${primaryButton}`}
+              >
+                {loading ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-700 border-t-zinc-950" />
+                ) : (
+                  <ArrowUp size={21} />
+                )}
+              </button>
+            </div>
+          </form>
+
+          <p className="mt-3 text-center text-[10px] text-zinc-500">
+            FRIDAY demo mode · Responses are predefined, not AI-generated.
           </p>
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {features.map((feature) => (
-            <FeatureCard key={feature.number} feature={feature} />
-          ))}
-        </div>
-      </section>
 
-      {/* AI spotlight */}
-      <section
-        id="how-it-works"
-        className="scroll-mt-10 border-y-[3px] border-black bg-[#DED8F5]"
+function Sidebar({
+  mobileOpen,
+  setMobileOpen,
+  darkMode,
+  setDarkMode,
+  user,
+  onNewChat,
+  onSelectChat,
+  selectedChat,
+  chatGroups,
+  setChatGroups,
+  connectors,
+  setConnectors,
+  pinnedMessages,
+  setPinnedMessages,
+  memory,
+  setMemory,
+}: {
+  mobileOpen: boolean;
+  setMobileOpen: (value: boolean) => void;
+  darkMode: boolean;
+  setDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+  user: User;
+  onNewChat: () => void;
+  onSelectChat: (title: string) => void;
+  selectedChat: string;
+  chatGroups: ChatGroup[];
+  setChatGroups: React.Dispatch<React.SetStateAction<ChatGroup[]>>;
+  connectors: Connector[];
+  setConnectors: React.Dispatch<React.SetStateAction<Connector[]>>;
+  pinnedMessages: PinnedMessage[];
+  setPinnedMessages: React.Dispatch<React.SetStateAction<PinnedMessage[]>>;
+  memory: string;
+  setMemory: React.Dispatch<React.SetStateAction<string>>;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [chatsOpen, setChatsOpen] = useState(true);
+  const [connectorsOpen, setConnectorsOpen] = useState(true);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+
+  const theme = useDashboardTheme(darkMode);
+
+  const sidebarClasses = darkMode
+    ? "border-zinc-800 bg-[#09090b] text-zinc-100"
+    : "border-zinc-200 bg-white text-zinc-900";
+
+  function closeMobile() {
+    setMobileOpen(false);
+  }
+
+  function addChat() {
+    const title = window.prompt("Enter a chat title");
+
+    if (!title?.trim()) return;
+
+    const cleanTitle = title.trim();
+
+    setChatGroups((previous) =>
+      addChatToGroups(previous, cleanTitle)
+    );
+
+    onSelectChat(cleanTitle);
+    closeMobile();
+  }
+
+  function toggleConnector(name: string) {
+    setConnectors((previous) =>
+      previous.map((item) =>
+        item.name === name
+          ? { ...item, enabled: !item.enabled }
+          : item
+      )
+    );
+  }
+
+  return (
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          onClick={closeMobile}
+          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
+          collapsed ? "w-[76px]" : "w-[300px] xl:w-[320px]"
+        } ${sidebarClasses} ${
+          mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
+        }`}
       >
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:px-12">
-          <div>
-            <SectionLabel>Meet your AI study buddy</SectionLabel>
-            <h2 className="text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
-              FROM
-              <br />
-              OVERWHELMED
-              <br />
-              TO{" "}
-              <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">
-                ON TRACK.
+        {/* Brand */}
+
+        <div
+          className={`flex h-[68px] shrink-0 items-center ${
+            collapsed
+              ? "justify-center px-3"
+              : "justify-between px-5"
+          }`}
+        >
+          {!collapsed && (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-3"
+              onClick={closeMobile}
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-400 text-zinc-950">
+                <Zap size={21} fill="currentColor" />
+              </div>
+
+              <span className="text-xl font-bold tracking-tight">
+                FRIDAY<span className="text-lime-400">.</span>
               </span>
-            </h2>
-            <p className="mt-6 max-w-lg text-base leading-8 text-zinc-700">
-              Got a huge syllabus? Messy notes? An exam coming up? Use AI to
-              turn the stuff in your head into something you can actually work
-              with.
-            </p>
-
-            <div className="mt-8 space-y-4">
-              {[
-                "Turn notes into clear summaries.",
-                "Generate flashcards for revision.",
-                "Rewrite and improve your writing.",
-                "Break syllabus topics into planned tasks.",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div className="grid h-6 w-6 shrink-0 place-items-center border-2 border-black bg-[#FFE500]">
-                    <Check size={14} strokeWidth={3} />
-                  </div>
-                  <span className="text-sm font-bold">{item}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-9">
-              <ActionLink href="/signup">Give it a try</ActionLink>
-            </div>
-          </div>
-
-          <div className="border-[3px] border-black bg-white shadow-[8px_8px_0_#111] sm:shadow-[12px_12px_0_#111]">
-            <div className="flex items-center gap-3 border-b-[3px] border-black bg-[#F7F4EC] p-4">
-              <div className="grid h-10 w-10 place-items-center border-2 border-black bg-[#FFE500]">
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <p className="font-black">AI NOTE ASSISTANT</p>
-                <p className="text-xs font-bold text-zinc-500">
-                  A sample workflow
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 p-5 sm:p-7">
-              <div className="border-2 border-black bg-[#F7F4EC] p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <FileText size={17} />
-                  <span className="text-xs font-black">YOUR LECTURE NOTES</span>
-                </div>
-                <p className="text-sm leading-6 text-zinc-600">
-                  Data structures organize information so it can be accessed and
-                  modified efficiently. Arrays store elements in contiguous
-                  memory...
-                </p>
-              </div>
-
-              <div className="flex justify-center">
-                <div className="flex items-center gap-2 border-2 border-black bg-[#FFE500] px-4 py-2 text-xs font-black">
-                  <Sparkles size={15} /> TRANSFORM WITH AI
-                  <ArrowDownRight size={15} />
-                </div>
-              </div>
-
-              <div className="border-2 border-black p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <Brain size={18} />
-                  <span className="text-xs font-black">
-                    YOUR STUDY MATERIAL
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DCE8D5] text-xs font-black">
-                      1
-                    </span>
-                    <div>
-                      <p className="text-sm font-black">Quick summary</p>
-                      <p className="text-xs leading-5 text-zinc-600">
-                        A shorter, clearer explanation of the topic.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#FFF0A8] text-xs font-black">
-                      2
-                    </span>
-                    <div>
-                      <p className="text-sm font-black">Flashcards</p>
-                      <p className="text-xs leading-5 text-zinc-600">
-                        Question-and-answer cards for revision.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DED8F5] text-xs font-black">
-                      3
-                    </span>
-                    <div>
-                      <p className="text-sm font-black">Actionable tasks</p>
-                      <p className="text-xs leading-5 text-zinc-600">
-                        Turn learning goals into manageable steps.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="text-center text-[10px] font-bold text-zinc-400">
-                CONCEPT PREVIEW · AI FEATURES REQUIRE IMPLEMENTATION
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Gamification */}
-      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-          <div>
-            <SectionLabel>Progress you can feel</SectionLabel>
-            <h2 className="text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
-              MAKE
-              <br />
-              CONSISTENCY
-              <br />
-              YOUR <span className="bg-[#FFE500] px-2">SUPERPOWER.</span>
-            </h2>
-            <p className="mt-6 max-w-lg text-sm leading-7 text-zinc-600 sm:text-base">
-              You don&apos;t need to be productive every second. You just need a
-              system that helps you keep showing up. Track streaks, set
-              challenges, and celebrate the small wins.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border-2 border-black bg-[#FFF0A8] p-5 sm:p-7">
-              <Flame size={28} />
-              <p className="mt-8 text-3xl font-black sm:text-5xl">7 DAYS</p>
-              <p className="mt-2 text-xs font-black uppercase">
-                Example streak
-              </p>
-              <div className="mt-5 flex gap-1.5">
-                {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
-                  <div
-                    key={`${day}-${i}`}
-                    className={`grid h-7 min-w-0 flex-1 place-items-center border border-black text-[10px] font-black ${i < 5 ? "bg-[#FFE500]" : "bg-white"}`}
-                  >
-                    {i < 5 ? <Check size={12} /> : day}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-2 border-black bg-[#DCE8D5] p-5 sm:p-7">
-              <Zap size={28} />
-              <p className="mt-8 text-3xl font-black sm:text-5xl">+250 XP</p>
-              <p className="mt-2 text-xs font-black uppercase">
-                Example reward
-              </p>
-              <div className="mt-6 h-3 border-2 border-black bg-white">
-                <div className="h-full w-3/4 border-r-2 border-black bg-[#8CCF82]" />
-              </div>
-              <p className="mt-2 text-[10px] font-bold">
-                LEVEL UP YOUR ROUTINE
-              </p>
-            </div>
-
-            <div className="col-span-2 border-2 border-black bg-white p-5 sm:p-7">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-black uppercase text-zinc-500">
-                    Your daily challenge
-                  </p>
-                  <p className="mt-2 text-lg font-black sm:text-2xl">
-                    Finish one thing that matters.
-                  </p>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    Study, organize, focus, or build a habit.
-                  </p>
-                </div>
-                <div className="grid h-14 w-14 shrink-0 place-items-center border-2 border-black bg-[#DED8F5]">
-                  <Target size={28} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Collaborative study */}
-      <section
-        id="study-together"
-        className="scroll-mt-10 border-y-[3px] border-black bg-[#DCE8D5]"
-      >
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:px-12">
-          <div className="order-2 border-[3px] border-black bg-white shadow-[8px_8px_0_#111] sm:shadow-[12px_12px_0_#111] lg:order-1">
-            <div className="flex items-center justify-between border-b-[3px] border-black bg-[#F7F4EC] p-4">
-              <div>
-                <p className="text-sm font-black">THE STUDY SQUAD</p>
-                <p className="mt-1 text-xs font-bold text-zinc-500">
-                  A sample study room
-                </p>
-              </div>
-              <div className="flex -space-x-2">
-                {[
-                  "bg-[#F8DCD0]",
-                  "bg-[#DED8F5]",
-                  "bg-[#FFF0A8]",
-                  "bg-[#D9E9F7]",
-                ].map((color, i) => (
-                  <div
-                    key={i}
-                    className={`grid h-8 w-8 place-items-center rounded-full border-2 border-black ${color} text-xs font-black`}
-                  >
-                    {["A", "M", "J", "S"][i]}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-5 sm:p-7">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="grid h-12 w-12 place-items-center border-2 border-black bg-[#FFE500]">
-                  <Users size={23} />
-                </div>
-                <div>
-                  <p className="font-black">Physics exam prep</p>
-                  <p className="text-xs font-bold text-zinc-500">
-                    4 members · Sample group
-                  </p>
-                </div>
-              </div>
-
-              <div className="border-2 border-black p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-black">SHARED GOAL</span>
-                  <span className="border border-black bg-[#FFF0A8] px-2 py-1 text-[10px] font-black">
-                    THIS WEEK
-                  </span>
-                </div>
-                <p className="font-black">Finish the Physics syllabus</p>
-                <div className="mt-4 h-3 border-2 border-black bg-[#F7F4EC]">
-                  <div className="h-full w-2/3 border-r-2 border-black bg-[#8CCF82]" />
-                </div>
-                <p className="mt-2 text-xs font-bold text-zinc-500">
-                  Example progress: 2 of 3 milestones
-                </p>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {[
-                  ["A", "Review lecture notes", true],
-                  ["M", "Solve practice questions", true],
-                  ["J", "Finish revision sheet", false],
-                ].map(([initial, title, done]) => (
-                  <div
-                    key={String(title)}
-                    className="flex items-center gap-3 border border-zinc-200 p-3"
-                  >
-                    <div className="grid h-8 w-8 shrink-0 place-items-center border border-black bg-[#F7F4EC] text-xs font-black">
-                      {initial}
-                    </div>
-
-                    <span className="flex-1 text-xs font-bold">{title}</span>
-
-                    <div
-                      className={`grid h-5 w-5 place-items-center border border-black ${
-                        done ? "bg-[#DCE8D5]" : "bg-white"
-                      }`}
-                    >
-                      {done && <Check size={12} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="order-1 lg:order-2">
-            <SectionLabel>Don't study alone</SectionLabel>
-            <h2 className="text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
-              ACCOUNTABILITY
-              <br />
-              IS A
-              <br />
-              <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">
-                SUPERPOWER.
-              </span>
-            </h2>
-            <p className="mt-6 max-w-lg text-sm leading-7 text-zinc-700 sm:text-base">
-              Create a study group, invite friends, set shared goals, and make
-              time to work together. A little teamwork can make a big difference
-              when deadlines get real.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
-                2–10 MEMBERS
-              </div>
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
-                SHARED GOALS
-              </div>
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
-                VIRTUAL STUDY ROOM
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Focus / money strip */}
-      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24 lg:px-12">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="flex flex-col border-2 border-black bg-[#F8DCD0] p-6 sm:p-8">
-            <div className="flex items-center justify-between">
-              <Clock3 size={28} />
-              <span className="text-xs font-black">FOCUS MODE</span>
-            </div>
-            <h3 className="mt-10 text-3xl font-black">
-              One task. Your full attention.
-            </h3>
-            <p className="mt-3 flex-1 text-sm leading-7 text-zinc-700">
-              Set your work and break intervals, start a focus session, and
-              create a routine that helps you work without constantly switching
-              tasks.
-            </p>
-            <div className="mt-6 inline-flex items-center gap-2 text-xs font-black">
-              POMODORO + AMBIENT SOUND <ArrowRight size={16} />
-            </div>
-          </div>
-
-          <div className="flex flex-col border-2 border-black bg-[#D9E9F7] p-6 sm:p-8">
-            <div className="flex items-center justify-between">
-              <CircleDollarSign size={28} />
-              <span className="text-xs font-black">STUDENT FINANCE</span>
-            </div>
-            <h3 className="mt-10 text-3xl font-black">
-              Your budget, minus the guesswork.
-            </h3>
-            <p className="mt-3 flex-1 text-sm leading-7 text-zinc-700">
-              Keep track of daily spending, set category limits, split shared
-              expenses, and see where your money goes each month.
-            </p>
-            <div className="mt-6 inline-flex items-center gap-2 text-xs font-black">
-              SPENDING + BUDGETS + INSIGHTS <ArrowRight size={16} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="px-5 pb-20 sm:px-8 sm:pb-28 lg:px-12">
-        <div className="mx-auto max-w-7xl border-[3px] border-black bg-[#FFE500] p-7 shadow-[7px_7px_0_#111] sm:p-12 md:shadow-[12px_12px_0_#111] lg:p-16">
-          <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-black">
-                <Sparkles size={15} /> YOUR NEXT CHAPTER STARTS HERE
-              </div>
-              <h2 className="max-w-3xl text-4xl font-black leading-[0.9] tracking-tight sm:text-6xl lg:text-7xl">
-                YOUR SEMESTER
-                <br />
-                WON&apos;T ORGANIZE ITSELF.
-              </h2>
-              <p className="mt-5 max-w-xl text-sm font-bold leading-7 sm:text-base">
-                Notes, plans, habits, focus, and friends. Bring your student
-                life into one space and take the next step.
-              </p>
-            </div>
-            <div>
-              <Link
-                href="/auth/signup"
-                className="inline-flex min-h-14 items-center gap-3 border-2 border-black bg-black px-6 py-4 text-sm font-black text-white transition-transform hover:-translate-y-1"
-              >
-                Create your account <ArrowUpRight size={18} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t-[3px] border-black bg-[#F7F4EC]">
-        <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="grid h-9 w-9 place-items-center border-2 border-black bg-[#FFE500] font-black">
-                F
-              </span>
-              <span className="text-lg font-black tracking-tight">FRIDAY.</span>
             </Link>
+          )}
 
-            <p className="max-w-sm text-xs leading-6 text-zinc-500">
-              A student workspace for doing your work, building good habits, and
-              making room for what matters.
-            </p>
+          <button
+            type="button"
+            onClick={() =>
+              setCollapsed((previous) => !previous)
+            }
+            aria-label={
+              collapsed ? "Expand sidebar" : "Collapse sidebar"
+            }
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+              darkMode
+                ? "border-zinc-800 text-zinc-400 hover:bg-white/[0.05]"
+                : "border-zinc-200 text-zinc-600 hover:bg-zinc-100"
+            }`}
+          >
+            {collapsed ? (
+              <PanelLeft size={18} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </button>
+        </div>
 
-            <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-bold">
-              <a href="#features" className="hover:underline">
-                Features
-              </a>
-              <Link href="/auth/login" className="hover:underline">
-                Log in
-              </Link>
-              <Link href="/auth/signup" className="hover:underline">
-                Sign up
-              </Link>
+        {!collapsed ? (
+          <>
+            {/* New chat */}
+
+            <div className="shrink-0 px-4">
+              <button
+                type="button"
+                onClick={() => {
+                  onNewChat();
+                  closeMobile();
+                }}
+                className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${primaryButton}`}
+              >
+                <Plus size={18} strokeWidth={2.5} />
+                New chat
+              </button>
+            </div>
+
+            {/* Sidebar content */}
+
+            <div
+              className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-5 pt-5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700"
+              style={{
+                scrollbarColor: "#3f3f46 transparent",
+              }}
+            >
+              {/* Previous chats */}
+
+              <section>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setChatsOpen((value) => !value)
+                  }
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${theme.hover}`}
+                >
+                  <span>Previous chats</span>
+
+                  {chatsOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+
+                {chatsOpen && (
+                  <div className="mt-2 space-y-3">
+                    {chatGroups.map((group) => (
+                      <div key={group.group}>
+                        <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-wider text-zinc-500">
+                          {group.group}
+                        </p>
+
+                        {group.items.map((chat) => (
+                          <button
+                            key={chat}
+                            type="button"
+                            title={chat}
+                            onClick={() => {
+                              onSelectChat(chat);
+                              closeMobile();
+                            }}
+                            className={`block w-full truncate rounded-lg px-3 py-2 text-left text-[13px] transition ${
+                              selectedChat === chat
+                                ? "bg-lime-400/10 font-medium text-lime-400"
+                                : `${theme.muted} ${theme.hover}`
+                            }`}
+                          >
+                            {chat}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={addChat}
+                      className={`flex items-center gap-2 px-3 py-1 text-xs transition hover:text-lime-400 ${theme.muted}`}
+                    >
+                      <Plus size={14} />
+                      Add chat
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {/* Connectors */}
+
+              <section>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConnectorsOpen((value) => !value)
+                  }
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${theme.hover}`}
+                >
+                  <span>Connectors</span>
+
+                  {connectorsOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+
+                {connectorsOpen && (
+                  <div className="mt-2 space-y-1">
+                    {connectors.map(
+                      ({ name, enabled, icon: Icon }) => (
+                        <div
+                          key={name}
+                          className={`flex items-center justify-between rounded-lg px-3 py-2 ${theme.hover}`}
+                        >
+                          <span className="flex items-center gap-2.5 text-[13px]">
+                            <Icon
+                              size={16}
+                              className={theme.muted}
+                            />
+                            {name}
+                          </span>
+
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={enabled}
+                            aria-label={`${enabled ? "Disable" : "Enable"} ${name}`}
+                            onClick={() => toggleConnector(name)}
+                            className={`relative h-[22px] w-10 shrink-0 rounded-full transition-colors ${
+                              enabled
+                                ? "bg-lime-400"
+                                : "bg-zinc-700"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-[3px] h-4 w-4 rounded-full bg-white transition-all ${
+                                enabled
+                                  ? "left-[21px]"
+                                  : "left-[3px]"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )
+                    )}
+
+                    <p className="px-3 pt-1 text-[10px] leading-4 text-zinc-500">
+                      Demo settings only. No accounts are connected.
+                    </p>
+                  </div>
+                )}
+              </section>
+
+              {/* Memory */}
+
+              <section>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMemoryOpen((value) => !value)
+                  }
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${theme.hover}`}
+                >
+                  <span>Memory</span>
+
+                  {memoryOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+
+                {memoryOpen && (
+                  <div className="mt-2 px-3">
+                    <p
+                      className={`whitespace-pre-wrap break-words text-xs leading-5 ${theme.muted}`}
+                    >
+                      {memory || "No saved memory yet."}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const value = window.prompt(
+                          "Edit your saved memory",
+                          memory
+                        );
+
+                        if (value !== null) {
+                          setMemory(value);
+                        }
+                      }}
+                      className="mt-3 text-xs text-lime-400 transition hover:text-lime-300"
+                    >
+                      {memory ? "Edit memory" : "Add memory"}
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {/* Pinned messages */}
+
+              <section>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPinnedOpen((value) => !value)
+                  }
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${theme.hover}`}
+                >
+                  <span>Pinned messages</span>
+
+                  {pinnedOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+
+                {pinnedOpen && (
+                  <div className="mt-2 space-y-1">
+                    {pinnedMessages.length === 0 ? (
+                      <p className="px-3 py-2 text-xs text-zinc-500">
+                        No pinned messages yet.
+                      </p>
+                    ) : (
+                      pinnedMessages.map((item) => (
+                        <div
+                          key={item.id}
+                          className={`group flex items-center gap-2 rounded-lg px-3 py-2 ${theme.hover}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onSelectChat(item.title)
+                            }
+                            className={`flex min-w-0 flex-1 items-center gap-2 text-left text-xs ${theme.muted}`}
+                          >
+                            <Pin
+                              size={13}
+                              className="shrink-0 text-lime-400"
+                            />
+
+                            <span className="truncate">
+                              {item.title}
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            aria-label={`Unpin ${item.title}`}
+                            onClick={() =>
+                              setPinnedMessages((previous) =>
+                                previous.filter(
+                                  (message) =>
+                                    message.id !== item.id
+                                )
+                              )
+                            }
+                            className="rounded p-1 text-zinc-500 transition hover:text-red-400"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const title = window.prompt(
+                      "Enter a pinned item title"
+                    );
+
+                    if (title?.trim()) {
+                      setPinnedMessages((previous) => [
+                        ...previous,
+                        {
+                          id: Date.now(),
+                          title: title.trim(),
+                        },
+                      ]);
+                    }
+                  }}
+                  className={`mt-2 flex items-center gap-2 px-3 py-1 text-xs transition hover:text-lime-400 ${theme.muted}`}
+                >
+                  <Plus size={14} />
+                  Pin an item
+                </button>
+              </section>
+            </div>
+
+            {/* User profile */}
+
+            <div className="shrink-0 px-4 pb-4 pt-3">
+              <div
+                className={`flex items-center gap-3 border-t pt-4 ${theme.divider}`}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lime-400/10 text-xs font-semibold text-lime-400">
+                  {getInitials(user.name)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">
+                    {user.name}
+                  </p>
+
+                  <p
+                    className={`mt-0.5 truncate text-[11px] ${theme.muted}`}
+                  >
+                    {user.email}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDarkMode((value) => !value)
+                  }
+                  aria-label={
+                    darkMode
+                      ? "Switch to light theme"
+                      : "Switch to dark theme"
+                  }
+                  className={`rounded-lg p-2 transition ${theme.hover}`}
+                >
+                  {darkMode ? (
+                    <Sun
+                      size={17}
+                      className="text-lime-400"
+                    />
+                  ) : (
+                    <Moon size={17} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Collapsed sidebar */
+
+          <div className="flex flex-1 flex-col items-center gap-3 py-5">
+            <button
+              type="button"
+              onClick={() => {
+                onNewChat();
+                closeMobile();
+              }}
+              title="New chat"
+              className={`rounded-xl p-3 transition ${theme.hover}`}
+            >
+              <Plus size={21} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              title="Previous chats"
+              className={`rounded-xl p-3 transition ${theme.hover}`}
+            >
+              <MessageSquare size={20} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              title="Connectors"
+              className={`rounded-xl p-3 transition ${theme.hover}`}
+            >
+              <HardDrive size={20} />
+            </button>
+
+            <div className="mt-auto flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setDarkMode((value) => !value)
+                }
+                title="Toggle theme"
+                className={`rounded-xl p-3 transition ${theme.hover}`}
+              >
+                {darkMode ? (
+                  <Sun
+                    size={19}
+                    className="text-lime-400"
+                  />
+                ) : (
+                  <Moon size={19} />
+                )}
+              </button>
+
+              <div
+                title={user.name}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-400/10 text-xs font-semibold text-lime-400"
+              >
+                {getInitials(user.name)}
+              </div>
             </div>
           </div>
-          <div className="mt-7 flex flex-col gap-2 border-t border-zinc-300 pt-5 text-[10px] font-bold text-zinc-500 sm:flex-row sm:justify-between">
-            <span>
-              © {new Date().getFullYear()} FRIDAY. ALL RIGHTS RESERVED.
-            </span>
-            <span>BUILT FOR THE NEXT GENERATION OF DOERS.</span>
-          </div>
+        )}
+      </aside>
+    </>
+  );
+}
+
+
+export default function DashboardPage() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+
+  const [selectedChat, setSelectedChat] = useState(
+    "Debounce in TypeScript"
+  );
+
+  const [chatGroups, setChatGroups] =
+    useState<ChatGroup[]>(initialChatGroups);
+
+  const [connectors, setConnectors] =
+    useState<Connector[]>(initialConnectors);
+
+  const [pinnedMessages, setPinnedMessages] =
+    useState<PinnedMessage[]>([]);
+
+  const [memory, setMemory] = useState("");
+
+  // Local demo profile. No authentication request.
+  const user: User = {
+    name: "FRIDAY User",
+    email: "Local workspace",
+  };
+
+  function newChat() {
+    const title = `New chat ${new Date().toLocaleTimeString(
+      [],
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    )}`;
+
+    setSelectedChat(title);
+
+    setChatGroups((previous) =>
+      addChatToGroups(previous, title)
+    );
+  }
+
+  function selectChat(title: string) {
+    setSelectedChat(title);
+  }
+
+  function pinMessage(title: string) {
+    const cleanTitle = title.trim();
+
+    if (!cleanTitle) return;
+
+    setPinnedMessages((previous) => [
+      { id: Date.now(), title: cleanTitle },
+      ...previous.filter(
+        (item) => item.title !== cleanTitle
+      ),
+    ]);
+  }
+
+  const themeClasses = darkMode
+    ? "bg-[#09090b] text-zinc-100"
+    : "bg-zinc-50 text-zinc-900";
+
+  return (
+    <main
+      className={`h-screen overflow-hidden selection:bg-lime-400 selection:text-zinc-950 lg:flex ${themeClasses}`}
+    >
+      <Sidebar
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        user={user}
+        onNewChat={newChat}
+        onSelectChat={selectChat}
+        selectedChat={selectedChat}
+        chatGroups={chatGroups}
+        setChatGroups={setChatGroups}
+        connectors={connectors}
+        setConnectors={setConnectors}
+        pinnedMessages={pinnedMessages}
+        setPinnedMessages={setPinnedMessages}
+        memory={memory}
+        setMemory={setMemory}
+      />
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* Mobile menu bar */}
+
+        <div
+          className={`flex h-12 shrink-0 items-center gap-3 border-b px-3 lg:hidden ${
+            darkMode
+              ? "border-zinc-800 bg-[#09090b]"
+              : "border-zinc-200 bg-white"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open sidebar"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5"
+          >
+            <Menu size={19} />
+          </button>
+
+          <span className="text-sm font-bold tracking-tight">
+            FRIDAY<span className="text-lime-400">.</span>
+          </span>
+
+          <span className="min-w-0 flex-1 truncate text-right text-xs text-zinc-500">
+            {selectedChat}
+          </span>
         </div>
-      </footer>
+
+        {/* Chat interface */}
+
+        <div className="min-h-0 flex-1">
+          <ChatInterface
+            key={selectedChat}
+            selectedChat={selectedChat}
+            darkMode={darkMode}
+            onPinMessage={pinMessage}
+          />
+        </div>
+      </div>
     </main>
   );
 }

@@ -5,3 +5,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+html,
+body {
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100%;
+}
+
+main {
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+}
+

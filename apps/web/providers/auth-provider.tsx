@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isPublicRoute =
       publicRoutes.includes(pathname) ||
       pathname.startsWith("/signup") ||
+      pathname.startsWith("/dashboard") ||
       pathname.startsWith("/reset-password/") ||
       pathname.startsWith("/f/") ||
       pathname.startsWith("/p/") ||
