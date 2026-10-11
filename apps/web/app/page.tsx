@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import {
   ArrowDownRight,
@@ -250,7 +249,9 @@ function DashboardPreview() {
         <div className="flex items-center justify-between gap-2 border-t-[3px] border-black bg-[#FFE500] px-4 py-3">
           <div className="flex items-center gap-2">
             <Zap size={17} />
-            <span className="text-xs font-black">ONE SPACE. MORE PROGRESS.</span>
+            <span className="text-xs font-black">
+              ONE SPACE. MORE PROGRESS.
+            </span>
           </div>
           <span className="hidden text-[10px] font-bold sm:block">
             SAMPLE PREVIEW
@@ -268,7 +269,9 @@ function FeatureCard({ feature }) {
 
   return (
     <article className="group flex h-full flex-col border-2 border-black bg-[#F7F4EC] transition-all duration-200 hover:-translate-y-1 hover:shadow-[5px_5px_0_#111]">
-      <div className={`flex items-center justify-between border-b-2 border-black p-5 ${feature.color}`}>
+      <div
+        className={`flex items-center justify-between border-b-2 border-black p-5 ${feature.color}`}
+      >
         <div className="grid h-12 w-12 place-items-center border-2 border-black bg-white">
           <Icon size={23} strokeWidth={2.2} />
         </div>
@@ -297,7 +300,10 @@ function FeatureCard({ feature }) {
 
       <div className="flex items-center justify-between border-t-2 border-black px-5 py-3">
         <span className="text-xs font-black uppercase">Explore the idea</span>
-        <ArrowDownRight size={18} className="transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
+        <ArrowDownRight
+          size={18}
+          className="transition-transform group-hover:translate-x-1 group-hover:translate-y-1"
+        />
       </div>
     </article>
   );
@@ -322,23 +328,29 @@ export default function HomePage() {
             <a href="#features" className="text-sm font-bold hover:underline">
               Features
             </a>
-            <a href="#how-it-works" className="text-sm font-bold hover:underline">
+            <a
+              href="#how-it-works"
+              className="text-sm font-bold hover:underline"
+            >
               How it works
             </a>
-            <a href="#study-together" className="text-sm font-bold hover:underline">
+            <a
+              href="#study-together"
+              className="text-sm font-bold hover:underline"
+            >
               Study together
             </a>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
-              href="/auth/login"
+              href="/login"
               className="hidden text-sm font-black hover:underline sm:block"
             >
               Log in
             </Link>
             <Link
-              href="/auth/signup"
+              href="/signup"
               className="inline-flex items-center gap-2 border-2 border-black bg-[#FFE500] px-3 py-2.5 text-xs font-black shadow-[3px_3px_0_#111] transition-all hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:px-4 sm:text-sm"
             >
               Get started <ArrowUpRight size={16} />
@@ -370,16 +382,14 @@ export default function HomePage() {
               One space for your notes, deadlines, habits, money, and people.
             </p>
             <p className="mt-3 text-sm leading-7 text-zinc-600 sm:text-base">
-              College is already chaotic. Your productivity system shouldn&apos;t
-              be. Plan smarter, focus better, and make progress that actually
-              feels good.
+              College is already chaotic. Your productivity system
+              shouldn&apos;t be. Plan smarter, focus better, and make progress
+              that actually feels good.
             </p>
           </div>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <ActionLink href="/auth/signup">
-              Build your workspace
-            </ActionLink>
+            <ActionLink href="/signup">Build your workspace</ActionLink>
             <a
               href="#features"
               className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-black px-5 py-3 text-sm font-black transition-colors hover:bg-white"
@@ -407,17 +417,26 @@ export default function HomePage() {
       {/* Ticker */}
       <div className="overflow-hidden border-y-[3px] border-black bg-[#FFE500] py-4">
         <div className="flex min-w-max items-center justify-around gap-8 px-5 text-sm font-black tracking-[0.12em] sm:text-base">
-          <span>TAKE NOTES.</span><span>✳</span>
-          <span>PLAN YOUR SEMESTER.</span><span>✳</span>
-          <span>BUILD BETTER HABITS.</span><span>✳</span>
-          <span>FOCUS DEEPER.</span><span>✳</span>
-          <span>LEVEL UP.</span><span>✳</span>
-          <span>STUDY TOGETHER.</span><span>✳</span>
+          <span>TAKE NOTES.</span>
+          <span>✳</span>
+          <span>PLAN YOUR SEMESTER.</span>
+          <span>✳</span>
+          <span>BUILD BETTER HABITS.</span>
+          <span>✳</span>
+          <span>FOCUS DEEPER.</span>
+          <span>✳</span>
+          <span>LEVEL UP.</span>
+          <span>✳</span>
+          <span>STUDY TOGETHER.</span>
+          <span>✳</span>
         </div>
       </div>
 
       {/* Features */}
-      <section id="features" className="mx-auto max-w-7xl scroll-mt-10 px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+      <section
+        id="features"
+        className="mx-auto max-w-7xl scroll-mt-10 px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
+      >
         <div className="mb-12 grid gap-6 md:grid-cols-[1fr_0.65fr] md:items-end">
           <div>
             <SectionLabel>Everything in one place</SectionLabel>
@@ -441,7 +460,10 @@ export default function HomePage() {
       </section>
 
       {/* AI spotlight */}
-      <section id="how-it-works" className="scroll-mt-10 border-y-[3px] border-black bg-[#DED8F5]">
+      <section
+        id="how-it-works"
+        className="scroll-mt-10 border-y-[3px] border-black bg-[#DED8F5]"
+      >
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:px-12">
           <div>
             <SectionLabel>Meet your AI study buddy</SectionLabel>
@@ -450,7 +472,10 @@ export default function HomePage() {
               <br />
               OVERWHELMED
               <br />
-              TO <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">ON TRACK.</span>
+              TO{" "}
+              <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">
+                ON TRACK.
+              </span>
             </h2>
             <p className="mt-6 max-w-lg text-base leading-8 text-zinc-700">
               Got a huge syllabus? Messy notes? An exam coming up? Use AI to
@@ -475,9 +500,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-9">
-              <ActionLink href="/auth/signup">
-                Give it a try
-              </ActionLink>
+              <ActionLink href="/signup">Give it a try</ActionLink>
             </div>
           </div>
 
@@ -488,7 +511,9 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="font-black">AI NOTE ASSISTANT</p>
-                <p className="text-xs font-bold text-zinc-500">A sample workflow</p>
+                <p className="text-xs font-bold text-zinc-500">
+                  A sample workflow
+                </p>
               </div>
             </div>
 
@@ -499,8 +524,8 @@ export default function HomePage() {
                   <span className="text-xs font-black">YOUR LECTURE NOTES</span>
                 </div>
                 <p className="text-sm leading-6 text-zinc-600">
-                  Data structures organize information so it can be accessed
-                  and modified efficiently. Arrays store elements in contiguous
+                  Data structures organize information so it can be accessed and
+                  modified efficiently. Arrays store elements in contiguous
                   memory...
                 </p>
               </div>
@@ -515,28 +540,42 @@ export default function HomePage() {
               <div className="border-2 border-black p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Brain size={18} />
-                  <span className="text-xs font-black">YOUR STUDY MATERIAL</span>
+                  <span className="text-xs font-black">
+                    YOUR STUDY MATERIAL
+                  </span>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DCE8D5] text-xs font-black">1</span>
+                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DCE8D5] text-xs font-black">
+                      1
+                    </span>
                     <div>
                       <p className="text-sm font-black">Quick summary</p>
-                      <p className="text-xs leading-5 text-zinc-600">A shorter, clearer explanation of the topic.</p>
+                      <p className="text-xs leading-5 text-zinc-600">
+                        A shorter, clearer explanation of the topic.
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#FFF0A8] text-xs font-black">2</span>
+                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#FFF0A8] text-xs font-black">
+                      2
+                    </span>
                     <div>
                       <p className="text-sm font-black">Flashcards</p>
-                      <p className="text-xs leading-5 text-zinc-600">Question-and-answer cards for revision.</p>
+                      <p className="text-xs leading-5 text-zinc-600">
+                        Question-and-answer cards for revision.
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DED8F5] text-xs font-black">3</span>
+                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center border border-black bg-[#DED8F5] text-xs font-black">
+                      3
+                    </span>
                     <div>
                       <p className="text-sm font-black">Actionable tasks</p>
-                      <p className="text-xs leading-5 text-zinc-600">Turn learning goals into manageable steps.</p>
+                      <p className="text-xs leading-5 text-zinc-600">
+                        Turn learning goals into manageable steps.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -562,8 +601,8 @@ export default function HomePage() {
               YOUR <span className="bg-[#FFE500] px-2">SUPERPOWER.</span>
             </h2>
             <p className="mt-6 max-w-lg text-sm leading-7 text-zinc-600 sm:text-base">
-              You don&apos;t need to be productive every second. You just need
-              a system that helps you keep showing up. Track streaks, set
+              You don&apos;t need to be productive every second. You just need a
+              system that helps you keep showing up. Track streaks, set
               challenges, and celebrate the small wins.
             </p>
           </div>
@@ -572,10 +611,15 @@ export default function HomePage() {
             <div className="border-2 border-black bg-[#FFF0A8] p-5 sm:p-7">
               <Flame size={28} />
               <p className="mt-8 text-3xl font-black sm:text-5xl">7 DAYS</p>
-              <p className="mt-2 text-xs font-black uppercase">Example streak</p>
+              <p className="mt-2 text-xs font-black uppercase">
+                Example streak
+              </p>
               <div className="mt-5 flex gap-1.5">
                 {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
-                  <div key={`${day}-${i}`} className={`grid h-7 min-w-0 flex-1 place-items-center border border-black text-[10px] font-black ${i < 5 ? "bg-[#FFE500]" : "bg-white"}`}>
+                  <div
+                    key={`${day}-${i}`}
+                    className={`grid h-7 min-w-0 flex-1 place-items-center border border-black text-[10px] font-black ${i < 5 ? "bg-[#FFE500]" : "bg-white"}`}
+                  >
                     {i < 5 ? <Check size={12} /> : day}
                   </div>
                 ))}
@@ -585,19 +629,29 @@ export default function HomePage() {
             <div className="border-2 border-black bg-[#DCE8D5] p-5 sm:p-7">
               <Zap size={28} />
               <p className="mt-8 text-3xl font-black sm:text-5xl">+250 XP</p>
-              <p className="mt-2 text-xs font-black uppercase">Example reward</p>
+              <p className="mt-2 text-xs font-black uppercase">
+                Example reward
+              </p>
               <div className="mt-6 h-3 border-2 border-black bg-white">
                 <div className="h-full w-3/4 border-r-2 border-black bg-[#8CCF82]" />
               </div>
-              <p className="mt-2 text-[10px] font-bold">LEVEL UP YOUR ROUTINE</p>
+              <p className="mt-2 text-[10px] font-bold">
+                LEVEL UP YOUR ROUTINE
+              </p>
             </div>
 
             <div className="col-span-2 border-2 border-black bg-white p-5 sm:p-7">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase text-zinc-500">Your daily challenge</p>
-                  <p className="mt-2 text-lg font-black sm:text-2xl">Finish one thing that matters.</p>
-                  <p className="mt-2 text-sm text-zinc-600">Study, organize, focus, or build a habit.</p>
+                  <p className="text-xs font-black uppercase text-zinc-500">
+                    Your daily challenge
+                  </p>
+                  <p className="mt-2 text-lg font-black sm:text-2xl">
+                    Finish one thing that matters.
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-600">
+                    Study, organize, focus, or build a habit.
+                  </p>
                 </div>
                 <div className="grid h-14 w-14 shrink-0 place-items-center border-2 border-black bg-[#DED8F5]">
                   <Target size={28} />
@@ -609,17 +663,30 @@ export default function HomePage() {
       </section>
 
       {/* Collaborative study */}
-      <section id="study-together" className="scroll-mt-10 border-y-[3px] border-black bg-[#DCE8D5]">
+      <section
+        id="study-together"
+        className="scroll-mt-10 border-y-[3px] border-black bg-[#DCE8D5]"
+      >
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:px-12">
           <div className="order-2 border-[3px] border-black bg-white shadow-[8px_8px_0_#111] sm:shadow-[12px_12px_0_#111] lg:order-1">
             <div className="flex items-center justify-between border-b-[3px] border-black bg-[#F7F4EC] p-4">
               <div>
                 <p className="text-sm font-black">THE STUDY SQUAD</p>
-                <p className="mt-1 text-xs font-bold text-zinc-500">A sample study room</p>
+                <p className="mt-1 text-xs font-bold text-zinc-500">
+                  A sample study room
+                </p>
               </div>
               <div className="flex -space-x-2">
-                {["bg-[#F8DCD0]", "bg-[#DED8F5]", "bg-[#FFF0A8]", "bg-[#D9E9F7]"].map((color, i) => (
-                  <div key={i} className={`grid h-8 w-8 place-items-center rounded-full border-2 border-black ${color} text-xs font-black`}>
+                {[
+                  "bg-[#F8DCD0]",
+                  "bg-[#DED8F5]",
+                  "bg-[#FFF0A8]",
+                  "bg-[#D9E9F7]",
+                ].map((color, i) => (
+                  <div
+                    key={i}
+                    className={`grid h-8 w-8 place-items-center rounded-full border-2 border-black ${color} text-xs font-black`}
+                  >
                     {["A", "M", "J", "S"][i]}
                   </div>
                 ))}
@@ -633,20 +700,26 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="font-black">Physics exam prep</p>
-                  <p className="text-xs font-bold text-zinc-500">4 members · Sample group</p>
+                  <p className="text-xs font-bold text-zinc-500">
+                    4 members · Sample group
+                  </p>
                 </div>
               </div>
 
               <div className="border-2 border-black p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-xs font-black">SHARED GOAL</span>
-                  <span className="border border-black bg-[#FFF0A8] px-2 py-1 text-[10px] font-black">THIS WEEK</span>
+                  <span className="border border-black bg-[#FFF0A8] px-2 py-1 text-[10px] font-black">
+                    THIS WEEK
+                  </span>
                 </div>
                 <p className="font-black">Finish the Physics syllabus</p>
                 <div className="mt-4 h-3 border-2 border-black bg-[#F7F4EC]">
                   <div className="h-full w-2/3 border-r-2 border-black bg-[#8CCF82]" />
                 </div>
-                <p className="mt-2 text-xs font-bold text-zinc-500">Example progress: 2 of 3 milestones</p>
+                <p className="mt-2 text-xs font-bold text-zinc-500">
+                  Example progress: 2 of 3 milestones
+                </p>
               </div>
 
               <div className="mt-4 space-y-3">
@@ -655,12 +728,21 @@ export default function HomePage() {
                   ["M", "Solve practice questions", true],
                   ["J", "Finish revision sheet", false],
                 ].map(([initial, title, done]) => (
-                  <div key={title} className="flex items-center gap-3 border border-zinc-200 p-3">
+                  <div
+                    key={String(title)}
+                    className="flex items-center gap-3 border border-zinc-200 p-3"
+                  >
                     <div className="grid h-8 w-8 shrink-0 place-items-center border border-black bg-[#F7F4EC] text-xs font-black">
                       {initial}
                     </div>
+
                     <span className="flex-1 text-xs font-bold">{title}</span>
-                    <div className={`grid h-5 w-5 place-items-center border border-black ${done ? "bg-[#DCE8D5]" : "bg-white"}`}>
+
+                    <div
+                      className={`grid h-5 w-5 place-items-center border border-black ${
+                        done ? "bg-[#DCE8D5]" : "bg-white"
+                      }`}
+                    >
                       {done && <Check size={12} />}
                     </div>
                   </div>
@@ -676,17 +758,25 @@ export default function HomePage() {
               <br />
               IS A
               <br />
-              <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">SUPERPOWER.</span>
+              <span className="underline decoration-[#FFE500] decoration-[8px] underline-offset-4">
+                SUPERPOWER.
+              </span>
             </h2>
             <p className="mt-6 max-w-lg text-sm leading-7 text-zinc-700 sm:text-base">
               Create a study group, invite friends, set shared goals, and make
-              time to work together. A little teamwork can make a big
-              difference when deadlines get real.
+              time to work together. A little teamwork can make a big difference
+              when deadlines get real.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">2–10 MEMBERS</div>
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">SHARED GOALS</div>
-              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">VIRTUAL STUDY ROOM</div>
+              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
+                2–10 MEMBERS
+              </div>
+              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
+                SHARED GOALS
+              </div>
+              <div className="border-2 border-black bg-white px-3 py-2 text-xs font-black">
+                VIRTUAL STUDY ROOM
+              </div>
             </div>
           </div>
         </div>
@@ -700,7 +790,9 @@ export default function HomePage() {
               <Clock3 size={28} />
               <span className="text-xs font-black">FOCUS MODE</span>
             </div>
-            <h3 className="mt-10 text-3xl font-black">One task. Your full attention.</h3>
+            <h3 className="mt-10 text-3xl font-black">
+              One task. Your full attention.
+            </h3>
             <p className="mt-3 flex-1 text-sm leading-7 text-zinc-700">
               Set your work and break intervals, start a focus session, and
               create a routine that helps you work without constantly switching
@@ -716,7 +808,9 @@ export default function HomePage() {
               <CircleDollarSign size={28} />
               <span className="text-xs font-black">STUDENT FINANCE</span>
             </div>
-            <h3 className="mt-10 text-3xl font-black">Your budget, minus the guesswork.</h3>
+            <h3 className="mt-10 text-3xl font-black">
+              Your budget, minus the guesswork.
+            </h3>
             <p className="mt-3 flex-1 text-sm leading-7 text-zinc-700">
               Keep track of daily spending, set category limits, split shared
               expenses, and see where your money goes each month.
@@ -770,18 +864,26 @@ export default function HomePage() {
             </Link>
 
             <p className="max-w-sm text-xs leading-6 text-zinc-500">
-              A student workspace for doing your work, building good habits,
-              and making room for what matters.
+              A student workspace for doing your work, building good habits, and
+              making room for what matters.
             </p>
 
             <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-bold">
-              <a href="#features" className="hover:underline">Features</a>
-              <Link href="/auth/login" className="hover:underline">Log in</Link>
-              <Link href="/auth/signup" className="hover:underline">Sign up</Link>
+              <a href="#features" className="hover:underline">
+                Features
+              </a>
+              <Link href="/auth/login" className="hover:underline">
+                Log in
+              </Link>
+              <Link href="/auth/signup" className="hover:underline">
+                Sign up
+              </Link>
             </div>
           </div>
           <div className="mt-7 flex flex-col gap-2 border-t border-zinc-300 pt-5 text-[10px] font-bold text-zinc-500 sm:flex-row sm:justify-between">
-            <span>© {new Date().getFullYear()} FRIDAY. ALL RIGHTS RESERVED.</span>
+            <span>
+              © {new Date().getFullYear()} FRIDAY. ALL RIGHTS RESERVED.
+            </span>
             <span>BUILT FOR THE NEXT GENERATION OF DOERS.</span>
           </div>
         </div>
