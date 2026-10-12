@@ -16,28 +16,17 @@ import logger from "@repo/logger/logger";
 export const app = express();
 app.set("trust proxy", 1);
 
+const INNGEST_ORIGINS = [
+  "http://localhost:8288",
+  "http://127.0.0.1:8288",
+  "https://app.inngest.com",
+  "https://api.inngest.com",
+];
+
 const inngestCors = cors({
-  origin: (origin, callback) => {
-    const allowed = [
-      "http://localhost:8288",
-      "http://127.0.0.1:8288",
-      "https://app.inngest.com",
-      "https://api.inngest.com",
-    ];
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
+  origin: (origin, cb) => cb(null, !origin || INNGEST_ORIGINS.includes(origin)),
   methods: ["GET", "POST", "PUT"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-inngest-signature",
-    "x-inngest-sdk",
-    "x-inngest-expected-server-kind",
-  ],
+  allowedHeaders: ["Content-Type", "Authorization", "x-inngest-signature", "x-inngest-sdk", "x-inngest-expected-server-kind"],
   credentials: false,
 });
 
