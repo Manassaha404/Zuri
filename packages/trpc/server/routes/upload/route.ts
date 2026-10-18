@@ -1,7 +1,9 @@
 import { protectedProcedure, router } from "../../trpc";
 import { getUploadSignatureDto } from "@repo/services/upload/model";
-import { uploadService } from "../../services";
+import UploadService from "@repo/services/upload";
 import { handleRouteError } from "../../utils/error";
+
+const uploadService = new UploadService();
 
 export const uploadRouter = router({
   /**

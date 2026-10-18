@@ -1,20 +1,779 @@
-@import url("https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+:root,
+.L,
+[data-theme="light"] {
+  --bg: #ffffff;
+  --s: #f5f5f5;
+  --h: #d9dce1;
+  --i: #111111;
+  --b: #374151;
+  --m: #5b6270;
+  --p: #111111;
+  --pt: #ffffff;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --error: #ef4444;
+  --success: #10b981;
+}
+
+.dark,
+.D,
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --s: #101010;
+  --h: #333333;
+  --i: #ffffff;
+  --b: #d4d4d8;
+  --m: #a1a1aa;
+  --p: #ffffff;
+  --pt: #111111;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --error: #ef4444;
+  --success: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 html,
 body {
-  background-color: #000000;
-  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  background-color: var(--s);
+  color: var(--b);
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   min-height: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
-main {
-  background-color: #000000;
-  color: #ffffff;
+h1 {
+  margin: 0;
+  font:
+    600 28px/1.2 Inter,
+    sans-serif;
+  letter-spacing: -0.5px;
+  color: var(--i);
+}
+
+p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--m);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--i);
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font:
+    500 13px Inter,
+    sans-serif;
+  color: var(--i);
+}
+
+label small {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Base Inputs */
+.in {
+  height: 40px;
+  width: 100%;
+  border: 1px solid var(--h);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--i);
+  padding: 0 14px;
+  font:
+    400 15px Inter,
+    sans-serif;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.in:hover {
+  border-color: var(--m);
+}
+
+.in:focus,
+.f {
+  outline: none;
+  border-color: var(--i);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.in.e,
+.e {
+  border-color: #ef4444 !important;
+}
+
+.in.g,
+.g {
+  border-color: #10b981 !important;
+}
+
+.er {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.ok {
+  color: #10b981;
+  font-size: 12px;
+}
+
+/* Base Buttons */
+.bt {
+  height: 40px;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--h);
+  background: var(--bg);
+  color: var(--i);
+  font:
+    600 14px Inter,
+    sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.bt:hover:not(:disabled) {
+  background: var(--s);
+}
+
+.bt:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.bt:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.bt.p {
+  background: var(--p);
+  color: var(--pt);
+  border-color: var(--p);
+  position: relative;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+
+.bt.p span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Light theme primary button hover (simple, not glowing) */
+.L .bt.p:hover:not(:disabled),
+[data-theme="light"] .bt.p:hover:not(:disabled),
+.btn-signin:hover:not(:disabled),
+.btn-login:hover:not(:disabled),
+.L .btn-create-account:hover:not(:disabled),
+.L .btn-new-chat:hover,
+[data-theme="light"] .btn-new-chat:hover {
+  background-color: #27272a !important;
+  border-color: #27272a !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.L .bt.p:hover:not(:disabled) span,
+.L .bt.p:hover:not(:disabled) svg,
+[data-theme="light"] .bt.p:hover:not(:disabled) span,
+[data-theme="light"] .bt.p:hover:not(:disabled) svg,
+.btn-signin:hover:not(:disabled) span,
+.btn-signin:hover:not(:disabled) svg,
+.btn-login:hover:not(:disabled) span,
+.btn-login:hover:not(:disabled) svg,
+.L .btn-create-account:hover:not(:disabled) span,
+.L .btn-create-account:hover:not(:disabled) svg,
+.L .btn-new-chat:hover span,
+.L .btn-new-chat:hover svg,
+[data-theme="light"] .btn-new-chat:hover span,
+[data-theme="light"] .btn-new-chat:hover svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Dark / Black theme primary button hover (simple, not glowing) */
+.dark .bt.p:hover:not(:disabled),
+.D .bt.p:hover:not(:disabled),
+[data-theme="dark"] .bt.p:hover:not(:disabled),
+.dark .btn-create-account:hover:not(:disabled),
+.D .btn-create-account:hover:not(:disabled),
+[data-theme="dark"] .btn-create-account:hover:not(:disabled),
+.dark .btn-signin:hover:not(:disabled),
+.dark .btn-login:hover:not(:disabled),
+.dark .btn-new-chat:hover,
+.D .btn-new-chat:hover,
+[data-theme="dark"] .btn-new-chat:hover {
+  background-color: #e4e4e7 !important;
+  border-color: #e4e4e7 !important;
+  color: #111111 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.dark .bt.p:hover:not(:disabled) span,
+.dark .bt.p:hover:not(:disabled) svg,
+.D .bt.p:hover:not(:disabled) span,
+.D .bt.p:hover:not(:disabled) svg,
+[data-theme="dark"] .bt.p:hover:not(:disabled) span,
+[data-theme="dark"] .bt.p:hover:not(:disabled) svg,
+.dark .btn-create-account:hover:not(:disabled) span,
+.dark .btn-create-account:hover:not(:disabled) svg,
+.D .btn-create-account:hover:not(:disabled) span,
+.D .btn-create-account:hover:not(:disabled) svg,
+.dark .btn-signin:hover:not(:disabled) span,
+.dark .btn-signin:hover:not(:disabled) svg,
+.dark .btn-login:hover:not(:disabled) span,
+.dark .btn-login:hover:not(:disabled) svg,
+.dark .btn-new-chat:hover span,
+.dark .btn-new-chat:hover svg,
+.D .btn-new-chat:hover span,
+.D .btn-new-chat:hover svg,
+[data-theme="dark"] .btn-new-chat:hover span,
+[data-theme="dark"] .btn-new-chat:hover svg {
+  color: #111111 !important;
+  stroke: #111111 !important;
+}
+
+/* Active states (simple, clean press feedback) */
+.bt.p:active:not(:disabled),
+.btn-create-account:active:not(:disabled),
+.btn-signin:active:not(:disabled),
+.btn-login:active:not(:disabled),
+.btn-new-chat:active {
+  transform: scale(0.99) !important;
+  opacity: 0.9 !important;
+  box-shadow: none !important;
+}
+
+/* Auth submit buttons transition */
+.btn-create-account,
+.btn-signin,
+.btn-login,
+.btn-new-chat {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+
+/* Collapsed Sidebar New Chat Button */
+.btn-new-chat-collapsed {
+  background: var(--p) !important;
+  color: var(--pt) !important;
+  border-color: var(--p) !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+
+.L .btn-new-chat-collapsed:hover,
+[data-theme="light"] .btn-new-chat-collapsed:hover {
+  background-color: #27272a !important;
+  border-color: #27272a !important;
+  color: #ffffff !important;
+}
+
+.dark .btn-new-chat-collapsed:hover,
+.D .btn-new-chat-collapsed:hover,
+[data-theme="dark"] .btn-new-chat-collapsed:hover {
+  background-color: #e4e4e7 !important;
+  border-color: #e4e4e7 !important;
+  color: #111111 !important;
+}
+
+.L .btn-new-chat-collapsed:hover svg,
+[data-theme="light"] .btn-new-chat-collapsed:hover svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.dark .btn-new-chat-collapsed:hover svg,
+.D .btn-new-chat-collapsed:hover svg,
+[data-theme="dark"] .btn-new-chat-collapsed:hover svg {
+  color: #111111 !important;
+  stroke: #111111 !important;
+}
+
+.btn-new-chat-collapsed:active {
+  transform: scale(0.96) !important;
+  opacity: 0.9 !important;
+}
+
+.bt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon button */
+.ib {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--h);
+  background: var(--bg);
+  color: var(--i);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.ib:hover {
+  background: var(--s);
+}
+
+/* Auth Cards and Wrappers */
+.w {
   min-height: 100vh;
+  background: var(--s);
+  color: var(--b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
 }
 
+.k {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg);
+  border: 1px solid var(--h);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+  align-items: stretch;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+}
+
+.k > svg {
+  align-self: center;
+}
+
+/* OTP Digits Row */
+.o {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.o .in {
+  width: 48px;
+  height: 56px;
+  padding: 0;
+  text-align: center;
+  font:
+    600 22px Inter,
+    sans-serif;
+  border-radius: 8px;
+}
+
+/* Divider */
+.dv {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--m);
+  margin: 4px 0;
+}
+
+.dv::before,
+.dv::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--h);
+}
+
+/* Chat Application Layout */
+.app {
+  display: flex;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100vw;
+  max-width: 100vw;
+  background: var(--bg);
+  color: var(--b);
+  overflow: hidden;
+}
+
+.sb {
+  width: 280px;
+  flex: none;
+  background: var(--s);
+  border-right: 1px solid var(--h);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.lg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font:
+    600 20px Inter,
+    sans-serif;
+  letter-spacing: -0.5px;
+  color: var(--i);
+}
+
+.ac summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font:
+    500 14px Inter,
+    sans-serif;
+  color: var(--i);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.ac summary:hover {
+  background: var(--h);
+}
+
+.ac summary::-webkit-details-marker {
+  display: none;
+}
+
+.ac[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.ls {
+  padding: 2px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--m);
+}
+
+.ls b {
+  font-size: 11px;
+  color: var(--m);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ls span {
+  color: var(--b);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  margin: -2px -6px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.ls span:hover {
+  background: var(--h);
+  color: var(--i);
+}
+
+.tg {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--h);
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tg::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: left 0.2s ease;
+}
+
+.tg.on {
+  background: #3b82f6;
+}
+
+.tg.on::after {
+  left: 16px;
+}
+
+.mn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 48px 32px;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .mn {
+    padding: 0 16px 16px;
+  }
+}
+
+.ch {
+  border: 1px solid var(--h);
+  background: var(--bg);
+  color: var(--i);
+  border-radius: 9999px;
+  padding: 8px 14px;
+  font:
+    500 13px Inter,
+    sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ch:hover {
+  background: var(--s);
+  border-color: var(--m);
+}
+
+.bx {
+  width: 100%;
+  max-width: 760px;
+  border: 1px solid var(--h);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--m);
+  font-size: 15px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.bx:focus-within {
+  border-color: var(--i);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.bx div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.md {
+  border: 1px solid var(--h);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font:
+    500 13px Inter,
+    sans-serif;
+  color: var(--i);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: var(--bg);
+  transition: background 0.15s ease;
+}
+
+.md:hover {
+  background: var(--s);
+}
+
+.ms {
+  width: 100%;
+  max-width: 760px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 32px;
+  overflow-y: auto;
+}
+
+.u {
+  align-self: flex-end;
+  max-width: 70%;
+  background: var(--p);
+  color: var(--pt);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.ai {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--i);
+}
+
+.ai:has(pre) {
+  align-items: flex-start;
+}
+
+.ai:has(pre) .ai-logo {
+  margin-top: 2px;
+}
+
+.ai > svg,
+.ai > .ai-logo {
+  flex: none !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+}
+
+.ai > div:not(.ai-logo),
+.ai-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+pre {
+  margin: 0;
+  background: #101010;
+  color: #e5e7eb;
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 16px;
+  font:
+    400 13px/1.5 "JetBrains Mono",
+    monospace;
+  overflow: auto;
+}
+
+@keyframes bot-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  15% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  30% {
+    transform: translateX(4px) rotate(2deg);
+  }
+  45% {
+    transform: translateX(-3px) rotate(-1.5deg);
+  }
+  60% {
+    transform: translateX(3px) rotate(1.5deg);
+  }
+  75% {
+    transform: translateX(-2px) rotate(-0.5deg);
+  }
+  90% {
+    transform: translateX(2px) rotate(0.5deg);
+  }
+}
+
+.bot-shake {
+  animation: bot-shake 0.45s ease-in-out infinite;
+}
+
+/* Circular ripple View Transition for Black/White mode toggle */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Smooth global color/background morphing */
+.app,
+.sb,
+header,
+.ib,
+.w,
+.k,
+main {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}

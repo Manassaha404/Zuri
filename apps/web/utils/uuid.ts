@@ -1,4 +1,3 @@
-
 export function uuidToNumber(uuid: string): string {
   const hexStr = uuid.replace(/-/g, "");
   return BigInt("0x" + hexStr).toString(10);

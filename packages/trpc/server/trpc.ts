@@ -128,5 +128,3 @@ const isAuthed = tRPCContext.middleware(async ({ ctx, next }) => {
 });
 
 export const protectedProcedure = tRPCContext.procedure.use(isAuthed);
-
-

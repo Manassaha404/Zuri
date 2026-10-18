@@ -1,7 +1,6 @@
 import { Server } from "socket.io";
 import { env } from "./env";
 
-
 const io = new Server({
   cors: {
     origin: [env.CLIENT_URL, env.API_BASE_URL],
@@ -9,8 +8,6 @@ const io = new Server({
     credentials: true,
   },
 });
-
-
 
 const attachSocketServer = (httpServer: any) => {
   io.attach(httpServer);

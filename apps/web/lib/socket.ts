@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 
 const socket = io({
   autoConnect: false,
-  withCredentials: true, 
+  withCredentials: true,
 });
 
 const roomRefCounts = new Map<string, number>();

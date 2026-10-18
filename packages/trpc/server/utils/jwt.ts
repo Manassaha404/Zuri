@@ -4,7 +4,8 @@ import { AppError } from "@repo/error";
 export const generateAccessToken = (userId: string): string => {
   return jwt.sign({ userId }, env.JWT_ACCESS_TOKEN_SERECT, {
     expiresIn: env.JWT_ACCESS_TOKEN_EXPIRY as
-      `${number}${"s" | "m" | "h" | "d"}` | number,
+      | `${number}${"s" | "m" | "h" | "d"}`
+      | number,
   });
 };
 
@@ -23,7 +24,8 @@ export const verifyAccessToken = (
 export const generateRefreshToken = (userId: string): string => {
   return jwt.sign({ userId }, env.JWT_REFRESH_TOKEN_SERECT, {
     expiresIn: env.JWT_REFRESH_TOKEN_EXPIRY as
-      `${number}${"s" | "m" | "h" | "d"}` | number,
+      | `${number}${"s" | "m" | "h" | "d"}`
+      | number,
   });
 };
 

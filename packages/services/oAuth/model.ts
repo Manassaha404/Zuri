@@ -22,10 +22,7 @@ export const FindOrCreateUserSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
-
-
 export type GoogleUserInfo = z.infer<typeof GoogleUserInfoSchema>;
 export type ExchangeCodeParams = z.infer<typeof ExchangeCodeSchema>;
 export type GetGoogleUserInfoParams = z.infer<typeof GetGoogleUserInfoSchema>;
 export type FindOrCreateUserParams = z.infer<typeof FindOrCreateUserSchema>;
-

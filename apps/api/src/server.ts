@@ -1,17 +1,13 @@
 import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import {
-  serverRouter,
-  createContext,
-} from "@repo/trpc/server";
+import { serverRouter, createContext } from "@repo/trpc/server";
 import { env } from "./env";
 import cookieParser from "cookie-parser";
 import authRouter from "./authRouter";
 import { inngestRouter } from "@repo/services/inngest/index";
 import rateLimiter from "@repo/services/utils/rateLimiting";
 import logger from "@repo/logger/logger";
-
 
 export const app = express();
 app.set("trust proxy", 1);
@@ -26,7 +22,13 @@ const INNGEST_ORIGINS = [
 const inngestCors = cors({
   origin: (origin, cb) => cb(null, !origin || INNGEST_ORIGINS.includes(origin)),
   methods: ["GET", "POST", "PUT"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-inngest-signature", "x-inngest-sdk", "x-inngest-expected-server-kind"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-inngest-signature",
+    "x-inngest-sdk",
+    "x-inngest-expected-server-kind",
+  ],
   credentials: false,
 });
 

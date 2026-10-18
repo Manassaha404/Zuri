@@ -2,12 +2,12 @@ import { httpBatchLink } from "@repo/trpc/client";
 
 function getBaseUrl() {
   if (typeof window !== "undefined") {
-    return "";
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   }
   if (process.env.INTERNAL_API_URL) {
     return process.env.INTERNAL_API_URL;
   }
-  return process.env.NEXT_PUBLIC_API_URL?.replace("/trpc", "") || "";
+  return "http://localhost:8000";
 }
 
 export const createTRPCLink = () =>
