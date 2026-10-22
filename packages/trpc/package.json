@@ -10,6 +10,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@repo/database": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/error": "workspace:*",
     "@repo/services": "workspace:*",

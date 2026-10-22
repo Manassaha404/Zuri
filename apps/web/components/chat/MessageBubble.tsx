@@ -8,6 +8,7 @@ interface MessageBubbleProps {
   message: ChatMessage;
   darkMode: boolean;
   copiedId: string;
+  showAvatar?: boolean;
   onCopy: (message: ChatMessage) => void;
   onPin: (message: ChatMessage) => void;
   onRetry: () => void;
@@ -16,6 +17,7 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   copiedId,
+  showAvatar = true,
   onCopy,
   onPin,
   onRetry,
@@ -28,8 +30,12 @@ export function MessageBubble({
 
   return (
     <div className="ai">
-      <div className="ai-logo shrink-0">
-        <ZuriAvatar size={32} defaultAnimation="idle" ariaLabel="Zuri" />
+      <div className="ai-logo shrink-0 flex items-center justify-center">
+        {showAvatar ? (
+          <ZuriAvatar size={32} defaultAnimation="idle" ariaLabel="Zuri" />
+        ) : (
+          <div className="w-8 h-8 shrink-0" aria-hidden="true" />
+        )}
       </div>
 
       <div className="ai-body">

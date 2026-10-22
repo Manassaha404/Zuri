@@ -9,7 +9,8 @@
     "check-types": "turbo run check-types",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
-    "inngest:dev": "turbo run inngest:dev"
+    "inngest:dev": "turbo run inngest:dev",
+    "setup:agent-db": "pnpm --filter @repo/services setup:agent-db"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

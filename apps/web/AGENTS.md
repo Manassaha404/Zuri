@@ -108,3 +108,13 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Path Aliases**: Always use `@/...` to import local files from `apps/web/` (e.g. `@/components/chat`, `@/store/uiStore`).
 - **Client Components**: Any file using React hooks (`useState`, `useEffect`, `useRef`), event handlers, or browser APIs must have `"use client";` as the very first line.
 - **Linting**: Keep code clean, free of unused imports, and avoid inline styles where design system variables/classes exist.
+
+---
+
+## 7. Comments & Utility Functions
+
+- **Comment Style**:
+  - All comments must follow a clean, single-line format: `// <Comment>` (e.g. `// Hook`, `// Check nested result object`, `// Check direct output / message properties`).
+  - No extra or verbose comments. Avoid decorative divider banners (`// ──── ... ────`) and multi-line JSDocs.
+- **Utility Functions**:
+  - All utility and helper functions must be placed in utility files (e.g. `@/lib/utils.ts`), not defined directly inside hooks or UI components.

@@ -1,11 +1,13 @@
 "use client";
 
-import { Menu, Plus, PanelLeft } from "lucide-react";
+import { Menu, Plus, PanelLeft, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 
 interface ChatHeaderProps {
   selectedChat: string;
+  isTitleUpdating?: boolean;
   darkMode?: boolean;
   loading?: boolean;
   onOpenMobile?: () => void;
@@ -16,6 +18,7 @@ interface ChatHeaderProps {
 
 export function ChatHeader({
   selectedChat,
+  isTitleUpdating = false,
   loading = false,
   onOpenMobile,
   onReload,
@@ -75,9 +78,36 @@ export function ChatHeader({
         )}
 
         <div className="flex items-center gap-2.5 min-w-0">
-          <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-[var(--i)] truncate">
-            {selectedChat || "New chat"}
-          </h1>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={selectedChat || "New chat"}
+              initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-2 min-w-0"
+            >
+              <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-[var(--i)] truncate">
+                {selectedChat || "New chat"}
+              </h1>
+              {isTitleUpdating && (
+                <motion.span
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="inline-flex items-center text-blue-500 shrink-0"
+                  title="Updating title"
+                >
+                  <Sparkles
+                    size={16}
+                    className="animate-spin"
+                    style={{ animationDuration: "3s" }}
+                  />
+                </motion.span>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 

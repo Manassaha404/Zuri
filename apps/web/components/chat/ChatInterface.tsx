@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "./types";
-import { demoMessages, getLocalResponse } from "./utils";
 import { EmptyState } from "./EmptyState";
 import { MessageBubble } from "./MessageBubble";
 import { ChatComposer } from "./ChatComposer";
+import { Sparkles } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
+import { useAgent } from "@/hook/useAgent";
 
 interface ChatInterfaceProps {
   selectedChat: string;
@@ -21,47 +22,45 @@ export function ChatInterface({
   onPinMessage,
   userName = "alex",
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const agent = useAgent();
+
   const [input, setInput] = useState("");
   const [model, setModel] = useState("Zuri Fast");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [attachmentName, setAttachmentName] = useState("");
   const [copiedId, setCopiedId] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const messages: ChatMessage[] = agent.messages.map((m) => ({
+    id: m.id,
+    role: m.role,
+    content: m.content,
+  }));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const responseTimerRef = useRef<number | null>(null);
-
-  function clearResponseTimer() {
-    if (responseTimerRef.current !== null) {
-      window.clearTimeout(responseTimerRef.current);
-      responseTimerRef.current = null;
-    }
-  }
-
+  // Reset agent state when the user selects a different chat
+  const prevSelectedChatRef = useRef(selectedChat);
   useEffect(() => {
-    if (selectedChat === "Debounce in TypeScript") {
-      setMessages(demoMessages);
-    } else {
-      setMessages([]);
+    if (agent.title && selectedChat === agent.title) {
+      prevSelectedChatRef.current = selectedChat;
+      return;
     }
-    setInput("");
-    setAttachmentName("");
-    setModelMenuOpen(false);
-    setLoading(false);
-    clearResponseTimer();
+    if (prevSelectedChatRef.current !== selectedChat) {
+      prevSelectedChatRef.current = selectedChat;
+      agent.reset();
+      setInput("");
+      setAttachmentName("");
+      setModelMenuOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChat, agent.title]);
 
-    return () => {
-      clearResponseTimer();
-    };
-  }, [selectedChat]);
-
+  // Auto-scroll to the bottom on new messages / loading state
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, agent.isRunning]);
 
   async function copyMessage(message: ChatMessage) {
     try {
@@ -80,47 +79,22 @@ export function ChatInterface({
     }
   }
 
-  function sendMessage(event?: React.FormEvent<HTMLFormElement>) {
+  async function sendMessage(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
 
     const text = input.trim();
-    if ((!text && !attachmentName) || loading) return;
+    if ((!text && !attachmentName) || agent.isRunning) return;
 
     const userContent = attachmentName
       ? `${text || "Please review this attachment."}\n\nAttachment: ${attachmentName}`
       : text;
 
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: userContent,
-    };
-
-    const prompt = text || userContent;
-
-    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachmentName("");
-    setLoading(true);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-
-    clearResponseTimer();
-
-    responseTimerRef.current = window.setTimeout(() => {
-      const answer = getLocalResponse(prompt);
-
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: "assistant", content: answer },
-      ]);
-
-      setLoading(false);
-      responseTimerRef.current = null;
-      textareaRef.current?.focus();
-    }, 600);
+    await agent.send(userContent);
+    textareaRef.current?.focus();
   }
 
   function handleTextareaChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -134,29 +108,14 @@ export function ChatInterface({
   ) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
   }
 
-  function retryLastMessage() {
-    const lastUserMessage = [...messages]
-      .reverse()
-      .find((message) => message.role === "user");
-
-    if (!lastUserMessage || loading) return;
-
-    const content = lastUserMessage.content;
-    const attachmentMatch = content.match(/\n\nAttachment: (.+)$/);
-
-    const cleanContent = content
-      .replace(/\n\nAttachment: .+$/, "")
-      .replace(/^Please review this attachment\.$/, "")
-      .trim();
-
-    setAttachmentName(attachmentMatch?.[1] ?? "");
-    setInput(cleanContent);
-    textareaRef.current?.focus();
-  }
+  // Determine the ID of the latest completed assistant message (only if agent is not currently thinking)
+  const lastAssistantMessageId = agent.isRunning
+    ? null
+    : [...messages].reverse().find((m) => m.role === "assistant")?.id;
 
   return (
     <main className="mn">
@@ -164,36 +123,65 @@ export function ChatInterface({
         <EmptyState
           onSetInput={setInput}
           onFocusTextarea={() => textareaRef.current?.focus()}
-          onLoadDemo={setMessages}
           userName={userName}
         />
       ) : (
-        <div className="ms flex-1 [scrollbar-width:thin]">
+        <div className="ms flex-1 no-scrollbar">
           {messages.map((message) => (
             <MessageBubble
               key={message.id}
               message={message}
               darkMode={darkMode}
               copiedId={copiedId}
+              showAvatar={message.id === lastAssistantMessageId}
               onCopy={(msg) => void copyMessage(msg)}
               onPin={(msg) => onPinMessage(msg.content.slice(0, 70))}
-              onRetry={retryLastMessage}
+              onRetry={() => void sendMessage()}
             />
           ))}
 
-          {loading && (
-            <div className="ai">
-              <div className="ai-logo shrink-0">
+          {agent.isRunning && (
+            <div className="flex items-center gap-2.5 py-1 animate-in fade-in duration-300">
+              <div className="ai-logo shrink-0 flex items-center justify-center">
                 <ZuriAvatar
                   size={32}
                   defaultAnimation="thinking"
                   ariaLabel="Zuri is thinking"
                 />
               </div>
-              <div className="ai-body flex-row items-center gap-1.5">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)] [animation-delay:-0.1s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)] [animation-delay:-0.2s]" />
+
+              {/* Compact thinking pill directly beside ZuriAvatar */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--h)] bg-[var(--s)]/80 text-xs shadow-xs">
+                {/* Fluid soundwave / audio visualizer bars */}
+                <div className="flex items-center gap-0.5 h-3.5 w-3 justify-center">
+                  <span className="thinking-wave-bar [animation-delay:0ms]" />
+                  <span className="thinking-wave-bar [animation-delay:200ms]" />
+                  <span className="thinking-wave-bar [animation-delay:400ms]" />
+                </div>
+
+                {/* Shimmering animated status text + sparkles */}
+                <Sparkles
+                  size={12}
+                  className="text-[var(--accent)] animate-spin [animation-duration:5s]"
+                />
+                <span className="font-medium tracking-tight thinking-shimmer select-none">
+                  Thinking…
+                </span>
+              </div>
+            </div>
+          )}
+
+          {agent.error && (
+            <div className="ai">
+              <div className="ai-logo shrink-0">
+                <ZuriAvatar
+                  size={32}
+                  defaultAnimation="idle"
+                  ariaLabel="Zuri"
+                />
+              </div>
+              <div className="ai-body">
+                <p className="text-red-500 text-sm">{agent.error}</p>
               </div>
             </div>
           )}
@@ -208,12 +196,12 @@ export function ChatInterface({
         attachmentName={attachmentName}
         model={model}
         modelMenuOpen={modelMenuOpen}
-        loading={loading}
+        loading={agent.isRunning}
         textareaRef={textareaRef}
         fileInputRef={fileInputRef}
         onInputChange={handleTextareaChange}
         onKeyDown={handleComposerKeyDown}
-        onSubmit={sendMessage}
+        onSubmit={(e) => void sendMessage(e)}
         onAttachFile={setAttachmentName}
         onRemoveAttachment={() => setAttachmentName("")}
         onModelSelect={(m) => {

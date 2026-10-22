@@ -14,6 +14,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string(),
   QDRANT_URL: z.string(),
   REDIS_HOST: z.string().default("localhost"),
+  OPENAI_MAIN_MODEL: z.string().trim().default("gpt-4o-mini"),
+  DATABASE_URL: z.string().describe("DB URL"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

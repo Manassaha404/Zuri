@@ -71,7 +71,7 @@ export function ChatComposer({
           onKeyDown={onKeyDown}
           placeholder="Message Zuri…"
           aria-label="Message Zuri"
-          className="w-full resize-none bg-transparent outline-none text-[15px] text-[var(--i)] placeholder:text-[var(--m)] max-h-[140px] leading-relaxed"
+          className="w-full resize-none bg-transparent outline-none text-[15px] text-[var(--i)] placeholder:text-[var(--m)] max-h-[140px] leading-relaxed no-scrollbar"
         />
 
         <div className="flex items-center gap-2 pt-1">
