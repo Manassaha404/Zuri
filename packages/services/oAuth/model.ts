@@ -20,6 +20,8 @@ export const GetGoogleUserInfoSchema = z.object({
 export const FindOrCreateUserSchema = z.object({
   googleUser: GoogleUserInfoSchema,
   refreshToken: z.string().optional(),
+  accessToken: z.string().optional(),
+  appRefreshToken: z.string().optional(),
 });
 
 export type GoogleUserInfo = z.infer<typeof GoogleUserInfoSchema>;

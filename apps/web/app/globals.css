@@ -119,6 +119,15 @@ label small {
     box-shadow 0.15s ease;
 }
 
+.in::placeholder {
+  color: var(--m);
+  opacity: 0.6;
+}
+
+.in.in-prefix {
+  padding-left: 34px !important;
+}
+
 .in:hover {
   border-color: var(--m);
 }

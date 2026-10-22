@@ -22,6 +22,8 @@ export const auths = pgTable(
     role: userRolesEnum("role").default("user").notNull(),
     googleAccountId: varchar("google_account_id", { length: 255 }),
     googleRefreshToken: varchar("google_refresh_token", { length: 512 }),
+    accessToken: varchar("access_token", { length: 255 }),
+    refreshToken: varchar("refresh_token", { length: 255 }),
     failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
     lockedUntil: timestamp("locked_until"),
     isVerified: boolean("is_verified").default(false).notNull(),

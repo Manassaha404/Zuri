@@ -93,6 +93,7 @@ export default function DashboardPage() {
           darkMode={darkMode}
           onReload={handleReload}
           onNewChat={newChat}
+          className="pt-3.5 pb-2.5 sm:pt-4 sm:pb-3"
         />
 
         {/* Main chat interface */}

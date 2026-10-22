@@ -70,6 +70,11 @@ export const authRouter = router({
         } as any);
         const accessToken = generateAccessToken(user.userId);
         const refreshToken = generateRefreshToken(user.userId);
+        await authService.updateUserTokens(
+          user.userId,
+          accessToken,
+          refreshToken,
+        );
         ctx.setCookie("accessToken", accessToken);
         ctx.setCookie("refreshToken", refreshToken);
         redis.del(id);
@@ -85,6 +90,11 @@ export const authRouter = router({
         const { user } = await authService.loginWithEmailAndPassword(input);
         const accessToken = generateAccessToken(user.userId);
         const refreshToken = generateRefreshToken(user.userId);
+        await authService.updateUserTokens(
+          user.userId,
+          accessToken,
+          refreshToken,
+        );
         ctx.setCookie("accessToken", accessToken);
         ctx.setCookie("refreshToken", refreshToken);
         return { message: "Logged in successfully", user };
@@ -105,6 +115,7 @@ export const authRouter = router({
   }),
   logout: protectedProcedure.mutation(async ({ ctx }) => {
     try {
+      await authService.clearUserTokens(ctx.user.id);
       ctx.clearCookie("accessToken");
       ctx.clearCookie("refreshToken");
       return { message: "Logged out successfully" };

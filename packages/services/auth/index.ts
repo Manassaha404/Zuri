@@ -3,6 +3,7 @@ import { users } from "@repo/database/models/users";
 import * as bcrypt from "bcrypt";
 import * as crypto from "node:crypto";
 import { auths } from "@repo/database/models/auths";
+import { hashToken, compareToken } from "../utils/tokenHash";
 import {
   createVerifiedUserDto,
   createVerifiedUserType,
@@ -237,6 +238,97 @@ class AuthServices {
     }
 
     return { success: true };
+  }
+
+  public async updateUserTokens(
+    userId: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<void> {
+    const hashedAccessToken = await hashToken(accessToken);
+    const hashedRefreshToken = await hashToken(refreshToken);
+
+    await db
+      .update(auths)
+      .set({
+        accessToken: hashedAccessToken,
+        refreshToken: hashedRefreshToken,
+      })
+      .where(eq(auths.userId, userId));
+
+    await db
+      .update(users)
+      .set({
+        accessToken: hashedAccessToken,
+        refreshToken: hashedRefreshToken,
+      })
+      .where(eq(users.userId, userId));
+  }
+
+  public async clearUserTokens(userId: string): Promise<void> {
+    await db
+      .update(auths)
+      .set({
+        accessToken: null,
+        refreshToken: null,
+      })
+      .where(eq(auths.userId, userId));
+
+    await db
+      .update(users)
+      .set({
+        accessToken: null,
+        refreshToken: null,
+      })
+      .where(eq(users.userId, userId));
+  }
+
+  public async verifyUserAccessToken(
+    userId: string,
+    accessToken: string,
+  ): Promise<boolean> {
+    if (!userId || !accessToken) return false;
+
+    const [auth] = await db
+      .select({ accessToken: auths.accessToken })
+      .from(auths)
+      .where(eq(auths.userId, userId));
+
+    let dbToken = auth?.accessToken;
+    if (!dbToken) {
+      const [user] = await db
+        .select({ accessToken: users.accessToken })
+        .from(users)
+        .where(eq(users.userId, userId));
+      dbToken = user?.accessToken;
+    }
+
+    if (!dbToken) return false;
+    return await compareToken(accessToken, dbToken);
+  }
+
+  public async verifyUserRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<boolean> {
+    if (!userId || !refreshToken) return false;
+
+    const [auth] = await db
+      .select({ refreshToken: auths.refreshToken })
+      .from(auths)
+      .where(eq(auths.userId, userId));
+
+    let dbToken = auth?.refreshToken;
+    if (!dbToken) {
+      const [user] = await db
+        .select({ refreshToken: users.refreshToken })
+        .from(users)
+        .where(eq(users.userId, userId));
+      dbToken = user?.refreshToken;
+    }
+
+    if (!dbToken) return false;
+    return await compareToken(refreshToken, dbToken);
   }
 }
 

@@ -7,6 +7,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "./utils/jwt";
+import { authService } from "./services";
 
 export const tRPCContext = initTRPC
   .context<typeof createContext>()
@@ -33,7 +34,7 @@ const getGuestToken = tRPCContext.middleware(({ ctx, next }) => {
   return next({ ctx: { ...ctx, guestToken } });
 });
 
-const getOptionalUser = tRPCContext.middleware(({ ctx, next }) => {
+const getOptionalUser = tRPCContext.middleware(async ({ ctx, next }) => {
   const accessToken = ctx.getCookie("accessToken");
   const refreshToken = ctx.getCookie("refreshToken");
 
@@ -43,6 +44,13 @@ const getOptionalUser = tRPCContext.middleware(({ ctx, next }) => {
     if (accessToken) {
       const decoded = verifyAccessToken(accessToken);
       userId = decoded.userId;
+      const isTokenValid = await authService.verifyUserAccessToken(
+        userId,
+        accessToken,
+      );
+      if (!isTokenValid) {
+        throw new Error("Invalid access token");
+      }
     } else {
       throw new Error("Missing access token");
     }
@@ -51,13 +59,26 @@ const getOptionalUser = tRPCContext.middleware(({ ctx, next }) => {
       try {
         const decoded = verifyRefreshToken(refreshToken);
         userId = decoded.userId;
-
-        const newAccessToken = generateAccessToken(userId);
-        const newRefreshToken = generateRefreshToken(userId);
-        ctx.setCookie("accessToken", newAccessToken);
-        ctx.setCookie("refreshToken", newRefreshToken);
+        const isRefreshValid = await authService.verifyUserRefreshToken(
+          userId,
+          refreshToken,
+        );
+        if (isRefreshValid) {
+          const newAccessToken = generateAccessToken(userId);
+          const newRefreshToken = generateRefreshToken(userId);
+          await authService.updateUserTokens(
+            userId,
+            newAccessToken,
+            newRefreshToken,
+          );
+          ctx.setCookie("accessToken", newAccessToken);
+          ctx.setCookie("refreshToken", newRefreshToken);
+        } else {
+          userId = undefined;
+        }
       } catch (refreshError) {
         // Token is invalid, user remains undefined
+        userId = undefined;
       }
     }
   }
@@ -90,6 +111,13 @@ const isAuthed = tRPCContext.middleware(async ({ ctx, next }) => {
     if (accessToken) {
       const decoded = verifyAccessToken(accessToken);
       userId = decoded.userId;
+      const isTokenValid = await authService.verifyUserAccessToken(
+        userId,
+        accessToken,
+      );
+      if (!isTokenValid) {
+        throw new Error("Invalid access token");
+      }
     } else {
       throw new Error("Missing access token");
     }
@@ -98,9 +126,23 @@ const isAuthed = tRPCContext.middleware(async ({ ctx, next }) => {
       try {
         const decoded = verifyRefreshToken(refreshToken);
         userId = decoded.userId;
-        // plan = await subscriptionService.getUserPlan(userId);
+        const isRefreshValid = await authService.verifyUserRefreshToken(
+          userId,
+          refreshToken,
+        );
+        if (!isRefreshValid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Session expired. Please log in again.",
+          });
+        }
         const newAccessToken = generateAccessToken(userId);
         const newRefreshToken = generateRefreshToken(userId);
+        await authService.updateUserTokens(
+          userId,
+          newAccessToken,
+          newRefreshToken,
+        );
         ctx.setCookie("accessToken", newAccessToken);
         ctx.setCookie("refreshToken", newRefreshToken);
       } catch (refreshError) {

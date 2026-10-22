@@ -1,7 +1,7 @@
 "use client";
 
-import { Menu, Plus, RotateCw, PanelLeft } from "lucide-react";
-import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
+import { Menu, Plus, PanelLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 
 interface ChatHeaderProps {
@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   onOpenMobile?: () => void;
   onReload?: () => void;
   onNewChat?: () => void;
+  className?: string;
 }
 
 export function ChatHeader({
@@ -19,6 +20,7 @@ export function ChatHeader({
   onOpenMobile,
   onReload,
   onNewChat,
+  className,
 }: ChatHeaderProps) {
   const { isMobile, toggleSidebar, sidebarCollapsed, toggleSidebarCollapsed } =
     useUIStore();
@@ -34,7 +36,12 @@ export function ChatHeader({
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--h)] px-4 lg:px-6 bg-[var(--bg)] transition-colors">
+    <header
+      className={cn(
+        "flex min-h-16 pt-3.5 pb-2.5 sm:pt-4 sm:pb-3 shrink-0 items-center justify-between border-b border-[var(--h)] px-4 lg:px-6 bg-[var(--bg)] transition-colors",
+        className,
+      )}
+    >
       <div className="flex min-w-0 items-center gap-3">
         {/* Responsive menu toggle: on mobile toggles drawer, on desktop toggles collapsed sidebar */}
         {(isMobile || sidebarCollapsed || onOpenMobile) && (

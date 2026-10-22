@@ -2,6 +2,7 @@ import { Router } from "express";
 import { oAuthService } from "@repo/trpc/server/services";
 import type { Request, Response } from "express";
 import {
+  generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
 } from "@repo/trpc/server/utils/jwt";
@@ -65,6 +66,8 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
     });
 
     const refreshToken = generateRefreshToken(userId);
+    const accessToken = generateAccessToken(userId);
+    await oAuthService.updateUserTokens(userId, accessToken, refreshToken);
 
     const isProduction = process.env.NODE_ENV === "production";
 
@@ -76,6 +79,10 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
       path: "/",
     };
     res.cookie("refreshToken", refreshToken, cookieOptions);
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
     if (isNewUser) {
       const redirectUrl = new URL(`${env.CLIENT_URL}/username`);
       if (basePath) redirectUrl.searchParams.set("returnTo", basePath);

@@ -15,6 +15,7 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 import { encrypt } from "../utils/encryption";
+import { hashToken } from "../utils/tokenHash";
 
 class OauthService {
   //auth
@@ -94,7 +95,14 @@ class OauthService {
   public async findOrCreateUser({
     googleUser,
     refreshToken,
+    accessToken,
+    appRefreshToken,
   }: FindOrCreateUserParams): Promise<{ userId: string; isNewUser: boolean }> {
+    const hashedAccessToken = accessToken ? await hashToken(accessToken) : null;
+    const hashedAppRefreshToken = appRefreshToken
+      ? await hashToken(appRefreshToken)
+      : null;
+
     // Case 1: Already linked Google account
     const [existingAuth] = await db
       .select()
@@ -102,13 +110,29 @@ class OauthService {
       .where(eq(auths.googleAccountId, googleUser.sub));
 
     if (existingAuth) {
+      const updateData: Record<string, any> = {
+        googleRefreshToken: refreshToken ?? existingAuth.googleRefreshToken,
+        lastLoginAt: new Date(),
+      };
+      if (hashedAccessToken) updateData.accessToken = hashedAccessToken;
+      if (hashedAppRefreshToken)
+        updateData.refreshToken = hashedAppRefreshToken;
+
       await db
         .update(auths)
-        .set({
-          googleRefreshToken: refreshToken ?? existingAuth.googleRefreshToken,
-          lastLoginAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(auths.authId, existingAuth.authId));
+
+      if (hashedAccessToken || hashedAppRefreshToken) {
+        const userUpdateData: Record<string, any> = {};
+        if (hashedAccessToken) userUpdateData.accessToken = hashedAccessToken;
+        if (hashedAppRefreshToken)
+          userUpdateData.refreshToken = hashedAppRefreshToken;
+        await db
+          .update(users)
+          .set(userUpdateData)
+          .where(eq(users.userId, existingAuth.userId));
+      }
 
       return { userId: existingAuth.userId, isNewUser: false };
     }
@@ -126,15 +150,20 @@ class OauthService {
         .where(eq(auths.userId, existingUser.userId));
 
       if (existingAuthRecord) {
+        const updateData: Record<string, any> = {
+          googleAccountId: googleUser.sub,
+          googleRefreshToken:
+            refreshToken ?? existingAuthRecord.googleRefreshToken,
+          isVerified: true,
+          lastLoginAt: new Date(),
+        };
+        if (hashedAccessToken) updateData.accessToken = hashedAccessToken;
+        if (hashedAppRefreshToken)
+          updateData.refreshToken = hashedAppRefreshToken;
+
         await db
           .update(auths)
-          .set({
-            googleAccountId: googleUser.sub,
-            googleRefreshToken:
-              refreshToken ?? existingAuthRecord.googleRefreshToken,
-            isVerified: true,
-            lastLoginAt: new Date(),
-          })
+          .set(updateData)
           .where(eq(auths.authId, existingAuthRecord.authId));
       } else {
         await db.insert(auths).values({
@@ -142,9 +171,22 @@ class OauthService {
           password: null,
           googleAccountId: googleUser.sub,
           googleRefreshToken: refreshToken ?? null,
+          accessToken: hashedAccessToken,
+          refreshToken: hashedAppRefreshToken,
           isVerified: true,
           lastLoginAt: new Date(),
         });
+      }
+
+      if (hashedAccessToken || hashedAppRefreshToken) {
+        const userUpdateData: Record<string, any> = {};
+        if (hashedAccessToken) userUpdateData.accessToken = hashedAccessToken;
+        if (hashedAppRefreshToken)
+          userUpdateData.refreshToken = hashedAppRefreshToken;
+        await db
+          .update(users)
+          .set(userUpdateData)
+          .where(eq(users.userId, existingUser.userId));
       }
 
       return {
@@ -167,6 +209,8 @@ class OauthService {
           username,
           email: googleUser.email,
           avatarUrl: googleUser.picture ?? null,
+          accessToken: hashedAccessToken,
+          refreshToken: hashedAppRefreshToken,
         })
         .returning();
       if (!newUser) {
@@ -182,6 +226,8 @@ class OauthService {
           password: null, // no password for OAuth users
           googleAccountId: googleUser.sub,
           googleRefreshToken: refreshToken ?? null,
+          accessToken: hashedAccessToken,
+          refreshToken: hashedAppRefreshToken,
           isVerified: true, // Google already verified the email
           lastLoginAt: new Date(),
         })
@@ -194,6 +240,31 @@ class OauthService {
       }
       return { userId: newUser.userId, isNewUser: true };
     });
+  }
+
+  public async updateUserTokens(
+    userId: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<void> {
+    const hashedAccessToken = await hashToken(accessToken);
+    const hashedRefreshToken = await hashToken(refreshToken);
+
+    await db
+      .update(auths)
+      .set({
+        accessToken: hashedAccessToken,
+        refreshToken: hashedRefreshToken,
+      })
+      .where(eq(auths.userId, userId));
+
+    await db
+      .update(users)
+      .set({
+        accessToken: hashedAccessToken,
+        refreshToken: hashedRefreshToken,
+      })
+      .where(eq(users.userId, userId));
   }
 }
 

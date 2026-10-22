@@ -34,9 +34,16 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export function SignUpForm() {
+export function SignUpForm({
+  onGoogleLogin,
+}: { onGoogleLogin?: () => void } = {}) {
   const { handleSignup, apiError, apiSuccess, isSigningUp, setApiError } =
     useSignup();
+
+  const handleGoogleLogin = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/trpc", "") || "";
+    window.location.href = `${apiUrl}/auth/google`;
+  };
 
   const {
     register,
@@ -144,9 +151,7 @@ export function SignUpForm() {
 
         <AuthDivider label="or" />
 
-        <GoogleButton
-          onClick={() => setApiError("Google sign-up is coming soon.")}
-        />
+        <GoogleButton onClick={onGoogleLogin ?? handleGoogleLogin} />
 
         <p className="text-center text-sm text-[var(--m)] mt-2">
           Already have an account?{" "}

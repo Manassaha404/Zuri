@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +32,7 @@ export function ChangeUsernameForm() {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -38,6 +40,12 @@ export function ChangeUsernameForm() {
       username: username || "",
     },
   });
+
+  useEffect(() => {
+    if (username) {
+      reset({ username });
+    }
+  }, [username, reset]);
 
   const currentVal = watch("username");
   const isValid = currentVal && currentVal.length >= 3 && !errors.username;
@@ -69,12 +77,13 @@ export function ChangeUsernameForm() {
       >
         <label className="flex flex-col gap-1.5 text-left">
           <span>Username</span>
-          <span className="relative block">
-            <span className="absolute left-3.5 top-2.5 text-[var(--m)] select-none">
+          <span className="relative block w-full">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--m)] select-none pointer-events-none text-[15px] font-medium leading-none">
               @
             </span>
             <input
-              className={`in pl-8 ${errors.username ? "e" : isValid ? "g" : ""}`}
+              className={`in in-prefix !pl-[34px] ${errors.username ? "e" : isValid ? "g" : ""}`}
+              style={{ paddingLeft: "34px" }}
               placeholder="alex"
               autoComplete="username"
               autoFocus
