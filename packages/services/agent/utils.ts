@@ -15,3 +15,7 @@ export const trimmer = trimMessages({
 // convert message content to plain string
 export const textOf = (content: unknown): string =>
   typeof content === "string" ? content : JSON.stringify(content);
+
+// find latest message of given type (human or ai)
+export const lastOfType = (messages: any[], type: "human" | "ai") =>
+  [...messages].reverse().find((m) => m.type === type);

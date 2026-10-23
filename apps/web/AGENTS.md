@@ -90,6 +90,12 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Client-Side Only**: Because avatar libraries access browser-only APIs (`window`, `useLayoutEffect`, `requestAnimationFrame`), `ZuriAvatar` must **always** be dynamically imported with `ssr: false` and render a `Skeleton` fallback during SSR.
 - Server bundling: `next.config.js` specifies `serverExternalPackages: ["ajv", "@bible-strong/avatar-core"]`. Never remove these.
 
+### Component Decomposition & Granularity
+
+- **Break UI into Small Components**: Break complex UI views, modals, and sections into small, focused, single-responsibility components (e.g., separate headers, tab bars, list items, and form cards).
+- **Avoid Monolithic Files**: Do not build monolithic, excessively large component files. Extract self-contained visual elements and sub-sections into dedicated sub-components.
+- **Clean Props & Reusability**: Ensure each extracted sub-component has clear, strictly typed props and delegates actions cleanly via callbacks or custom hooks for maximum maintainability.
+
 ---
 
 ## 5. State Management & Hooks
@@ -107,6 +113,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Strict Mode**: Ensure zero compile errors with `pnpm --filter web exec tsc --noEmit`.
 - **Path Aliases**: Always use `@/...` to import local files from `apps/web/` (e.g. `@/components/chat`, `@/store/uiStore`).
 - **Client Components**: Any file using React hooks (`useState`, `useEffect`, `useRef`), event handlers, or browser APIs must have `"use client";` as the very first line.
+- **Component Granularity**: Break complex UI views into small, focused sub-components rather than writing large, monolithic single-file components.
 - **Linting**: Keep code clean, free of unused imports, and avoid inline styles where design system variables/classes exist.
 
 ---

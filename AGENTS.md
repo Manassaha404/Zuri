@@ -25,6 +25,7 @@ This document defines the architectural patterns, code style, backend standards,
 ```
 
 ### Monorepo Workspaces & Package Names
+
 - `@repo/database` (`packages/database`)
 - `@repo/services` (`packages/services`)
 - `@repo/trpc` (`packages/trpc`)
@@ -61,11 +62,11 @@ sequenceDiagram
     tRPC->>DB: INSERT INTO conversations
     tRPC->>Inngest: inngest.send("run-chat-agent")
     tRPC-->>Client: { conversationId, message }
-    
+
     Inngest->>Redis: PUBLISH redis:agent:status (status: running)
     Redis->>Socket: subscriber.on("message")
     Socket-->>Client: io.to("agent:<id>").emit("status", "running")
-    
+
     Inngest->>Inngest: AgentService.chat() via LangGraph
     Inngest->>DB: UPDATE conversations SET title, updatedAt
     Inngest->>Redis: PUBLISH redis:agent:status (status: done, result)
@@ -78,6 +79,7 @@ sequenceDiagram
 ## 4. How to Make Backend Changes
 
 ### A. Database Schema & Migration Workflow
+
 1. **Edit or create models** in `packages/database/models/<table-name>.ts`.
 2. **Export schemas** in `packages/database/models/index.ts` and `packages/database/schema.ts`.
 3. **Generate migration SQL**:
@@ -91,6 +93,7 @@ sequenceDiagram
 5. **Always provide default values** for new non-null columns (e.g. `.default(false)`, `.defaultNow()`).
 
 ### B. Service Layer Workflow (`packages/services/`)
+
 - All business logic lives in `packages/services/<domain>/index.ts`.
 - Service classes must provide both `static` and instance methods for clean caller flexibility.
 - Use `db` imported from `@repo/database`.
@@ -98,6 +101,7 @@ sequenceDiagram
 - Never write raw SQL where Drizzle query builder methods exist, except for external checkpoint/vector tables using `sql`.
 
 ### C. tRPC Route Workflow (`packages/trpc/`)
+
 1. **Define DTO schema** in `packages/trpc/server/routes/<domain>/model.ts` with Zod:
    ```typescript
    export const updateItemDto = z.object({
@@ -110,15 +114,18 @@ sequenceDiagram
    - Use `protectedProcedure` for authenticated actions (`ctx.user.id`).
    - Use `publicProcedure` for unauthenticated endpoints.
    - Always wrap execution in `try / catch` and call `handleRouteError(error)`.
+   - Agent memory management procedures: `getUserMemories`, `createUserMemory`, `updateUserMemory`, `deleteUserMemory`.
 3. **Register routes** in `packages/trpc/server/routers/index.ts` under `serverRouter`.
 
 ### D. Inngest Background Jobs (`packages/services/inngest/`)
+
 - Define functions using `inngest.createFunction` in `packages/services/inngest/`.
 - Break execution into atomic, idempotent steps with `step.run("<step-id>", async () => ...)`.
 - Emit updates to the frontend by publishing to Redis pub/sub (`publisher.publish("redis:agent:status", ...)`).
 - Export functions in `AgentFunction` array and ensure they are mounted in `inngestRouter`.
 
 ### E. Real-Time WebSockets (`packages/socket/` & `apps/socket/`)
+
 - Redis channel contract: `redis:agent:status`.
 - Message format:
   ```json
@@ -136,6 +143,7 @@ sequenceDiagram
 ## 5. Error Handling Standard
 
 Always throw `AppError` from `@repo/error` in services:
+
 ```typescript
 import { AppError } from "@repo/error";
 
@@ -146,6 +154,7 @@ if (!conversation) {
 ```
 
 Supported `AppError` codes:
+
 - `"BAD_REQUEST"`
 - `"UNAUTHORIZED"`
 - `"FORBIDDEN"`

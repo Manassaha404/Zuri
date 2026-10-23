@@ -7,6 +7,9 @@ import {
   togglePinConversationDto,
   updateConversationTitleDto,
   deleteConversationDto,
+  createUserMemoryDto,
+  updateUserMemoryDto,
+  deleteUserMemoryDto,
 } from "./model";
 import { inngest } from "@repo/services/inngest";
 import { db } from "@repo/database";
@@ -121,6 +124,40 @@ export const agentRouter = router({
           message:
             "Agent is processing your request. You will receive updates on the status of the job.",
         };
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  getUserMemories: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      return await agentService.getUserMemories(ctx.user.id);
+    } catch (error) {
+      handleRouteError(error);
+    }
+  }),
+  createUserMemory: protectedProcedure
+    .input(createUserMemoryDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.createUserMemory(ctx.user.id, input);
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  updateUserMemory: protectedProcedure
+    .input(updateUserMemoryDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.updateUserMemory(ctx.user.id, input);
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  deleteUserMemory: protectedProcedure
+    .input(deleteUserMemoryDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.deleteUserMemory(ctx.user.id, input);
       } catch (error) {
         handleRouteError(error);
       }

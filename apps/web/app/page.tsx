@@ -37,9 +37,7 @@ export default function DashboardPage() {
   const isAgentThinking = useAgentStore((state) => state.status === "running");
   const agentTitle = useAgentStore((state) => state.title);
   const isTitleUpdating = useAgentStore((state) => state.isTitleUpdating);
-  const currentConversationId = useAgentStore(
-    (state) => state.conversationId,
-  );
+  const currentConversationId = useAgentStore((state) => state.conversationId);
   const [reloadKey, setReloadKey] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(() =>
     crypto.randomUUID(),
@@ -61,8 +59,7 @@ export default function DashboardPage() {
   };
 
   const currentConversation = useMemo(
-    () =>
-      conversations.find((c) => c.conversationId === currentConversationId),
+    () => conversations.find((c) => c.conversationId === currentConversationId),
     [conversations, currentConversationId],
   );
   const isCurrentChatPinned = Boolean(currentConversation?.isPinned);

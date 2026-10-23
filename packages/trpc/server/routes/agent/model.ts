@@ -31,8 +31,33 @@ export type updateConversationTitleDtoType = z.infer<
 export const deleteConversationDto = z.object({
   conversationId: z.string().uuid(),
 });
-export type deleteConversationDtoType = z.infer<
-  typeof deleteConversationDto
->;
+export type deleteConversationDtoType = z.infer<typeof deleteConversationDto>;
 
+export const memoryTypeEnum = z.enum([
+  "profile",
+  "episodic",
+  "semantic",
+  "procedural",
+]);
+export type memoryType = z.infer<typeof memoryTypeEnum>;
 
+export const createUserMemoryDto = z.object({
+  text: z.string().trim().min(1, "Memory content cannot be empty").max(2000),
+  type: memoryTypeEnum,
+});
+export type createUserMemoryDtoType = z.infer<typeof createUserMemoryDto>;
+
+export const updateUserMemoryDto = z.object({
+  key: z.string().min(1),
+  text: z.string().trim().min(1, "Memory content cannot be empty").max(2000),
+  type: memoryTypeEnum,
+  currentNamespace: z.array(z.string()).optional(),
+});
+export type updateUserMemoryDtoType = z.infer<typeof updateUserMemoryDto>;
+
+export const deleteUserMemoryDto = z.object({
+  key: z.string().min(1),
+  namespace: z.array(z.string()).optional(),
+  type: memoryTypeEnum.optional(),
+});
+export type deleteUserMemoryDtoType = z.infer<typeof deleteUserMemoryDto>;

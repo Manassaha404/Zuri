@@ -5,6 +5,8 @@ import db, { eq, desc, and, sql } from "@repo/database";
 import { conversations } from "@repo/database/models";
 import { AppError } from "@repo/error";
 import { textOf } from "./utils";
+import { store } from "./pg-for-agent";
+import { MemoryType } from "./model";
 
 class AgentService {
   static async getAllConversations(userId: string) {
@@ -60,11 +62,7 @@ class AgentService {
     userId: string,
     isPinned?: boolean,
   ) {
-    return AgentService.togglePinConversation(
-      conversationId,
-      userId,
-      isPinned,
-    );
+    return AgentService.togglePinConversation(conversationId, userId, isPinned);
   }
 
   static async pinConversation(
@@ -72,11 +70,7 @@ class AgentService {
     userId: string,
     isPinned: boolean = true,
   ) {
-    return AgentService.togglePinConversation(
-      conversationId,
-      userId,
-      isPinned,
-    );
+    return AgentService.togglePinConversation(conversationId, userId, isPinned);
   }
 
   public async pinConversation(
@@ -120,11 +114,7 @@ class AgentService {
     userId: string,
     title: string,
   ) {
-    return AgentService.updateConversationTitle(
-      conversationId,
-      userId,
-      title,
-    );
+    return AgentService.updateConversationTitle(conversationId, userId, title);
   }
 
   static async deleteConversation(conversationId: string, userId: string) {
@@ -266,6 +256,177 @@ class AgentService {
     const title = result.title;
 
     return { conversationId, output, title, result };
+  }
+
+  static async getUserMemories(userId: string) {
+    if (!userId) {
+      throw new AppError("UNAUTHORIZED", "User ID is required");
+    }
+
+    const items = await store.search(["memories", userId], {
+      limit: 200,
+    });
+
+    return items.map((item) => {
+      const rawType = item.value?.type ?? item.namespace?.[2] ?? "semantic";
+      const type: MemoryType =
+        rawType === "profile" ||
+        rawType === "episodic" ||
+        rawType === "semantic" ||
+        rawType === "procedural"
+          ? rawType
+          : "semantic";
+
+      return {
+        key: item.key,
+        text: typeof item.value?.text === "string" ? item.value.text : "",
+        type,
+        namespace: item.namespace,
+        createdAt: item.createdAt
+          ? new Date(item.createdAt).toISOString()
+          : new Date().toISOString(),
+        updatedAt: item.updatedAt
+          ? new Date(item.updatedAt).toISOString()
+          : new Date().toISOString(),
+      };
+    });
+  }
+
+  public async getUserMemories(userId: string) {
+    return AgentService.getUserMemories(userId);
+  }
+
+  static async createUserMemory(
+    userId: string,
+    payload: { text: string; type: MemoryType },
+  ) {
+    if (!userId) {
+      throw new AppError("UNAUTHORIZED", "User ID is required");
+    }
+
+    const trimmed = payload.text.trim();
+    if (!trimmed) {
+      throw new AppError("BAD_REQUEST", "Memory text cannot be empty");
+    }
+
+    const key = crypto.randomUUID();
+    const namespace = ["memories", userId, payload.type];
+
+    await store.put(namespace, key, {
+      text: trimmed,
+      type: payload.type,
+    });
+
+    return {
+      key,
+      text: trimmed,
+      type: payload.type,
+      namespace,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  public async createUserMemory(
+    userId: string,
+    payload: { text: string; type: MemoryType },
+  ) {
+    return AgentService.createUserMemory(userId, payload);
+  }
+
+  static async updateUserMemory(
+    userId: string,
+    payload: {
+      key: string;
+      text: string;
+      type: MemoryType;
+      currentNamespace?: string[];
+    },
+  ) {
+    if (!userId) {
+      throw new AppError("UNAUTHORIZED", "User ID is required");
+    }
+
+    const trimmed = payload.text.trim();
+    if (!trimmed) {
+      throw new AppError("BAD_REQUEST", "Memory text cannot be empty");
+    }
+
+    const newNamespace = ["memories", userId, payload.type];
+
+    // If current namespace was provided and differs, delete from old namespace
+    if (
+      payload.currentNamespace &&
+      payload.currentNamespace.join("/") !== newNamespace.join("/")
+    ) {
+      try {
+        await store.delete(payload.currentNamespace, payload.key);
+      } catch {
+        // Ignore deletion error if missing
+      }
+    }
+
+    await store.put(newNamespace, payload.key, {
+      text: trimmed,
+      type: payload.type,
+    });
+
+    return {
+      key: payload.key,
+      text: trimmed,
+      type: payload.type,
+      namespace: newNamespace,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  public async updateUserMemory(
+    userId: string,
+    payload: {
+      key: string;
+      text: string;
+      type: MemoryType;
+      currentNamespace?: string[];
+    },
+  ) {
+    return AgentService.updateUserMemory(userId, payload);
+  }
+
+  static async deleteUserMemory(
+    userId: string,
+    payload: {
+      key: string;
+      namespace?: string[];
+      type?: MemoryType;
+    },
+  ) {
+    if (!userId) {
+      throw new AppError("UNAUTHORIZED", "User ID is required");
+    }
+
+    const targetNamespace = payload.namespace ?? [
+      "memories",
+      userId,
+      payload.type ?? "semantic",
+    ];
+
+    await store.delete(targetNamespace, payload.key);
+
+    return {
+      key: payload.key,
+      success: true,
+    };
+  }
+
+  public async deleteUserMemory(
+    userId: string,
+    payload: {
+      key: string;
+      namespace?: string[];
+      type?: MemoryType;
+    },
+  ) {
+    return AgentService.deleteUserMemory(userId, payload);
   }
 }
 export default AgentService;

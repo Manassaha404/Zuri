@@ -32,6 +32,7 @@ import type { ChatGroup, Connector, PinnedMessage, User } from "./types";
 import { getInitials } from "./utils";
 import { useLogout } from "@/hook/auth/useLogout";
 import { DeleteConversationModal } from "./DeleteConversationModal";
+import { MemoryModal } from "./MemoryModal";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -62,9 +63,7 @@ interface SidebarProps {
     conversationId: string,
     newTitle: string,
   ) => void | Promise<void>;
-  onDeleteConversation?: (
-    conversationId: string,
-  ) => void | Promise<void>;
+  onDeleteConversation?: (conversationId: string) => void | Promise<void>;
   memory: string;
   setMemory: React.Dispatch<React.SetStateAction<string>>;
   isLoadingConversations?: boolean;
@@ -299,45 +298,10 @@ export function Sidebar({
       )}
 
       {/* Memory Dialog */}
-      {memoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--h)] bg-[var(--bg)] p-6 shadow-2xl flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Brain size={18} className="text-[#3b82f6]" />
-              <h2 className="text-base font-semibold text-[var(--i)]">
-                Zuri Memory
-              </h2>
-            </div>
-            <p className="text-xs text-[var(--m)]">
-              Zuri remembers context and preferences across chats to provide
-              better answers.
-            </p>
-            <textarea
-              rows={4}
-              value={tempMemory}
-              onChange={(e) => setTempMemory(e.target.value)}
-              placeholder="e.g. Prefers concise answers, writes code in TypeScript, focuses on clean architectures."
-              className="in h-auto py-2.5 text-xs resize-none"
-            />
-            <div className="flex gap-2 justify-end mt-1">
-              <button
-                type="button"
-                onClick={() => setMemoryModalOpen(false)}
-                className="bt w-auto px-4 text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={saveMemory}
-                className="bt p w-auto px-4 text-xs"
-              >
-                Save memory
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MemoryModal
+        isOpen={memoryModalOpen}
+        onClose={() => setMemoryModalOpen(false)}
+      />
 
       {/* Delete Conversation Confirmation Dialog */}
       <DeleteConversationModal
@@ -479,7 +443,9 @@ export function Sidebar({
                         const convId =
                           item.conversationId ||
                           (typeof item.id === "string" ? item.id : undefined);
-                        const isEditingThis = Boolean(convId && editingId === convId);
+                        const isEditingThis = Boolean(
+                          convId && editingId === convId,
+                        );
 
                         if (isEditingThis && convId) {
                           return (
@@ -491,9 +457,12 @@ export function Sidebar({
                               <input
                                 type="text"
                                 value={editingTitle}
-                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onChange={(e) =>
+                                  setEditingTitle(e.target.value)
+                                }
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") void handleSaveRename(convId);
+                                  if (e.key === "Enter")
+                                    void handleSaveRename(convId);
                                   if (e.key === "Escape") handleCancelRename();
                                 }}
                                 autoFocus
@@ -502,7 +471,9 @@ export function Sidebar({
                               />
                               <button
                                 type="button"
-                                onClick={(e) => void handleSaveRename(convId, e)}
+                                onClick={(e) =>
+                                  void handleSaveRename(convId, e)
+                                }
                                 className="p-1 rounded text-emerald-500 hover:bg-[var(--s)] transition-colors shrink-0"
                                 title="Save title"
                               >
