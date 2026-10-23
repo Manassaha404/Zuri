@@ -36,6 +36,25 @@ export function ChatInterface({
     content: m.content,
   }));
 
+  // Identify the latest assistant message and streaming state
+  const lastAssistantMessage = [...messages]
+    .reverse()
+    .find((m) => m.role === "assistant");
+
+  const isStreaming =
+    agent.isRunning &&
+    Boolean(
+      lastAssistantMessage && lastAssistantMessage.content.trim().length > 0,
+    );
+
+  const streamingMessageId = isStreaming ? lastAssistantMessage?.id : null;
+
+  // The thinking animation pill should only show while waiting for initial response chunks
+  const isThinking = agent.isRunning && !isStreaming;
+
+  // Last assistant message always gets the avatar (both during streaming and when done)
+  const lastAssistantMessageId = lastAssistantMessage?.id;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -53,8 +72,10 @@ export function ChatInterface({
 
   // Auto-scroll to the bottom on new messages / loading state
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, agent.isRunning]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: isStreaming ? "auto" : "smooth",
+    });
+  }, [messages, agent.isRunning, isStreaming]);
 
   async function copyMessage(message: ChatMessage) {
     try {
@@ -106,11 +127,6 @@ export function ChatInterface({
     }
   }
 
-  // Determine the ID of the latest completed assistant message (only if agent is not currently thinking)
-  const lastAssistantMessageId = agent.isRunning
-    ? null
-    : [...messages].reverse().find((m) => m.role === "assistant")?.id;
-
   return (
     <main className="mn">
       {agent.isLoadingMessages && messages.length === 0 ? (
@@ -138,13 +154,14 @@ export function ChatInterface({
               darkMode={darkMode}
               copiedId={copiedId}
               showAvatar={message.id === lastAssistantMessageId}
+              isStreaming={message.id === streamingMessageId}
               onCopy={(msg) => void copyMessage(msg)}
               onPin={(msg) => onPinMessage(msg.content.slice(0, 70))}
               onRetry={() => void sendMessage()}
             />
           ))}
 
-          {agent.isRunning && (
+          {isThinking && (
             <div className="flex items-center gap-2.5 py-1 animate-in fade-in duration-300">
               <div className="ai-logo shrink-0 flex items-center justify-center">
                 <ZuriAvatar

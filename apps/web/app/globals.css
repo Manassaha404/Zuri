@@ -697,19 +697,26 @@ label small {
 
 .ai {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   font-size: 15px;
   line-height: 1.55;
   color: var(--i);
 }
 
-.ai:has(pre) {
-  align-items: flex-start;
+.ai .ai-logo {
+  margin-top: 2px;
+  transition: all 0.15s ease-out;
 }
 
-.ai:has(pre) .ai-logo {
-  margin-top: 2px;
+.ai.ai-streaming {
+  align-items: flex-end;
+}
+
+.ai.ai-streaming .ai-logo {
+  align-self: flex-end;
+  margin-top: 0;
+  margin-bottom: 2px;
 }
 
 .ai > svg,

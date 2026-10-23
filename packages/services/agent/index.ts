@@ -8,6 +8,10 @@ import { textOf } from "./utils";
 import { store } from "./pg-for-agent";
 import { MemoryType } from "./model";
 
+export interface AgentChatCallbacks {
+  onChunk?: (chunk: string) => Promise<void> | void;
+}
+
 class AgentService {
   static async getAllConversations(userId: string) {
     return await db
@@ -228,16 +232,54 @@ class AgentService {
     return AgentService.getConversationMessages(conversationId, userId);
   }
 
-  static async chat(payload: chatDtoType) {
+  static async chat(payload: chatDtoType, callbacks?: AgentChatCallbacks) {
     let { userId, userMessage, conversationId } =
       await chatDto.parseAsync(payload);
     if (!conversationId) {
       conversationId = crypto.randomUUID();
     }
-    //config for passing conversation id and user id each turn
+    // Config for passing conversation id and user id each turn
     const config = {
       configurable: { thread_id: conversationId, user_id: userId },
     };
+
+    if (callbacks?.onChunk) {
+      const eventStream = Agent.streamEvents(
+        { messages: [new HumanMessage(userMessage)] },
+        { ...config, version: "v2" },
+      );
+
+      for await (const event of eventStream) {
+        // Stream token chunks strictly from the main llm_call node
+        if (
+          event.event === "on_chat_model_stream" &&
+          event.metadata?.langgraph_node === "llm_call"
+        ) {
+          const chunk = event.data?.chunk?.content;
+          const text = typeof chunk === "string" ? chunk : textOf(chunk);
+          if (text) {
+            await callbacks.onChunk(text);
+          }
+        }
+      }
+
+      const state = await Agent.getState(config);
+      const messages = (state?.values as any)?.messages ?? [];
+      const lastMessage = messages[messages.length - 1];
+      const output =
+        typeof lastMessage?.content === "string"
+          ? lastMessage.content
+          : Array.isArray(lastMessage?.content)
+            ? lastMessage.content
+                .map((c: any) => (typeof c === "string" ? c : (c?.text ?? "")))
+                .join("")
+            : (lastMessage?.kwargs?.content ?? "");
+
+      const title = (state?.values as any)?.title;
+
+      return { conversationId, output, title, result: state?.values };
+    }
+
     const result = await Agent.invoke(
       { messages: [new HumanMessage(userMessage)] },
       config,
@@ -256,6 +298,10 @@ class AgentService {
     const title = result.title;
 
     return { conversationId, output, title, result };
+  }
+
+  public async chat(payload: chatDtoType, callbacks?: AgentChatCallbacks) {
+    return AgentService.chat(payload, callbacks);
   }
 
   static async getUserMemories(userId: string) {

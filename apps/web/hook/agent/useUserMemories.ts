@@ -31,7 +31,7 @@ export function useUserMemories() {
 
   const query = trpc.agent.getUserMemories.useQuery(undefined, {
     enabled: Boolean(userId),
-    staleTime: 1000 * 30,
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 

@@ -103,6 +103,14 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **UI Store (`apps/web/store/uiStore.ts`)**:
   - Use `useInitUIStore()` in top-level pages (`app/page.tsx`) to bind viewport change listeners and theme synchronization.
   - Access `darkMode`, `isMobile`, `sidebarOpen`, `sidebarCollapsed`, and `toggleTheme` via `useUIStore`.
+- **Agent Store (`apps/web/store/agentStore.ts`) & Streaming (`apps/web/hook/agent/useAgent.ts`)**:
+  - `appendAssistantChunk(chunk)` appends in-flight token chunks received over WebSocket `"stream"` event.
+  - `appendAssistantMessage(content)` synchronizes the final completion message on `"done"`.
+  - In `useAgent`, conversation IDs are pre-bound so the socket room is joined prior to mutation dispatch, preventing initial token drop.
+- **Memory System (`apps/web/hook/agent/useUserMemories.ts`, `apps/web/components/chat/MemoryModal.tsx`)**:
+  - `staleTime: 0` ensures memory data is always treated as fresh when fetched.
+  - `MemoryModal` refetches automatically via `useEffect` whenever `isOpen` transitions to `true`.
+  - In `useAgent`, `utils.agent.getUserMemories.invalidate()` is called when agent responses complete (`"done"`).
 - **User Store (`apps/web/store/userInfoStore.ts`)**:
   - Never hardcode usernames (like `"alex"`). Pull `fullName`, `username`, or `email` from `useUserInfoStore()`.
 

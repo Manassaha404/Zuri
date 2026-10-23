@@ -20,6 +20,11 @@ interface AgentTitlePayload {
   title?: string;
 }
 
+interface AgentStreamPayload {
+  chunk: string;
+  conversationId?: string;
+}
+
 // Hook
 export function useAgent(existingConversationId?: string) {
   const {
@@ -33,6 +38,7 @@ export function useAgent(existingConversationId?: string) {
     setConversationId,
     setTitle,
     setStatus,
+    appendAssistantChunk,
     appendAssistantMessage,
     setError,
     reset,
@@ -47,7 +53,7 @@ export function useAgent(existingConversationId?: string) {
   const mutation = trpc.agent.runChatAgent.useMutation();
   const utils = trpc.useUtils();
 
-  // Stable handler ref
+  // Stable status handler ref
   const handleStatus = useCallback(
     (payload: AgentStatusPayload) => {
       const {
@@ -74,6 +80,7 @@ export function useAgent(existingConversationId?: string) {
           setTitle(resolvedTitle);
         }
         utils.agent.getAllConversations.invalidate();
+        utils.agent.getUserMemories.invalidate();
         return;
       }
 
@@ -87,6 +94,20 @@ export function useAgent(existingConversationId?: string) {
   const handleStatusRef = useRef(handleStatus);
   handleStatusRef.current = handleStatus;
 
+  // Stable stream handler ref
+  const handleStream = useCallback(
+    (payload: AgentStreamPayload) => {
+      if (payload?.chunk) {
+        appendAssistantChunk(payload.chunk);
+      }
+    },
+    [appendAssistantChunk],
+  );
+
+  const handleStreamRef = useRef(handleStream);
+  handleStreamRef.current = handleStream;
+
+  // Stable title handler ref
   const handleTitle = useCallback(
     (payload: AgentTitlePayload | string) => {
       const resolvedTitle =
@@ -112,12 +133,18 @@ export function useAgent(existingConversationId?: string) {
       handleTitleRef.current(payload);
     };
 
+    const onStream = (payload: AgentStreamPayload) => {
+      handleStreamRef.current(payload);
+    };
+
     socket.on("status", onStatus);
     socket.on("title", onTitle);
+    socket.on("stream", onStream);
 
     return () => {
       socket.off("status", onStatus);
       socket.off("title", onTitle);
+      socket.off("stream", onStream);
     };
   }, []);
 
@@ -146,6 +173,21 @@ export function useAgent(existingConversationId?: string) {
       const trimmed = userMessage.trim();
       if (!trimmed) return;
 
+      // Ensure conversation ID and socket room are bound prior to mutation
+      const activeConversationId = conversationId ?? crypto.randomUUID();
+
+      if (!conversationId) {
+        setConversationId(activeConversationId);
+      }
+
+      if (joinedRoom.current !== activeConversationId) {
+        if (joinedRoom.current) {
+          leaveRoom("leave:agent", joinedRoom.current);
+        }
+        joinRoom("join:agent", activeConversationId);
+        joinedRoom.current = activeConversationId;
+      }
+
       // Optimistic user bubble
       sendUserMessage(trimmed);
 
@@ -153,15 +195,16 @@ export function useAgent(existingConversationId?: string) {
       try {
         const res = await mutation.mutateAsync({
           userMessage: trimmed,
-          conversationId: conversationId ?? null,
+          conversationId: activeConversationId,
         });
 
-        // Store backend conversation ID and join socket room
-        if (res?.conversationId) {
+        // Sync backend conversation ID if different
+        if (
+          res?.conversationId &&
+          res.conversationId !== activeConversationId
+        ) {
           const backendId = res.conversationId;
-          if (conversationId !== backendId) {
-            setConversationId(backendId);
-          }
+          setConversationId(backendId);
 
           if (joinedRoom.current !== backendId) {
             if (joinedRoom.current) {
@@ -170,8 +213,8 @@ export function useAgent(existingConversationId?: string) {
             joinRoom("join:agent", backendId);
             joinedRoom.current = backendId;
           }
-          utils.agent.getAllConversations.invalidate();
         }
+        utils.agent.getAllConversations.invalidate();
       } catch (err: any) {
         setError(err?.message ?? "Failed to send message to agent.");
       }

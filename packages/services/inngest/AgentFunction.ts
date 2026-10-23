@@ -32,11 +32,25 @@ const runAgent = inngest.createFunction(
     try {
       const result = await step.run("call-openai", async () => {
         try {
-          const data = await AgentService.chat({
-            userId,
-            userMessage,
-            conversationId,
-          });
+          const data = await AgentService.chat(
+            {
+              userId,
+              userMessage,
+              conversationId,
+            },
+            {
+              onChunk: async (chunk: string) => {
+                await publisher.publish(
+                  "redis:agent:status",
+                  JSON.stringify({
+                    jobId: conversationId,
+                    topic: "stream",
+                    payload: { chunk, conversationId },
+                  }),
+                );
+              },
+            },
+          );
           return data;
         } catch (error) {
           if (

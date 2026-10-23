@@ -67,7 +67,12 @@ sequenceDiagram
     Redis->>Socket: subscriber.on("message")
     Socket-->>Client: io.to("agent:<id>").emit("status", "running")
 
-    Inngest->>Inngest: AgentService.chat() via LangGraph
+    loop Real-Time LLM Token Streaming
+        Inngest->>Redis: PUBLISH redis:agent:status (topic: stream, { chunk })
+        Redis->>Socket: subscriber.on("message")
+        Socket-->>Client: io.to("agent:<id>").emit("stream", { chunk })
+    end
+
     Inngest->>DB: UPDATE conversations SET title, updatedAt
     Inngest->>Redis: PUBLISH redis:agent:status (status: done, result)
     Redis->>Socket: subscriber.on("message")
@@ -131,7 +136,7 @@ sequenceDiagram
   ```json
   {
     "jobId": "<conversationId>",
-    "topic": "status" | "title",
+    "topic": "status" | "title" | "stream",
     "payload": { ... }
   }
   ```

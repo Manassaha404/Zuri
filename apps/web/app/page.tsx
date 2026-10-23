@@ -34,7 +34,13 @@ export default function DashboardPage() {
   const { togglePin } = usePinConversation();
   const { updateTitle } = useUpdateConversationTitle();
   const { deleteConversation } = useDeleteConversation();
-  const isAgentThinking = useAgentStore((state) => state.status === "running");
+  const isAgentRunning = useAgentStore((state) => state.status === "running");
+  const agentMessages = useAgentStore((state) => state.messages);
+  const isAgentThinking =
+    isAgentRunning &&
+    !agentMessages.some(
+      (m) => m.role === "assistant" && m.content.trim().length > 0,
+    );
   const agentTitle = useAgentStore((state) => state.title);
   const isTitleUpdating = useAgentStore((state) => state.isTitleUpdating);
   const currentConversationId = useAgentStore((state) => state.conversationId);

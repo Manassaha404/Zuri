@@ -23,6 +23,7 @@ export interface AgentState {
   setConversationId: (id: string) => void;
   setTitle: (title: string) => void;
   setStatus: (status: AgentStatus) => void;
+  appendAssistantChunk: (chunk: string) => void;
   appendAssistantMessage: (content: string) => void;
   setMessages: (messages: AgentMessage[]) => void;
   setError: (message: string) => void;
@@ -82,20 +83,56 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   // Set agent status
   setStatus: (status) => set({ status }),
 
-  // Append assistant message and deduplicate
-  appendAssistantMessage: (content) => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
-
+  // Append streaming chunk
+  appendAssistantChunk: (chunk) => {
+    if (!chunk) return;
     const messages = get().messages;
     const lastMsg = messages[messages.length - 1];
 
-    // Deduplicate identical consecutive assistant message
-    if (
-      lastMsg &&
-      lastMsg.role === "assistant" &&
-      lastMsg.content === trimmed
-    ) {
+    if (lastMsg && lastMsg.role === "assistant") {
+      const updated = [...messages];
+      updated[updated.length - 1] = {
+        ...lastMsg,
+        content: lastMsg.content + chunk,
+      };
+      set({ messages: updated, status: "running" });
+      return;
+    }
+
+    const message: AgentMessage = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: chunk,
+      createdAt: Date.now(),
+    };
+    set({
+      status: "running",
+      messages: [...messages, message],
+    });
+  },
+
+  // Finalize assistant message
+  appendAssistantMessage: (content) => {
+    const trimmed = content.trim();
+    const messages = get().messages;
+    const lastMsg = messages[messages.length - 1];
+
+    // Synchronize final content with streamed assistant message
+    if (lastMsg && lastMsg.role === "assistant") {
+      if (trimmed && lastMsg.content !== trimmed) {
+        const updated = [...messages];
+        updated[updated.length - 1] = {
+          ...lastMsg,
+          content: trimmed,
+        };
+        set({ status: "done", messages: updated });
+        return;
+      }
+      set({ status: "done" });
+      return;
+    }
+
+    if (!trimmed) {
       set({ status: "done" });
       return;
     }

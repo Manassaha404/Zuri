@@ -325,23 +325,30 @@ export function Sidebar({
       >
         {/* Top brand header */}
         {!collapsed ? (
-          <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (isMobile) {
+                  closeMobile();
+                } else {
+                  setCollapsed(true);
+                }
+              }}
+              aria-label="Close sidebar"
+              title="Close sidebar"
+              className="ib w-8 h-8 shrink-0 flex items-center justify-center text-[var(--m)] hover:text-[var(--i)]"
+            >
+              <PanelLeftClose size={18} />
+            </button>
+
             <Link
               href="/"
-              className="lg flex items-center gap-2.5 text-[var(--i)] font-semibold text-xl tracking-tight no-underline"
+              className="lg flex items-center gap-2 text-[var(--i)] font-semibold text-xl tracking-tight no-underline"
               onClick={closeMobile}
             >
               <span>Zuri</span>
             </Link>
-
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              aria-label="Collapse sidebar"
-              className="ib hidden lg:grid"
-            >
-              <PanelLeftClose size={18} />
-            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2.5 mb-3">

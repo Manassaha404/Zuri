@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Brain,
   Search,
@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Loader2,
   Sparkles,
+  RotateCw,
 } from "lucide-react";
 import {
   useUserMemories,
@@ -92,6 +93,8 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
     semanticMemories,
     proceduralMemories,
     isLoading,
+    isFetching,
+    refetch,
     createMemory,
     updateMemory,
     deleteMemory,
@@ -99,6 +102,13 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
     isUpdating,
     isDeleting,
   } = useUserMemories();
+
+  // Refetch user memories every time the memory modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      void refetch();
+    }
+  }, [isOpen, refetch]);
 
   const [activeTab, setActiveTab] = useState<ZuriMemoryTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -225,6 +235,19 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
                 <h2 className="text-base font-semibold text-[var(--i)] leading-none">
                   Zuri Memory
                 </h2>
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  disabled={isFetching}
+                  title="Refetch memories"
+                  aria-label="Refetch memories"
+                  className="p-1 rounded-md text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--h)]/50 transition-colors disabled:opacity-50"
+                >
+                  <RotateCw
+                    size={13}
+                    className={isFetching ? "animate-spin" : ""}
+                  />
+                </button>
               </div>
             </div>
           </div>
