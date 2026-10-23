@@ -41,6 +41,7 @@ export function formatConversationsToGroups(
   conversations: Array<{
     conversationId: string;
     title: string;
+    isPinned?: boolean;
     createdAt?: string | Date;
     updatedAt?: string | Date;
   }>,

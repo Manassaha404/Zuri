@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, index, boolean } from "drizzle-orm/pg-core";
 import { users } from "./users";
 
 export const conversations = pgTable(
@@ -9,6 +9,7 @@ export const conversations = pgTable(
       .notNull()
       .references(() => users.userId, { onDelete: "cascade" }),
     title: varchar("title", { length: 255 }).notNull().default("New Chat"),
+    isPinned: boolean("is_pinned").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

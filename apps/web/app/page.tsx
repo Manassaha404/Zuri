@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ChatHeader,
   ChatInterface,
@@ -15,17 +15,31 @@ import {
 import { useUIStore, useInitUIStore } from "@/store/uiStore";
 import { useUserInfoStore } from "@/store/userInfoStore";
 import { useAgentStore } from "@/store/agentStore";
-import { useConversations } from "@/hook/agent";
+import {
+  useConversations,
+  usePinConversation,
+  useUpdateConversationTitle,
+  useDeleteConversation,
+} from "@/hook/agent";
 
 export default function DashboardPage() {
   useInitUIStore();
   const { darkMode } = useUIStore();
   const { fullName, username, email: userEmail } = useUserInfoStore();
-  const { conversations, isLoading: isConversationsLoading } =
-    useConversations();
+  const {
+    conversations,
+    pinnedConversations,
+    isLoading: isConversationsLoading,
+  } = useConversations();
+  const { togglePin } = usePinConversation();
+  const { updateTitle } = useUpdateConversationTitle();
+  const { deleteConversation } = useDeleteConversation();
   const isAgentThinking = useAgentStore((state) => state.status === "running");
   const agentTitle = useAgentStore((state) => state.title);
   const isTitleUpdating = useAgentStore((state) => state.isTitleUpdating);
+  const currentConversationId = useAgentStore(
+    (state) => state.conversationId,
+  );
   const [reloadKey, setReloadKey] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(() =>
     crypto.randomUUID(),
@@ -46,16 +60,26 @@ export default function DashboardPage() {
     email: userEmail?.trim() || "alex@zuri.chat",
   };
 
+  const currentConversation = useMemo(
+    () =>
+      conversations.find((c) => c.conversationId === currentConversationId),
+    [conversations, currentConversationId],
+  );
+  const isCurrentChatPinned = Boolean(currentConversation?.isPinned);
+
   // Always reset agent store to clean state on initial page load
   useEffect(() => {
     useAgentStore.getState().reset();
   }, []);
 
-  // Sync conversation groups with backend conversations
+  // Sync conversation groups with backend conversations (unpinned conversations grouped chronologically)
   useEffect(() => {
     if (conversations && conversations.length > 0) {
-      const formatted = formatConversationsToGroups(conversations);
+      const unpinned = conversations.filter((c) => !c.isPinned);
+      const formatted = formatConversationsToGroups(unpinned);
       setChatGroups(formatted);
+    } else {
+      setChatGroups((prev) => (prev.length === 0 ? prev : []));
     }
   }, [conversations]);
 
@@ -108,14 +132,46 @@ export default function DashboardPage() {
     setReloadKey((k) => k + 1);
   }
 
-  function pinMessage(title: string) {
-    const cleanTitle = title.trim();
-    if (!cleanTitle) return;
+  const handleTogglePin = async (
+    conversationId: string,
+    targetPinned?: boolean,
+  ) => {
+    try {
+      await togglePin(conversationId, targetPinned);
+    } catch (err) {
+      console.error("Failed to toggle pin on conversation:", err);
+    }
+  };
 
-    setPinnedMessages((prev) => [
-      { id: Date.now(), title: cleanTitle },
-      ...prev.filter((item) => item.title !== cleanTitle),
-    ]);
+  const handleRenameConversation = async (
+    conversationId: string,
+    newTitle: string,
+  ) => {
+    try {
+      await updateTitle(conversationId, newTitle);
+      if (conversationId === currentConversationId) {
+        setSelectedChat(newTitle);
+      }
+    } catch (err) {
+      console.error("Failed to rename conversation:", err);
+    }
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      await deleteConversation(conversationId);
+      if (conversationId === currentConversationId) {
+        newChat();
+      }
+    } catch (err) {
+      console.error("Failed to delete conversation:", err);
+    }
+  };
+
+  function pinMessage(title: string) {
+    if (currentConversationId) {
+      void handleTogglePin(currentConversationId, true);
+    }
   }
 
   const themeClass = darkMode ? "D dark" : "L";
@@ -133,6 +189,10 @@ export default function DashboardPage() {
         setConnectors={setConnectors}
         pinnedMessages={pinnedMessages}
         setPinnedMessages={setPinnedMessages}
+        pinnedConversations={pinnedConversations}
+        onTogglePin={handleTogglePin}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
         memory={memory}
         setMemory={setMemory}
         isLoadingConversations={isConversationsLoading}
@@ -147,6 +207,24 @@ export default function DashboardPage() {
           loading={isAgentThinking}
           onReload={handleReload}
           onNewChat={newChat}
+          isPinned={isCurrentChatPinned}
+          canPin={Boolean(currentConversationId)}
+          canManage={Boolean(currentConversationId)}
+          onTogglePin={() => {
+            if (currentConversationId) {
+              void handleTogglePin(currentConversationId, !isCurrentChatPinned);
+            }
+          }}
+          onRename={(newTitle) => {
+            if (currentConversationId) {
+              void handleRenameConversation(currentConversationId, newTitle);
+            }
+          }}
+          onDelete={() => {
+            if (currentConversationId) {
+              void handleDeleteConversation(currentConversationId);
+            }
+          }}
           className="pt-3.5 pb-2.5 sm:pt-4 sm:pb-3"
         />
 

@@ -1,9 +1,21 @@
 "use client";
 
-import { Menu, Plus, PanelLeft, Sparkles } from "lucide-react";
+import {
+  Menu,
+  Plus,
+  PanelLeft,
+  Sparkles,
+  Pin,
+  Pencil,
+  Check,
+  X,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
+import { DeleteConversationModal } from "./DeleteConversationModal";
 
 interface ChatHeaderProps {
   selectedChat: string;
@@ -13,6 +25,12 @@ interface ChatHeaderProps {
   onOpenMobile?: () => void;
   onReload?: () => void;
   onNewChat?: () => void;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
+  canPin?: boolean;
+  onRename?: (newTitle: string) => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
+  canManage?: boolean;
   className?: string;
 }
 
@@ -23,8 +41,52 @@ export function ChatHeader({
   onOpenMobile,
   onReload,
   onNewChat,
+  isPinned = false,
+  onTogglePin,
+  canPin = false,
+  onRename,
+  onDelete,
+  canManage = false,
   className,
 }: ChatHeaderProps) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(selectedChat);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleStartEdit = () => {
+    setTempTitle(selectedChat);
+    setIsEditingTitle(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingTitle(false);
+    setTempTitle(selectedChat);
+  };
+
+  const handleSaveTitle = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const clean = tempTitle.trim();
+    if (!clean || clean === selectedChat) {
+      setIsEditingTitle(false);
+      return;
+    }
+    setIsEditingTitle(false);
+    if (onRename) {
+      await onRename(clean);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    try {
+      setIsDeleting(true);
+      await onDelete();
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+    }
+  };
   const { isMobile, toggleSidebar, sidebarCollapsed, toggleSidebarCollapsed } =
     useUIStore();
 
@@ -78,36 +140,98 @@ export function ChatHeader({
         )}
 
         <div className="flex items-center gap-2.5 min-w-0">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={selectedChat || "New chat"}
-              initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center gap-2 min-w-0"
+          {isEditingTitle ? (
+            <form
+              onSubmit={handleSaveTitle}
+              className="flex items-center gap-1.5 min-w-0 animate-in fade-in-0 duration-100"
             >
-              <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-[var(--i)] truncate">
-                {selectedChat || "New chat"}
-              </h1>
-              {isTitleUpdating && (
-                <motion.span
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="inline-flex items-center text-blue-500 shrink-0"
-                  title="Updating title"
+              <input
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") handleCancelEdit();
+                }}
+                autoFocus
+                className="text-base sm:text-lg font-bold tracking-tight text-[var(--i)] bg-[var(--s)] px-2.5 py-1 rounded-lg border border-blue-500/60 outline-none w-44 sm:w-72 shadow-inner"
+                maxLength={255}
+              />
+              <button
+                type="submit"
+                title="Save title"
+                aria-label="Save title"
+                className="p-1.5 rounded-lg text-emerald-500 hover:bg-[var(--h)] transition-colors shrink-0"
+              >
+                <Check size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                title="Cancel"
+                aria-label="Cancel"
+                className="p-1.5 rounded-lg text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--h)] transition-colors shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0 group">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={selectedChat || "New chat"}
+                  initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-center gap-2 min-w-0"
                 >
-                  <Sparkles
-                    size={16}
-                    className="animate-spin"
-                    style={{ animationDuration: "3s" }}
-                  />
-                </motion.span>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                  <h1
+                    onClick={() => {
+                      if (canManage && onRename) handleStartEdit();
+                    }}
+                    className={cn(
+                      "text-base sm:text-lg md:text-xl font-bold tracking-tight text-[var(--i)] truncate",
+                      canManage &&
+                        onRename &&
+                        "cursor-pointer hover:opacity-85 transition-opacity",
+                    )}
+                    title={
+                      canManage && onRename ? "Click to rename" : undefined
+                    }
+                  >
+                    {selectedChat || "New chat"}
+                  </h1>
+                  {canManage && onRename && (
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      title="Rename chat"
+                      aria-label="Rename chat"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--h)] text-[var(--m)] hover:text-[var(--i)] transition-all shrink-0"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                  {isTitleUpdating && (
+                    <motion.span
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="inline-flex items-center text-blue-500 shrink-0"
+                      title="Updating title"
+                    >
+                      <Sparkles
+                        size={16}
+                        className="animate-spin"
+                        style={{ animationDuration: "3s" }}
+                      />
+                    </motion.span>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
 
@@ -120,6 +244,39 @@ export function ChatHeader({
           />
           {loading ? "Thinking..." : "Ready"}
         </span>
+        {canPin && onTogglePin && (
+          <button
+            type="button"
+            onClick={onTogglePin}
+            title={isPinned ? "Unpin chat" : "Pin chat"}
+            aria-label={isPinned ? "Unpin chat" : "Pin chat"}
+            className={cn(
+              "ib w-8 h-8 border transition-all",
+              isPinned
+                ? "border-blue-500/40 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                : "border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)]",
+            )}
+          >
+            <Pin
+              size={15}
+              className={cn(
+                "transition-transform duration-200",
+                isPinned ? "rotate-45 fill-blue-500" : "rotate-0",
+              )}
+            />
+          </button>
+        )}
+        {canManage && onDelete && (
+          <button
+            type="button"
+            onClick={() => setDeleteModalOpen(true)}
+            title="Delete chat"
+            aria-label="Delete chat"
+            className="ib w-8 h-8 border border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
         {onNewChat && (
           <button
             type="button"
@@ -132,6 +289,14 @@ export function ChatHeader({
           </button>
         )}
       </div>
+
+      <DeleteConversationModal
+        isOpen={deleteModalOpen}
+        title={selectedChat}
+        isDeleting={isDeleting}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </header>
   );
 }

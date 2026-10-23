@@ -11,3 +11,28 @@ export const getConversationMessagesDto = z.object({
 export type getConversationMessagesDtoType = z.infer<
   typeof getConversationMessagesDto
 >;
+
+export const togglePinConversationDto = z.object({
+  conversationId: z.string().uuid(),
+  isPinned: z.boolean().optional(),
+});
+export type togglePinConversationDtoType = z.infer<
+  typeof togglePinConversationDto
+>;
+
+export const updateConversationTitleDto = z.object({
+  conversationId: z.string().uuid(),
+  title: z.string().trim().min(1, "Title cannot be empty").max(255),
+});
+export type updateConversationTitleDtoType = z.infer<
+  typeof updateConversationTitleDto
+>;
+
+export const deleteConversationDto = z.object({
+  conversationId: z.string().uuid(),
+});
+export type deleteConversationDtoType = z.infer<
+  typeof deleteConversationDto
+>;
+
+

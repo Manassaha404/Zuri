@@ -1,8 +1,9 @@
 import { chatDto, chatDtoType } from "./dto-model";
 import { Agent } from "./graph";
 import { HumanMessage } from "@langchain/core/messages";
-import db, { eq, desc, and } from "@repo/database";
+import db, { eq, desc, and, sql } from "@repo/database";
 import { conversations } from "@repo/database/models";
+import { AppError } from "@repo/error";
 import { textOf } from "./utils";
 
 class AgentService {
@@ -16,6 +17,150 @@ class AgentService {
 
   public async getAllConversations(userId: string) {
     return AgentService.getAllConversations(userId);
+  }
+
+  static async togglePinConversation(
+    conversationId: string,
+    userId: string,
+    isPinned?: boolean,
+  ) {
+    const [existing] = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.conversationId, conversationId),
+          eq(conversations.userId, userId),
+        ),
+      );
+
+    if (!existing) {
+      throw new AppError("NOT_FOUND", "Conversation not found");
+    }
+
+    const nextIsPinned =
+      typeof isPinned === "boolean" ? isPinned : !existing.isPinned;
+
+    const [updated] = await db
+      .update(conversations)
+      .set({ isPinned: nextIsPinned })
+      .where(
+        and(
+          eq(conversations.conversationId, conversationId),
+          eq(conversations.userId, userId),
+        ),
+      )
+      .returning();
+
+    return updated;
+  }
+
+  public async togglePinConversation(
+    conversationId: string,
+    userId: string,
+    isPinned?: boolean,
+  ) {
+    return AgentService.togglePinConversation(
+      conversationId,
+      userId,
+      isPinned,
+    );
+  }
+
+  static async pinConversation(
+    conversationId: string,
+    userId: string,
+    isPinned: boolean = true,
+  ) {
+    return AgentService.togglePinConversation(
+      conversationId,
+      userId,
+      isPinned,
+    );
+  }
+
+  public async pinConversation(
+    conversationId: string,
+    userId: string,
+    isPinned: boolean = true,
+  ) {
+    return AgentService.pinConversation(conversationId, userId, isPinned);
+  }
+
+  static async updateConversationTitle(
+    conversationId: string,
+    userId: string,
+    title: string,
+  ) {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      throw new AppError("BAD_REQUEST", "Title cannot be empty");
+    }
+
+    const [updated] = await db
+      .update(conversations)
+      .set({ title: trimmed, updatedAt: new Date() })
+      .where(
+        and(
+          eq(conversations.conversationId, conversationId),
+          eq(conversations.userId, userId),
+        ),
+      )
+      .returning();
+
+    if (!updated) {
+      throw new AppError("NOT_FOUND", "Conversation not found");
+    }
+
+    return updated;
+  }
+
+  public async updateConversationTitle(
+    conversationId: string,
+    userId: string,
+    title: string,
+  ) {
+    return AgentService.updateConversationTitle(
+      conversationId,
+      userId,
+      title,
+    );
+  }
+
+  static async deleteConversation(conversationId: string, userId: string) {
+    const [deleted] = await db
+      .delete(conversations)
+      .where(
+        and(
+          eq(conversations.conversationId, conversationId),
+          eq(conversations.userId, userId),
+        ),
+      )
+      .returning();
+
+    if (!deleted) {
+      throw new AppError("NOT_FOUND", "Conversation not found");
+    }
+
+    try {
+      await db.execute(
+        sql`DELETE FROM checkpoint_writes WHERE thread_id = ${conversationId}`,
+      );
+      await db.execute(
+        sql`DELETE FROM checkpoint_blobs WHERE thread_id = ${conversationId}`,
+      );
+      await db.execute(
+        sql`DELETE FROM checkpoints WHERE thread_id = ${conversationId}`,
+      );
+    } catch {
+      // Best effort checkpoint cleanup
+    }
+
+    return deleted;
+  }
+
+  public async deleteConversation(conversationId: string, userId: string) {
+    return AgentService.deleteConversation(conversationId, userId);
   }
 
   static async getConversationMessages(

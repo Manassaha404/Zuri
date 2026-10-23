@@ -10,6 +10,7 @@ export type ChatMessage = {
 export type ChatItem = {
   id: string;
   title: string;
+  isPinned?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 };
@@ -26,8 +27,19 @@ export type Connector = {
 };
 
 export type PinnedMessage = {
-  id: number;
+  id: string | number;
   title: string;
+  conversationId?: string;
+  isPinned?: boolean;
+};
+
+export type PinnedConversation = {
+  id: string;
+  conversationId: string;
+  title: string;
+  isPinned?: boolean;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 };
 
 export type User = {

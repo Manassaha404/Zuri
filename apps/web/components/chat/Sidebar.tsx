@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Brain,
+  Check,
   ChevronDown,
   ChevronUp,
   HelpCircle,
@@ -11,11 +12,15 @@ import {
   Moon,
   PanelLeft,
   PanelLeftClose,
+  Pencil,
+  Pin,
+  PinOff,
   Plug,
   Plus,
   Settings,
   Sparkles,
   Sun,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -26,6 +31,7 @@ import { useUIStore } from "@/store/uiStore";
 import type { ChatGroup, Connector, PinnedMessage, User } from "./types";
 import { getInitials } from "./utils";
 import { useLogout } from "@/hook/auth/useLogout";
+import { DeleteConversationModal } from "./DeleteConversationModal";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -41,8 +47,24 @@ interface SidebarProps {
   setChatGroups?: React.Dispatch<React.SetStateAction<ChatGroup[]>>;
   connectors: Connector[];
   setConnectors: React.Dispatch<React.SetStateAction<Connector[]>>;
-  pinnedMessages: PinnedMessage[];
-  setPinnedMessages: React.Dispatch<React.SetStateAction<PinnedMessage[]>>;
+  pinnedMessages?: PinnedMessage[];
+  setPinnedMessages?: React.Dispatch<React.SetStateAction<PinnedMessage[]>>;
+  pinnedConversations?: Array<{
+    id?: string;
+    conversationId: string;
+    title: string;
+    isPinned?: boolean;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+  }>;
+  onTogglePin?: (conversationId: string, isPinned: boolean) => void;
+  onRenameConversation?: (
+    conversationId: string,
+    newTitle: string,
+  ) => void | Promise<void>;
+  onDeleteConversation?: (
+    conversationId: string,
+  ) => void | Promise<void>;
   memory: string;
   setMemory: React.Dispatch<React.SetStateAction<string>>;
   isLoadingConversations?: boolean;
@@ -63,6 +85,10 @@ export function Sidebar({
   setConnectors,
   pinnedMessages,
   setPinnedMessages,
+  pinnedConversations,
+  onTogglePin,
+  onRenameConversation,
+  onDeleteConversation,
   memory,
   setMemory,
   isLoadingConversations,
@@ -100,6 +126,70 @@ export function Sidebar({
     Record<string, boolean>
   >({});
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleStartRename = (
+    id: string,
+    currentTitle: string,
+    e: React.MouseEvent,
+  ) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleSaveRename = async (
+    id: string,
+    e?: React.MouseEvent | React.FormEvent,
+  ) => {
+    e?.stopPropagation();
+    const clean = editingTitle.trim();
+    if (!clean) {
+      setEditingId(null);
+      return;
+    }
+    setEditingId(null);
+    if (onRenameConversation) {
+      await onRenameConversation(id, clean);
+    }
+  };
+
+  const handleCancelRename = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingId(null);
+    setEditingTitle("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setIsDeleting(true);
+      if (onDeleteConversation) {
+        await onDeleteConversation(deleteTarget.id);
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const effectivePinned = useMemo(() => {
+    if (pinnedConversations !== undefined) {
+      return pinnedConversations.map((c) => ({
+        id: c.conversationId,
+        conversationId: c.conversationId,
+        title: c.title,
+      }));
+    }
+    return pinnedMessages ?? [];
+  }, [pinnedConversations, pinnedMessages]);
+
   function toggleGroup(groupName: string) {
     setCollapsedGroups((prev) => ({
       ...prev,
@@ -107,9 +197,11 @@ export function Sidebar({
     }));
   }
 
-  function handleUnpin(id: number, e: React.MouseEvent) {
+  function handleUnpin(id: string | number, e: React.MouseEvent) {
     e.stopPropagation();
-    setPinnedMessages((prev) => prev.filter((item) => item.id !== id));
+    if (setPinnedMessages) {
+      setPinnedMessages((prev) => prev.filter((item) => item.id !== id));
+    }
   }
 
   const { handleLogout, isLoggingOut } = useLogout();
@@ -247,6 +339,15 @@ export function Sidebar({
         </div>
       )}
 
+      {/* Delete Conversation Confirmation Dialog */}
+      <DeleteConversationModal
+        isOpen={Boolean(deleteTarget)}
+        title={deleteTarget?.title ?? ""}
+        isDeleting={isDeleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
+
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--h)] bg-[var(--s)] text-[var(--b)] transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
           collapsed ? "w-[72px]" : "w-[280px]"
@@ -351,7 +452,10 @@ export function Sidebar({
                   className="flex items-center justify-between w-full px-2 py-1 text-[11px] font-semibold text-[var(--m)] uppercase tracking-wider hover:text-[var(--i)] transition-colors select-none text-left group"
                   title="Toggle pinned conversations"
                 >
-                  <span>Pinned</span>
+                  <span className="flex items-center gap-1.5">
+                    <Pin size={11} className="text-[#3b82f6] rotate-45" />
+                    <span>Pinned</span>
+                  </span>
                   <ChevronDown
                     size={13}
                     className={`text-[var(--m)] group-hover:text-[var(--i)] transition-transform duration-200 ${
@@ -362,7 +466,7 @@ export function Sidebar({
 
                 {!collapsedGroups["pinned"] && (
                   <div className="flex flex-col gap-0.5 animate-in fade-in-0 duration-150">
-                    {pinnedMessages.length === 0 ? (
+                    {effectivePinned.length === 0 ? (
                       <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--m)] italic">
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--m)]/40 shrink-0" />
                         <span className="truncate">
@@ -370,16 +474,60 @@ export function Sidebar({
                         </span>
                       </div>
                     ) : (
-                      pinnedMessages.map((item) => {
+                      effectivePinned.map((item) => {
                         const isSelected = selectedChat === item.title;
+                        const convId =
+                          item.conversationId ||
+                          (typeof item.id === "string" ? item.id : undefined);
+                        const isEditingThis = Boolean(convId && editingId === convId);
+
+                        if (isEditingThis && convId) {
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--h)] border border-blue-500/50 text-[13px] animate-in fade-in-0 duration-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="text"
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void handleSaveRename(convId);
+                                  if (e.key === "Escape") handleCancelRename();
+                                }}
+                                autoFocus
+                                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[var(--i)] text-[13px] px-1 py-0.5"
+                                maxLength={255}
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => void handleSaveRename(convId, e)}
+                                className="p-1 rounded text-emerald-500 hover:bg-[var(--s)] transition-colors shrink-0"
+                                title="Save title"
+                              >
+                                <Check size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelRename}
+                                className="p-1 rounded text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)] transition-colors shrink-0"
+                                title="Cancel"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          );
+                        }
+
                         return (
                           <div
                             key={item.id}
                             onClick={() => {
-                              onSelectChat(item.title);
+                              onSelectChat(item.title, convId);
                               closeMobile();
                             }}
-                            className={`group flex items-center justify-between gap-2 text-left px-3 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors cursor-pointer ${
+                            className={`group flex items-center justify-between gap-1 text-left px-2.5 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors cursor-pointer ${
                               isSelected
                                 ? "bg-[var(--h)] text-[var(--i)] font-medium"
                                 : "text-[var(--b)] hover:bg-[var(--h)]/60 hover:text-[var(--i)]"
@@ -396,14 +544,56 @@ export function Sidebar({
                               <span className="truncate">{item.title}</span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={(e) => handleUnpin(item.id, e)}
-                              title="Unpin"
-                              className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-0.5 rounded transition-opacity"
-                            >
-                              <X size={12} />
-                            </button>
+                            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onTogglePin && convId) {
+                                    onTogglePin(convId, false);
+                                  } else {
+                                    handleUnpin(item.id, e);
+                                  }
+                                }}
+                                title="Unpin conversation"
+                                aria-label="Unpin conversation"
+                                className="hover:text-amber-500 text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                              >
+                                <PinOff size={13} />
+                              </button>
+
+                              {onRenameConversation && convId && (
+                                <button
+                                  type="button"
+                                  onClick={(e) =>
+                                    handleStartRename(convId, item.title, e)
+                                  }
+                                  title="Rename conversation"
+                                  aria-label="Rename conversation"
+                                  className="hover:text-[var(--i)] text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                              )}
+
+                              {onDeleteConversation && convId && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTarget({
+                                      id: convId,
+                                      title: item.title,
+                                    });
+                                  }}
+                                  title="Delete conversation"
+                                  aria-label="Delete conversation"
+                                  className="hover:text-red-500 text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -452,10 +642,58 @@ export function Sidebar({
                             const chatId =
                               typeof chat === "string" ? chat : chat.id;
                             const isSelected = selectedChat === chatTitle;
+                            const isEditingThis = Boolean(
+                              chatId && editingId === chatId,
+                            );
+
+                            if (isEditingThis && chatId) {
+                              return (
+                                <div
+                                  key={chatId}
+                                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--h)] border border-blue-500/50 text-[13px] animate-in fade-in-0 duration-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="text"
+                                    value={editingTitle}
+                                    onChange={(e) =>
+                                      setEditingTitle(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        void handleSaveRename(chatId);
+                                      if (e.key === "Escape")
+                                        handleCancelRename();
+                                    }}
+                                    autoFocus
+                                    className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[var(--i)] text-[13px] px-1 py-0.5"
+                                    maxLength={255}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) =>
+                                      void handleSaveRename(chatId, e)
+                                    }
+                                    className="p-1 rounded text-emerald-500 hover:bg-[var(--s)] transition-colors shrink-0"
+                                    title="Save title"
+                                  >
+                                    <Check size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelRename}
+                                    className="p-1 rounded text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)] transition-colors shrink-0"
+                                    title="Cancel"
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
+                              );
+                            }
+
                             return (
-                              <button
+                              <div
                                 key={chatId}
-                                type="button"
                                 onClick={() => {
                                   onSelectChat(
                                     chatTitle,
@@ -465,21 +703,82 @@ export function Sidebar({
                                   );
                                   closeMobile();
                                 }}
-                                className={`group flex items-center gap-2.5 text-left px-3 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors truncate ${
+                                className={`group flex items-center justify-between gap-1 text-left px-2.5 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors cursor-pointer ${
                                   isSelected
                                     ? "bg-[var(--h)] text-[var(--i)] font-medium"
                                     : "text-[var(--b)] hover:bg-[var(--h)]/60 hover:text-[var(--i)]"
                                 }`}
                               >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                                    isSelected
-                                      ? "bg-[#3b82f6]"
-                                      : "bg-[var(--m)]/60 group-hover:bg-[#3b82f6]"
-                                  }`}
-                                />
-                                <span className="truncate">{chatTitle}</span>
-                              </button>
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                                      isSelected
+                                        ? "bg-[#3b82f6]"
+                                        : "bg-[var(--m)]/60 group-hover:bg-[#3b82f6]"
+                                    }`}
+                                  />
+                                  <span className="truncate">{chatTitle}</span>
+                                </div>
+
+                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                                  {typeof chat !== "string" &&
+                                    chat.id &&
+                                    onTogglePin && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onTogglePin(chat.id, true);
+                                        }}
+                                        title="Pin conversation"
+                                        aria-label="Pin conversation"
+                                        className="hover:text-[#3b82f6] text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                                      >
+                                        <Pin size={13} />
+                                      </button>
+                                    )}
+
+                                  {typeof chat !== "string" &&
+                                    chat.id &&
+                                    onRenameConversation && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) =>
+                                          handleStartRename(
+                                            chat.id,
+                                            chatTitle,
+                                            e,
+                                          )
+                                        }
+                                        title="Rename conversation"
+                                        aria-label="Rename conversation"
+                                        className="hover:text-[var(--i)] text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                                      >
+                                        <Pencil size={12} />
+                                      </button>
+                                    )}
+
+                                  {typeof chat !== "string" &&
+                                    chat.id &&
+                                    onDeleteConversation && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeleteTarget({
+                                            id: chat.id,
+                                            title: chatTitle,
+                                          });
+                                        }}
+                                        title="Delete conversation"
+                                        aria-label="Delete conversation"
+                                        className="hover:text-red-500 text-[var(--m)] p-1 rounded hover:bg-[var(--h)] transition-colors"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    )}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>

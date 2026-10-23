@@ -1,7 +1,13 @@
 import { handleRouteError } from "../../utils/error";
 import { AppError } from "@repo/error";
 import { protectedProcedure, publicProcedure, router } from "../../trpc";
-import { chatDto, getConversationMessagesDto } from "./model";
+import {
+  chatDto,
+  getConversationMessagesDto,
+  togglePinConversationDto,
+  updateConversationTitleDto,
+  deleteConversationDto,
+} from "./model";
 import { inngest } from "@repo/services/inngest";
 import { db } from "@repo/database";
 import { conversations } from "@repo/database/models";
@@ -16,6 +22,57 @@ export const agentRouter = router({
       handleRouteError(error);
     }
   }),
+  togglePinConversation: protectedProcedure
+    .input(togglePinConversationDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.togglePinConversation(
+          input.conversationId,
+          ctx.user.id,
+          input.isPinned,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  pinConversation: protectedProcedure
+    .input(togglePinConversationDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.pinConversation(
+          input.conversationId,
+          ctx.user.id,
+          input.isPinned ?? true,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  updateConversationTitle: protectedProcedure
+    .input(updateConversationTitleDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.updateConversationTitle(
+          input.conversationId,
+          ctx.user.id,
+          input.title,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  deleteConversation: protectedProcedure
+    .input(deleteConversationDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await agentService.deleteConversation(
+          input.conversationId,
+          ctx.user.id,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
   getConversationMessages: protectedProcedure
     .input(getConversationMessagesDto)
     .query(async ({ input, ctx }) => {
