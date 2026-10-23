@@ -35,16 +35,17 @@ interface SidebarProps {
   onToggleTheme?: (e?: React.MouseEvent<HTMLElement>) => void;
   user: User;
   onNewChat: () => void;
-  onSelectChat: (title: string) => void;
+  onSelectChat: (title: string, conversationId?: string) => void;
   selectedChat: string;
   chatGroups: ChatGroup[];
-  setChatGroups: React.Dispatch<React.SetStateAction<ChatGroup[]>>;
+  setChatGroups?: React.Dispatch<React.SetStateAction<ChatGroup[]>>;
   connectors: Connector[];
   setConnectors: React.Dispatch<React.SetStateAction<Connector[]>>;
   pinnedMessages: PinnedMessage[];
   setPinnedMessages: React.Dispatch<React.SetStateAction<PinnedMessage[]>>;
   memory: string;
   setMemory: React.Dispatch<React.SetStateAction<string>>;
+  isLoadingConversations?: boolean;
 }
 
 export function Sidebar({
@@ -64,6 +65,7 @@ export function Sidebar({
   setPinnedMessages,
   memory,
   setMemory,
+  isLoadingConversations,
 }: SidebarProps) {
   const {
     isMobile,
@@ -411,59 +413,81 @@ export function Sidebar({
               </div>
 
               {/* CHAT GROUPS (Dropdown bullet points under headings, no 'Previous Chats' header, no partition line) */}
-              {chatGroups.map((group) => {
-                const isCollapsed = Boolean(collapsedGroups[group.group]);
-                return (
-                  <div key={group.group} className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group.group)}
-                      className="flex items-center justify-between w-full px-2 py-1 text-[11px] font-semibold text-[var(--m)] uppercase tracking-wider hover:text-[var(--i)] transition-colors select-none text-left group"
-                      title={`Toggle ${group.group}`}
-                    >
-                      <span>{group.group}</span>
-                      <ChevronDown
-                        size={13}
-                        className={`text-[var(--m)] group-hover:text-[var(--i)] transition-transform duration-200 ${
-                          isCollapsed ? "-rotate-90" : "rotate-0"
-                        }`}
-                      />
-                    </button>
+              {isLoadingConversations && chatGroups.length === 0 ? (
+                <div className="flex flex-col gap-2 px-3 py-2 animate-in fade-in-0 duration-150">
+                  <div className="h-3 w-16 bg-[var(--h)] rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-[var(--h)]/60 rounded animate-pulse" />
+                  <div className="h-4 w-1/2 bg-[var(--h)]/60 rounded animate-pulse" />
+                </div>
+              ) : chatGroups.length === 0 ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--m)] italic">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--m)]/40 shrink-0" />
+                  <span className="truncate">No conversations yet</span>
+                </div>
+              ) : (
+                chatGroups.map((group) => {
+                  const isCollapsed = Boolean(collapsedGroups[group.group]);
+                  return (
+                    <div key={group.group} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.group)}
+                        className="flex items-center justify-between w-full px-2 py-1 text-[11px] font-semibold text-[var(--m)] uppercase tracking-wider hover:text-[var(--i)] transition-colors select-none text-left group"
+                        title={`Toggle ${group.group}`}
+                      >
+                        <span>{group.group}</span>
+                        <ChevronDown
+                          size={13}
+                          className={`text-[var(--m)] group-hover:text-[var(--i)] transition-transform duration-200 ${
+                            isCollapsed ? "-rotate-90" : "rotate-0"
+                          }`}
+                        />
+                      </button>
 
-                    {!isCollapsed && (
-                      <div className="flex flex-col gap-0.5 animate-in fade-in-0 duration-150">
-                        {group.items.map((chat) => {
-                          const isSelected = selectedChat === chat;
-                          return (
-                            <button
-                              key={chat}
-                              type="button"
-                              onClick={() => {
-                                onSelectChat(chat);
-                                closeMobile();
-                              }}
-                              className={`group flex items-center gap-2.5 text-left px-3 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors truncate ${
-                                isSelected
-                                  ? "bg-[var(--h)] text-[var(--i)] font-medium"
-                                  : "text-[var(--b)] hover:bg-[var(--h)]/60 hover:text-[var(--i)]"
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                      {!isCollapsed && (
+                        <div className="flex flex-col gap-0.5 animate-in fade-in-0 duration-150">
+                          {group.items.map((chat) => {
+                            const chatTitle =
+                              typeof chat === "string" ? chat : chat.title;
+                            const chatId =
+                              typeof chat === "string" ? chat : chat.id;
+                            const isSelected = selectedChat === chatTitle;
+                            return (
+                              <button
+                                key={chatId}
+                                type="button"
+                                onClick={() => {
+                                  onSelectChat(
+                                    chatTitle,
+                                    typeof chat === "string"
+                                      ? undefined
+                                      : chat.id,
+                                  );
+                                  closeMobile();
+                                }}
+                                className={`group flex items-center gap-2.5 text-left px-3 py-1.5 rounded-lg text-[13.5px] leading-snug transition-colors truncate ${
                                   isSelected
-                                    ? "bg-[#3b82f6]"
-                                    : "bg-[var(--m)]/60 group-hover:bg-[#3b82f6]"
+                                    ? "bg-[var(--h)] text-[var(--i)] font-medium"
+                                    : "text-[var(--b)] hover:bg-[var(--h)]/60 hover:text-[var(--i)]"
                                 }`}
-                              />
-                              <span className="truncate">{chat}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                                    isSelected
+                                      ? "bg-[#3b82f6]"
+                                      : "bg-[var(--m)]/60 group-hover:bg-[#3b82f6]"
+                                  }`}
+                                />
+                                <span className="truncate">{chatTitle}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Bottom user profile & dropdown menu */}

@@ -7,7 +7,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ChatComposer } from "./ChatComposer";
 import { Sparkles } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
-import { useAgent } from "@/hook/useAgent";
+import { useAgent } from "@/hook/agent/useAgent";
 
 interface ChatInterfaceProps {
   selectedChat: string;
@@ -40,22 +40,16 @@ export function ChatInterface({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Reset agent state when the user selects a different chat
+  // Reset local composer input when selecting a new chat
   const prevSelectedChatRef = useRef(selectedChat);
   useEffect(() => {
-    if (agent.title && selectedChat === agent.title) {
-      prevSelectedChatRef.current = selectedChat;
-      return;
-    }
     if (prevSelectedChatRef.current !== selectedChat) {
       prevSelectedChatRef.current = selectedChat;
-      agent.reset();
       setInput("");
       setAttachmentName("");
       setModelMenuOpen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChat, agent.title]);
+  }, [selectedChat]);
 
   // Auto-scroll to the bottom on new messages / loading state
   useEffect(() => {
@@ -119,7 +113,17 @@ export function ChatInterface({
 
   return (
     <main className="mn">
-      {messages.length === 0 ? (
+      {agent.isLoadingMessages && messages.length === 0 ? (
+        <div className="flex-1 flex flex-col gap-4 p-6 max-w-2xl mx-auto w-full animate-in fade-in-0 duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[var(--h)] animate-pulse" />
+            <div className="h-4 w-32 bg-[var(--h)] rounded animate-pulse" />
+          </div>
+          <div className="h-16 w-full bg-[var(--h)]/50 rounded-xl animate-pulse" />
+          <div className="h-12 w-2/3 ml-auto bg-[var(--h)]/40 rounded-xl animate-pulse" />
+          <div className="h-20 w-4/5 bg-[var(--h)]/50 rounded-xl animate-pulse" />
+        </div>
+      ) : messages.length === 0 ? (
         <EmptyState
           onSetInput={setInput}
           onFocusTextarea={() => textareaRef.current?.focus()}

@@ -7,9 +7,16 @@ export type ChatMessage = {
   code?: string;
 };
 
+export type ChatItem = {
+  id: string;
+  title: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+};
+
 export type ChatGroup = {
   group: string;
-  items: string[];
+  items: (string | ChatItem)[];
 };
 
 export type Connector = {

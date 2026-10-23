@@ -24,6 +24,7 @@ export interface AgentState {
   setTitle: (title: string) => void;
   setStatus: (status: AgentStatus) => void;
   appendAssistantMessage: (content: string) => void;
+  setMessages: (messages: AgentMessage[]) => void;
   setError: (message: string) => void;
   reset: () => void;
 }
@@ -110,6 +111,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       messages: [...messages, message],
     });
   },
+
+  // Set past messages directly from backend history
+  setMessages: (messages) => set({ messages, error: null }),
 
   // Set error
   setError: (message) => set({ status: "error", error: message }),

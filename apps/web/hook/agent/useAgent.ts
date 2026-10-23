@@ -5,6 +5,7 @@ import { trpc } from "@/trpc/client";
 import { useAgentStore, type AgentStatus } from "@/store/agentStore";
 import socket, { joinRoom, leaveRoom } from "@/lib/socket";
 import { extractMessageContent } from "@/lib/utils";
+import { useConversationMessages } from "./useConversationMessages";
 
 // Socket payload shape
 interface AgentStatusPayload {
@@ -40,7 +41,11 @@ export function useAgent(existingConversationId?: string) {
   const conversationId = existingConversationId ?? storeConversationId;
   const joinedRoom = useRef<string | null>(null);
 
+  const { isLoading: isLoadingMessages } =
+    useConversationMessages(conversationId);
+
   const mutation = trpc.agent.runChatAgent.useMutation();
+  const utils = trpc.useUtils();
 
   // Stable handler ref
   const handleStatus = useCallback(
@@ -68,6 +73,7 @@ export function useAgent(existingConversationId?: string) {
         if (resolvedTitle && typeof resolvedTitle === "string") {
           setTitle(resolvedTitle);
         }
+        utils.agent.getAllConversations.invalidate();
         return;
       }
 
@@ -75,7 +81,7 @@ export function useAgent(existingConversationId?: string) {
         setError(errMsg ?? "An unknown agent error occurred.");
       }
     },
-    [setStatus, appendAssistantMessage, setTitle, setError],
+    [setStatus, appendAssistantMessage, setTitle, setError, utils],
   );
 
   const handleStatusRef = useRef(handleStatus);
@@ -87,9 +93,10 @@ export function useAgent(existingConversationId?: string) {
         typeof payload === "string" ? payload : payload?.title;
       if (resolvedTitle && typeof resolvedTitle === "string") {
         setTitle(resolvedTitle);
+        utils.agent.getAllConversations.invalidate();
       }
     },
-    [setTitle],
+    [setTitle, utils],
   );
 
   const handleTitleRef = useRef(handleTitle);
@@ -163,12 +170,20 @@ export function useAgent(existingConversationId?: string) {
             joinRoom("join:agent", backendId);
             joinedRoom.current = backendId;
           }
+          utils.agent.getAllConversations.invalidate();
         }
       } catch (err: any) {
         setError(err?.message ?? "Failed to send message to agent.");
       }
     },
-    [conversationId, mutation, sendUserMessage, setConversationId, setError],
+    [
+      conversationId,
+      mutation,
+      sendUserMessage,
+      setConversationId,
+      setError,
+      utils,
+    ],
   );
 
   return {
@@ -176,6 +191,7 @@ export function useAgent(existingConversationId?: string) {
     status,
     messages,
     isRunning: status === "running" || mutation.isPending,
+    isLoadingMessages,
     error,
     conversationId,
     title,
