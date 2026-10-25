@@ -1,8 +1,22 @@
-import { GraphNode, LangGraphRunnableConfig } from "@langchain/langgraph";
-import { MessagesState } from "./state";
-import { SystemPromptForMessageLLM } from "./prompt";
-import { model, extractor } from "./model";
+import {
+  ConditionalEdgeRouter,
+  GraphNode,
+  LangGraphRunnableConfig,
+} from "@langchain/langgraph";
+import { Document } from "@langchain/core/documents";
+import { AIMessage } from "@langchain/core/messages";
+import { MessagesState, RagState } from "./state";
+import { SystemPromptForMessageLLM, RagFinalResponsePrompt } from "./prompt";
+import {
+  model,
+  extractor,
+  evaluatorLLMSchema,
+  tvly,
+  refineLLMSchema,
+} from "./model";
 import { lastOfType, textOf, trimmer } from "./utils";
+import { vectorStore } from "./vectorStore";
+import { ragAgent } from "./graph";
 
 export const llmCall: GraphNode<typeof MessagesState> = async (
   state,
@@ -199,4 +213,242 @@ Rules:
     console.log("[memory] ops:", result.operations);
   }
   return {};
+};
+
+export const isRagRequiredOrNot: ConditionalEdgeRouter<{
+  InputSchema: typeof MessagesState;
+  nodes: "llm_call" | "rag_node";
+}> = (state) => {
+  if (state.isFilesInclude) {
+    return "rag_node";
+  } else {
+    return "llm_call";
+  }
+};
+
+// Query ragAgent with latest human message, synthesize final response with model, and store it as AIMessage
+export const ragNode: GraphNode<typeof MessagesState> = async (
+  state,
+  config: LangGraphRunnableConfig,
+) => {
+  const userId = config.configurable?.user_id ?? "anonymous";
+  const conversationId = config.configurable?.thread_id ?? null;
+  const lastHuman = lastOfType(state.messages, "human");
+  const query = lastHuman ? textOf(lastHuman.content) : "";
+
+  // Call RAG agent to retrieve context and generate initial findings
+  const result = await ragAgent.invoke({ query, conversationId });
+  const ragAnswer =
+    result?.answer || "No relevant information found in the documents.";
+
+  // Fetch long-term memories for personalization
+  const namespace = ["memories", userId];
+  const hits = lastHuman
+    ? await config.store?.search(namespace, {
+        query,
+        limit: 3,
+      })
+    : [];
+
+  const trimmed = await trimmer.invoke(state.messages);
+
+  // Format final prompt with main query, RAG answer, summary, and memories
+  const promptValue = await RagFinalResponsePrompt.invoke({
+    date: new Date().toISOString().slice(0, 10),
+    ragAnswer,
+    summary: state.summery || "No summary yet.",
+    memories: hits?.length
+      ? hits.map((h) => `- ${h.value.text}`).join("\n")
+      : "No relevant memories.",
+    messages: trimmed,
+  });
+
+  // Generate final result using main model
+  const response = await model.invoke(promptValue);
+
+  return {
+    messages: [response],
+  };
+};
+
+// rag graph nodes
+export const stepBackQuery: GraphNode<typeof RagState> = async (state) => {
+  const prompt = `You are a query refinement engine. Rewrite the user's message into one improved search query for vector search and web search. Do NOT answer the question.
+
+Current date: {{${new Date().toISOString().split("T")[0]}}}
+User query: {{${state.query}}}
+
+Rules:
+- Fix typos and expand abbreviations (e.g. "k8s" -> "Kubernetes").
+- Add relevant keywords, synonyms, and technical terms that improve retrieval.
+- Include the year or version only if the query depends on recent information.
+- Keep the user's original intent. Never invent facts, names, or versions.
+- If the message is chitchat (e.g. "thanks"), return it unchanged.
+
+Output ONLY the refined query as plain text. No JSON, no quotes, no explanation.
+
+Examples:
+Input: how do i make postgres graph faster
+Output: how to improve performance of PostgreSQL graph queries Apache AGE indexing optimization large datasets
+
+Input: latest react version features
+Output: React latest version new features release notes 2026
+
+Input: hey thanks!
+Output: hey thanks!`;
+  const response = await model.invoke(prompt);
+  const content = response?.content;
+  return { refineQuery: typeof content === "string" ? content : state.query };
+};
+export const retrieve: GraphNode<typeof RagState> = async (state) => {
+  const filter = state.conversationId
+    ? {
+        must: [
+          {
+            key: "metadata.conversationId",
+            match: {
+              value: state.conversationId,
+            },
+          },
+        ],
+      }
+    : undefined;
+
+  const docs = await vectorStore.similaritySearch(
+    state.refineQuery || state.query,
+    8,
+    filter,
+  );
+  return { docs };
+};
+
+// evaluator
+const UPPER_THRESHOLD = 0.7;
+const LOWER_THRESHOLD = 0.3;
+
+export const evaluator: GraphNode<typeof RagState> = async (state) => {
+  const good_docs = await Promise.all(
+    state.docs.map(async (doc) => {
+      const prompt = `You are a relevance scoring assistant. Your task is to evaluate how relevant a retrieved document is to answering a user's question.
+
+Question: ${state.query}
+
+Document:
+${doc.pageContent}
+
+Score the document's relevance to the question on a scale from 0.0 to 1.0 using the following criteria:
+- 0.0 – 0.29: The document is off-topic or completely unrelated to the question.
+- 0.3  – 0.69: The document is loosely related or only partially addresses the question.
+- 0.7  – 1.0 : The document is directly relevant and contains information that helps answer the question.
+
+Return only the numeric score.`;
+      const score = await model
+        .withStructuredOutput(evaluatorLLMSchema)
+        .invoke(prompt);
+      return { doc, score: score.score };
+    }),
+  );
+  const correct_docs = good_docs
+    .filter((d) => d.score >= UPPER_THRESHOLD)
+    .map((d) => d.doc);
+  const ambiguous_docs = good_docs
+    .filter((d) => d.score < UPPER_THRESHOLD && d.score >= LOWER_THRESHOLD)
+    .map((d) => d.doc);
+  const incorrect_docs = good_docs
+    .filter((d) => d.score < LOWER_THRESHOLD)
+    .map((d) => d.doc);
+  let result: "correct" | "ambiguous" | "incorrect" | null = null;
+  if (correct_docs.length > 0) {
+    result = "correct";
+  } else if (ambiguous_docs.length > 0) {
+    result = "ambiguous";
+  } else {
+    result = "incorrect";
+  }
+  return {
+    evaluator_result: result,
+    docs: [...correct_docs, ...ambiguous_docs],
+  };
+};
+
+export const afterEvaluator: ConditionalEdgeRouter<{
+  InputSchema: typeof RagState;
+  nodes: "refine" | "web-search";
+}> = (state) => {
+  if (state.evaluator_result === "correct") {
+    return "refine";
+  } else if (state.evaluator_result === "ambiguous") {
+    return "web-search";
+  } else {
+    return "web-search";
+  }
+};
+
+export const webSearchNode: GraphNode<typeof RagState> = async (state) => {
+  try {
+    const res = await tvly.search(state.refineQuery || state.query, {
+      maxResults: 3,
+      searchDepth: "basic",
+    });
+
+    const docs = res.results
+      .filter((r) => r.content?.trim())
+      .map(
+        (r) =>
+          new Document({
+            pageContent: r.content,
+            metadata: { source: r.url, title: r.title, score: r.score },
+          }),
+      );
+    return { docs };
+  } catch (err) {
+    console.error("Web search failed:", err);
+    return { docs: [] };
+  }
+};
+
+export const refineDocs: GraphNode<typeof RagState> = async (state) => {
+  const results = await Promise.all(
+    state.docs.map(async (doc) => {
+      const splits = doc.pageContent.split("\n").filter((s) => s.trim());
+      const prompt = `You are a relevance filter. Given the user's question and a list of text splits from a document, return ONLY the splits that are directly relevant to answering the question. If none are relevant, return an empty array.
+
+Question: ${state.query}
+
+Document splits:
+${splits.map((s) => `${s}`).join("\n")}
+
+Return the relevant splits as-is.`;
+      const good_splits = await model
+        .withStructuredOutput(refineLLMSchema)
+        .invoke(prompt);
+      if (good_splits.splits.length !== 0) {
+        return new Document({
+          pageContent: good_splits.splits.join("\n"),
+          metadata: doc.metadata,
+        });
+      }
+      return undefined;
+    }),
+  );
+  const good_docs = results.filter((d): d is Document => d !== undefined);
+  return { good_docs };
+};
+
+export const generate: GraphNode<typeof RagState> = async (state) => {
+  const context = state.docs
+    .map((d, i) => `[${i + 1}] ${d.pageContent}`)
+    .join("\n\n");
+
+  const response = await model.invoke(
+    `Answer the question using ONLY the context below. If the context is insufficient, say so.
+    Context:
+    ${context}
+    Question: ${state.query}
+    Answer:`,
+  );
+
+  return {
+    answer: String(response?.content)?.trim(),
+  };
 };

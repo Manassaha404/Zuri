@@ -106,7 +106,11 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Agent Store (`apps/web/store/agentStore.ts`) & Streaming (`apps/web/hook/agent/useAgent.ts`)**:
   - `appendAssistantChunk(chunk)` appends in-flight token chunks received over WebSocket `"stream"` event.
   - `appendAssistantMessage(content)` synchronizes the final completion message on `"done"`.
-  - In `useAgent`, conversation IDs are pre-bound so the socket room is joined prior to mutation dispatch, preventing initial token drop.
+  - `attachedFiles`: Tracks in-flight and uploaded attachments (`id`, `name`, `url`, `size`, `status`).
+  - In `useAgent`, conversation IDs are pre-bound so the socket room is joined prior to mutation dispatch, preventing initial token drop. `send(message, fileUrls)` dispatches message and attachment URLs to `trpc.agent.runChatAgent`.
+- **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`)**:
+  - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
+  - Uploaded Cloudinary URLs are passed alongside user queries to trigger background document ingestion and RAG routing.
 - **Memory System (`apps/web/hook/agent/useUserMemories.ts`, `apps/web/components/chat/MemoryModal.tsx`)**:
   - `staleTime: 0` ensures memory data is always treated as fresh when fetched.
   - `MemoryModal` refetches automatically via `useEffect` whenever `isOpen` transitions to `true`.

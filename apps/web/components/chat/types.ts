@@ -1,10 +1,18 @@
 import { HardDrive } from "lucide-react";
 
+export type ChatAttachment = {
+  name: string;
+  url: string;
+  size?: number;
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   code?: string;
+  fileUrls?: string[];
+  attachments?: ChatAttachment[];
 };
 
 export type ChatItem = {

@@ -43,3 +43,54 @@ export function extractMessageContent(result: unknown): string {
 
   return JSON.stringify(result);
 }
+
+// Format byte size to human readable string
+export function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Extract clean file name from URL or path
+export function getFileNameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname;
+    const parts = pathname.split("/");
+    const last = parts[parts.length - 1];
+    if (last) {
+      return decodeURIComponent(last);
+    }
+  } catch {
+    const parts = url.split("/");
+    const last = parts[parts.length - 1];
+    if (last) return last;
+  }
+  return "attachment";
+}
+
+// Inspect file category and extension
+export function getFileCategory(nameOrUrl: string): {
+  category: "pdf" | "image" | "sheet" | "doc" | "code" | "file";
+  ext: string;
+} {
+  const clean = nameOrUrl.split("?")[0]?.split("#")[0] ?? "";
+  const ext = (clean.split(".").pop() || "").toLowerCase();
+
+  if (ext === "pdf") return { category: "pdf", ext: "PDF" };
+  if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].includes(ext)) {
+    return { category: "image", ext: ext.toUpperCase() };
+  }
+  if (["xlsx", "xls", "csv"].includes(ext)) {
+    return { category: "sheet", ext: ext.toUpperCase() };
+  }
+  if (["doc", "docx", "txt", "rtf", "md"].includes(ext)) {
+    return { category: "doc", ext: ext.toUpperCase() };
+  }
+  if (["js", "ts", "tsx", "jsx", "py", "json", "html", "css"].includes(ext)) {
+    return { category: "code", ext: ext.toUpperCase() };
+  }
+
+  return { category: "file", ext: ext ? ext.toUpperCase() : "FILE" };
+}

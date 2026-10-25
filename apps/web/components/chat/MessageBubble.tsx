@@ -2,6 +2,7 @@
 
 import { Check, Copy, Pin, RotateCw } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
+import { MessageAttachments } from "./MessageAttachments";
 import type { ChatMessage } from "./types";
 
 interface MessageBubbleProps {
@@ -27,7 +28,23 @@ export function MessageBubble({
   const isCopied = copiedId === message.id;
 
   if (message.role === "user") {
-    return <div className="u">{message.content}</div>;
+    const hasAttachments =
+      (message.attachments && message.attachments.length > 0) ||
+      (message.fileUrls && message.fileUrls.length > 0);
+
+    return (
+      <div className="u flex flex-col gap-2">
+        {hasAttachments && (
+          <MessageAttachments
+            attachments={message.attachments}
+            fileUrls={message.fileUrls}
+          />
+        )}
+        {message.content && (
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -30,6 +30,7 @@
     "@repo/database": "workspace:*",
     "@repo/error": "workspace:*",
     "@repo/redis": "workspace:*",
+    "@tavily/core": "^0.7.14",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "cloudinary": "^2.10.0",
@@ -42,10 +43,12 @@
     "langchain": "^1.5.11",
     "mammoth": "^1.12.0",
     "multer": "^2.2.0",
+    "mupdf": "^1.28.1",
     "nanoid": "^5.1.11",
     "pdf-parse": "^2.4.5",
     "razorpay": "^2.9.8",
     "resend": "^4.1.2",
+    "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   }

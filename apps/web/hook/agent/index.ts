@@ -1,4 +1,5 @@
 export { useAgent } from "./useAgent";
+export { useAgentUpload } from "./useAgentUpload";
 export { useConversations } from "./useConversations";
 export { useConversationMessages } from "./useConversationMessages";
 export { usePinConversation } from "./usePinConversation";

@@ -1,12 +1,20 @@
+import fs from "fs";
 import { chatDto, chatDtoType } from "./dto-model";
 import { Agent } from "./graph";
 import { HumanMessage } from "@langchain/core/messages";
 import db, { eq, desc, and, sql } from "@repo/database";
 import { conversations } from "@repo/database/models";
 import { AppError } from "@repo/error";
-import { textOf } from "./utils";
+import {
+  isDownloadableUrl,
+  downloadRemoteFile,
+  splitter,
+  textOf,
+} from "./utils";
 import { store } from "./pg-for-agent";
 import { MemoryType } from "./model";
+import loadAnyDocument from "./doc-loader";
+import { vectorStore } from "./vectorStore";
 
 export interface AgentChatCallbacks {
   onChunk?: (chunk: string) => Promise<void> | void;
@@ -233,8 +241,12 @@ class AgentService {
   }
 
   static async chat(payload: chatDtoType, callbacks?: AgentChatCallbacks) {
-    let { userId, userMessage, conversationId } =
+    let { userId, userMessage, conversationId, fileUrls, isFilesInclude } =
       await chatDto.parseAsync(payload);
+    const hasFiles = Boolean(
+      (fileUrls && fileUrls.length > 0) || isFilesInclude,
+    );
+    // for safety, conversation id created in trpc call backend
     if (!conversationId) {
       conversationId = crypto.randomUUID();
     }
@@ -245,15 +257,20 @@ class AgentService {
 
     if (callbacks?.onChunk) {
       const eventStream = Agent.streamEvents(
-        { messages: [new HumanMessage(userMessage)] },
+        {
+          messages: [new HumanMessage(userMessage)],
+          isFilesInclude: hasFiles,
+        },
         { ...config, version: "v2" },
       );
 
       for await (const event of eventStream) {
-        // Stream token chunks strictly from the main llm_call node
+        // Stream token chunks from llm_call, rag_node, or generate (RAG) node
         if (
           event.event === "on_chat_model_stream" &&
-          event.metadata?.langgraph_node === "llm_call"
+          (event.metadata?.langgraph_node === "llm_call" ||
+            event.metadata?.langgraph_node === "rag_node" ||
+            event.metadata?.langgraph_node === "generate")
         ) {
           const chunk = event.data?.chunk?.content;
           const text = typeof chunk === "string" ? chunk : textOf(chunk);
@@ -281,7 +298,10 @@ class AgentService {
     }
 
     const result = await Agent.invoke(
-      { messages: [new HumanMessage(userMessage)] },
+      {
+        messages: [new HumanMessage(userMessage)],
+        isFilesInclude: hasFiles,
+      },
       config,
     );
     const messages = (result as any)?.messages ?? [];
@@ -473,6 +493,64 @@ class AgentService {
     },
   ) {
     return AgentService.deleteUserMemory(userId, payload);
+  }
+
+  static async ingestDocument(
+    source: string,
+    metadataOptions?: {
+      conversationId?: string | null;
+      userId?: string | null;
+    },
+  ) {
+    let localFilePath = source;
+    let isTempFile = false;
+
+    try {
+      // Download remote file if source is a Cloudinary or remote file URL
+      if (isDownloadableUrl(source)) {
+        localFilePath = await downloadRemoteFile(source);
+        isTempFile = true;
+      }
+
+      const docs = await loadAnyDocument(localFilePath);
+      const chunks = await splitter.splitDocuments(docs);
+
+      for (const chunk of chunks) {
+        if (isTempFile) {
+          chunk.metadata.source = source;
+        }
+        if (metadataOptions?.conversationId) {
+          chunk.metadata.conversationId = metadataOptions.conversationId;
+        }
+        if (metadataOptions?.userId) {
+          chunk.metadata.userId = metadataOptions.userId;
+        }
+      }
+
+      if (chunks.length > 0) {
+        await vectorStore.addDocuments(chunks);
+      }
+
+      return {
+        success: true,
+        chunkCount: chunks.length,
+      };
+    } finally {
+      // Clean up temporary downloaded file
+      if (isTempFile && localFilePath) {
+        await fs.promises.unlink(localFilePath).catch(() => {});
+      }
+    }
+  }
+
+  public async ingestDocument(
+    source: string,
+    metadataOptions?: {
+      conversationId?: string | null;
+      userId?: string | null;
+    },
+  ) {
+    return AgentService.ingestDocument(source, metadataOptions);
   }
 }
 export default AgentService;

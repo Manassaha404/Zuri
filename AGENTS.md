@@ -40,10 +40,12 @@ This document defines the architectural patterns, code style, backend standards,
 
 - **Runtime & Language**: Node.js, TypeScript (strict mode, zero type errors).
 - **Database**: PostgreSQL 16 with Drizzle ORM (`pg` Pool driver).
+- **Vector Database**: Qdrant (`@langchain/qdrant`) for RAG document chunk embedding and isolated similarity search.
 - **API Protocol**: tRPC v11 with Express middleware adapter (`@trpc/server/adapters/express`).
 - **Async Jobs**: Inngest (`inngest/index.ts`, `inngest.createFunction`) triggered by events.
 - **Real-Time Communication**: Socket.IO (`apps/socket`) backed by Redis Pub/Sub (`@repo/redis/pubsub`).
-- **AI Agent Engine**: LangGraph (`@langchain/langgraph`) with `PostgresSaver` checkpointing.
+- **AI Agent Engine**: LangGraph (`@langchain/langgraph`) with `PostgresSaver` checkpointing and LangSmith observability (`LANGSMITH_*` / `LANGCHAIN_*`).
+
 
 ---
 
@@ -127,6 +129,7 @@ sequenceDiagram
 - Define functions using `inngest.createFunction` in `packages/services/inngest/`.
 - Break execution into atomic, idempotent steps with `step.run("<step-id>", async () => ...)`.
 - Emit updates to the frontend by publishing to Redis pub/sub (`publisher.publish("redis:agent:status", ...)`).
+- **Document Ingestion & RAG**: If `fileUrls` are present in `run-chat-agent` event data, execute `step.run("ingest-documents")` to download and embed files via `AgentService.ingestDocument` with `conversationId` and `userId` metadata before invoking `AgentService.chat` with `isFilesInclude: true`. Similarity search in `retrieve` filters chunks by `metadata.conversationId` to ensure conversation-isolated retrieval.
 - Export functions in `AgentFunction` array and ensure they are mounted in `inngestRouter`.
 
 ### E. Real-Time WebSockets (`packages/socket/` & `apps/socket/`)
@@ -189,3 +192,5 @@ Supported `AppError` codes:
 - **Environment Variables**:
   - Always validate environment variables in each package's `env.ts` using Zod.
   - Never access `process.env` directly outside configuration/env files.
+  - **LangSmith Tracing**: Set `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in `apps/api/.env`. `packages/services/env.ts` automatically populates bidirectional `LANGCHAIN_*` aliases (`LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`) to ensure compatibility across all LangChain and LangGraph runtimes.
+

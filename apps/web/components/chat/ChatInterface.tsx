@@ -8,6 +8,7 @@ import { ChatComposer } from "./ChatComposer";
 import { Sparkles } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
 import { useAgent } from "@/hook/agent/useAgent";
+import { useAgentUpload } from "@/hook/agent/useAgentUpload";
 
 interface ChatInterfaceProps {
   selectedChat: string;
@@ -23,17 +24,25 @@ export function ChatInterface({
   userName = "alex",
 }: ChatInterfaceProps) {
   const agent = useAgent();
+  const {
+    uploadFile,
+    attachedFiles,
+    removeAttachedFile,
+    clearAttachedFiles,
+    isUploading,
+  } = useAgentUpload();
 
   const [input, setInput] = useState("");
   const [model, setModel] = useState("Zuri Fast");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [attachmentName, setAttachmentName] = useState("");
   const [copiedId, setCopiedId] = useState("");
 
   const messages: ChatMessage[] = agent.messages.map((m) => ({
     id: m.id,
     role: m.role,
     content: m.content,
+    fileUrls: m.fileUrls,
+    attachments: m.attachments,
   }));
 
   // Identify the latest assistant message and streaming state
@@ -65,10 +74,10 @@ export function ChatInterface({
     if (prevSelectedChatRef.current !== selectedChat) {
       prevSelectedChatRef.current = selectedChat;
       setInput("");
-      setAttachmentName("");
+      clearAttachedFiles();
       setModelMenuOpen(false);
     }
-  }, [selectedChat]);
+  }, [selectedChat, clearAttachedFiles]);
 
   // Auto-scroll to the bottom on new messages / loading state
   useEffect(() => {
@@ -98,17 +107,29 @@ export function ChatInterface({
     event?.preventDefault();
 
     const text = input.trim();
-    if ((!text && !attachmentName) || agent.isRunning) return;
+    if (
+      (!text && attachedFiles.length === 0) ||
+      agent.isRunning ||
+      isUploading
+    ) {
+      return;
+    }
 
-    const userContent = attachmentName
-      ? `${text || "Please review this attachment."}\n\nAttachment: ${attachmentName}`
-      : text;
+    const attachments = attachedFiles
+      .filter((f): f is typeof f & { url: string } => Boolean(f.url))
+      .map((f) => ({
+        name: f.name,
+        url: f.url,
+        size: f.size,
+      }));
+
+    const fileUrls = attachments.map((a) => a.url);
 
     setInput("");
-    setAttachmentName("");
+    clearAttachedFiles();
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    await agent.send(userContent);
+    await agent.send(text, fileUrls, attachments);
     textareaRef.current?.focus();
   }
 
@@ -214,17 +235,18 @@ export function ChatInterface({
       <ChatComposer
         darkMode={darkMode}
         input={input}
-        attachmentName={attachmentName}
+        attachedFiles={attachedFiles}
         model={model}
         modelMenuOpen={modelMenuOpen}
         loading={agent.isRunning}
+        isUploading={isUploading}
         textareaRef={textareaRef}
         fileInputRef={fileInputRef}
         onInputChange={handleTextareaChange}
         onKeyDown={handleComposerKeyDown}
         onSubmit={(e) => void sendMessage(e)}
-        onAttachFile={setAttachmentName}
-        onRemoveAttachment={() => setAttachmentName("")}
+        onAttachFile={(file) => void uploadFile(file)}
+        onRemoveAttachment={(id) => removeAttachedFile(id)}
         onModelSelect={(m) => {
           setModel(m);
           setModelMenuOpen(false);

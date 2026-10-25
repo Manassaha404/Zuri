@@ -8,6 +8,7 @@ type RunChatAgentData = {
   userId: string;
   userMessage: string;
   conversationId: string | null;
+  fileUrls?: string[];
 };
 const runAgent = inngest.createFunction(
   {
@@ -17,7 +18,7 @@ const runAgent = inngest.createFunction(
     },
   },
   async ({ event, step }) => {
-    const { userId, userMessage, conversationId } =
+    const { userId, userMessage, conversationId, fileUrls } =
       event.data as RunChatAgentData;
     await step.run("publish-agent-running", async () => {
       await publisher.publish(
@@ -29,6 +30,23 @@ const runAgent = inngest.createFunction(
         }),
       );
     });
+
+    // Ingest uploaded files into vector store before agent execution
+    if (fileUrls && fileUrls.length > 0) {
+      await step.run("ingest-documents", async () => {
+        for (const url of fileUrls) {
+          try {
+            await AgentService.ingestDocument(url, {
+              conversationId,
+              userId,
+            });
+          } catch (err) {
+            console.error("Failed to ingest document:", url, err);
+          }
+        }
+      });
+    }
+
     try {
       const result = await step.run("call-openai", async () => {
         try {
@@ -37,6 +55,8 @@ const runAgent = inngest.createFunction(
               userId,
               userMessage,
               conversationId,
+              fileUrls,
+              isFilesInclude: Boolean(fileUrls && fileUrls.length > 0),
             },
             {
               onChunk: async (chunk: string) => {

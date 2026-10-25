@@ -92,7 +92,7 @@ export const agentRouter = router({
     .input(chatDto)
     .mutation(async ({ input, ctx }) => {
       try {
-        let { userMessage, conversationId } = input;
+        let { userMessage, conversationId, fileUrls } = input;
         const userId = ctx.user.id;
 
         // Create conversation ID in backend once if not provided (new chat)
@@ -116,6 +116,7 @@ export const agentRouter = router({
             conversationId,
             userId,
             userMessage,
+            fileUrls: fileUrls ?? [],
           },
         });
 

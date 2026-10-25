@@ -1,10 +1,15 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { env } from "../env";
 import { z } from "zod/v4";
+import { tavily } from "@tavily/core";
 export const model = new ChatOpenAI({
   model: env.OPENAI_MAIN_MODEL,
 });
 
+export const embeddings = new OpenAIEmbeddings({
+  model: "text-embedding-3-large",
+});
+export const tvly = tavily({ apiKey: env.TAVILY_API_KEY });
 export const memoryTypeEnum = z.enum([
   "episodic",
   "semantic",
@@ -46,5 +51,20 @@ export const extractor = new ChatOpenAI({
   model: "gpt-4o-mini",
   temperature: 0,
 }).withStructuredOutput(MemoryOps);
+
+export const evaluatorLLMSchema = z.object({
+  score: z
+    .number()
+    .describe(
+      "A score from 0 to 1 indicating how relevant the document is to the question.",
+    ),
+});
+export const refineLLMSchema = z.object({
+  splits: z
+    .array(z.string())
+    .describe(
+      "The splits of the document which are relevant to the question. If none of the splits are relevant, return an empty array.",
+    ),
+});
 
 export default model;

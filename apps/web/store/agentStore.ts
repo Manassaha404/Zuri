@@ -3,11 +3,29 @@ import { create } from "zustand";
 // Types
 export type AgentStatus = "idle" | "running" | "done" | "error";
 
+export interface AttachedFile {
+  id: string;
+  name: string;
+  file?: File;
+  url?: string;
+  size?: number;
+  status: "idle" | "uploading" | "uploaded" | "error";
+  error?: string;
+}
+
+export interface MessageAttachment {
+  name: string;
+  url: string;
+  size?: number;
+}
+
 export interface AgentMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: number;
+  fileUrls?: string[];
+  attachments?: MessageAttachment[];
 }
 
 export interface AgentState {
@@ -17,9 +35,14 @@ export interface AgentState {
   error: string | null;
   title: string | null;
   isTitleUpdating: boolean;
+  attachedFiles: AttachedFile[];
 
   // Actions
-  sendUserMessage: (userMessage: string) => void;
+  sendUserMessage: (
+    userMessage: string,
+    fileUrls?: string[],
+    attachments?: MessageAttachment[],
+  ) => void;
   setConversationId: (id: string) => void;
   setTitle: (title: string) => void;
   setStatus: (status: AgentStatus) => void;
@@ -27,6 +50,10 @@ export interface AgentState {
   appendAssistantMessage: (content: string) => void;
   setMessages: (messages: AgentMessage[]) => void;
   setError: (message: string) => void;
+  addAttachedFile: (file: AttachedFile) => void;
+  updateAttachedFile: (id: string, updates: Partial<AttachedFile>) => void;
+  removeAttachedFile: (id: string) => void;
+  clearAttachedFiles: () => void;
   reset: () => void;
 }
 
@@ -39,6 +66,7 @@ const INITIAL_STATE: Pick<
   | "error"
   | "title"
   | "isTitleUpdating"
+  | "attachedFiles"
 > = {
   conversationId: null,
   status: "idle",
@@ -46,6 +74,7 @@ const INITIAL_STATE: Pick<
   error: null,
   title: null,
   isTitleUpdating: false,
+  attachedFiles: [],
 };
 
 // Store
@@ -53,12 +82,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   ...INITIAL_STATE,
 
   // Optimistic user message
-  sendUserMessage: (userMessage) => {
+  sendUserMessage: (userMessage, fileUrls, attachments) => {
     const message: AgentMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: userMessage,
       createdAt: Date.now(),
+      fileUrls: fileUrls && fileUrls.length > 0 ? fileUrls : undefined,
+      attachments:
+        attachments && attachments.length > 0 ? attachments : undefined,
     };
     set({
       status: "running",
@@ -66,6 +98,21 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       messages: [...get().messages, message],
     });
   },
+
+  // Attached files actions
+  addAttachedFile: (file) =>
+    set({ attachedFiles: [...get().attachedFiles, file] }),
+  updateAttachedFile: (id, updates) =>
+    set({
+      attachedFiles: get().attachedFiles.map((f) =>
+        f.id === id ? { ...f, ...updates } : f,
+      ),
+    }),
+  removeAttachedFile: (id) =>
+    set({
+      attachedFiles: get().attachedFiles.filter((f) => f.id !== id),
+    }),
+  clearAttachedFiles: () => set({ attachedFiles: [] }),
 
   // Set conversation ID
   setConversationId: (id) => set({ conversationId: id }),

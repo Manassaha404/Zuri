@@ -169,9 +169,16 @@ export function useAgent(existingConversationId?: string) {
 
   // Send message
   const send = useCallback(
-    async (userMessage: string) => {
+    async (
+      userMessage: string,
+      fileUrls?: string[],
+      attachments?: import("@/store/agentStore").MessageAttachment[],
+    ) => {
       const trimmed = userMessage.trim();
-      if (!trimmed) return;
+      const hasFiles = Boolean(fileUrls && fileUrls.length > 0);
+      if (!trimmed && !hasFiles) return;
+
+      const messageContent = trimmed || "Please review the attached file(s).";
 
       // Ensure conversation ID and socket room are bound prior to mutation
       const activeConversationId = conversationId ?? crypto.randomUUID();
@@ -189,13 +196,14 @@ export function useAgent(existingConversationId?: string) {
       }
 
       // Optimistic user bubble
-      sendUserMessage(trimmed);
+      sendUserMessage(messageContent, fileUrls, attachments);
 
       // Dispatch to server via tRPC mutation
       try {
         const res = await mutation.mutateAsync({
-          userMessage: trimmed,
+          userMessage: messageContent,
           conversationId: activeConversationId,
+          fileUrls: fileUrls ?? [],
         });
 
         // Sync backend conversation ID if different

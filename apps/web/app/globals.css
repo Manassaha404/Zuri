@@ -695,6 +695,11 @@ label small {
   word-break: break-word;
 }
 
+.u a {
+  color: var(--pt) !important;
+  text-decoration: none;
+}
+
 .ai {
   display: flex;
   align-items: flex-start;
