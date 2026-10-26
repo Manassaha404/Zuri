@@ -213,10 +213,28 @@ class AgentService {
                   .join("")
               : (m?.kwargs?.content ?? textOf(rawContent));
 
+        const fileUrls =
+          Array.isArray(m.additional_kwargs?.fileUrls) &&
+          m.additional_kwargs.fileUrls.length > 0
+            ? (m.additional_kwargs.fileUrls as string[])
+            : undefined;
+
+        const attachments =
+          Array.isArray(m.additional_kwargs?.attachments) &&
+          m.additional_kwargs.attachments.length > 0
+            ? (m.additional_kwargs.attachments as Array<{
+                name: string;
+                url: string;
+                size?: number;
+              }>)
+            : undefined;
+
         return {
           id: m.id || `${conversationId}-${index}`,
           role: type === "human" ? "user" : "assistant",
           content,
+          fileUrls,
+          attachments,
           createdAt:
             m.additional_kwargs?.timestamp ||
             m.response_metadata?.created_at ||
@@ -241,8 +259,14 @@ class AgentService {
   }
 
   static async chat(payload: chatDtoType, callbacks?: AgentChatCallbacks) {
-    let { userId, userMessage, conversationId, fileUrls, isFilesInclude } =
-      await chatDto.parseAsync(payload);
+    let {
+      userId,
+      userMessage,
+      conversationId,
+      fileUrls,
+      attachments,
+      isFilesInclude,
+    } = await chatDto.parseAsync(payload);
     const hasFiles = Boolean(
       (fileUrls && fileUrls.length > 0) || isFilesInclude,
     );
@@ -255,10 +279,20 @@ class AgentService {
       configurable: { thread_id: conversationId, user_id: userId },
     };
 
+    // Store query fileUrls and attachments in HumanMessage additional_kwargs for PostgresSaver checkpoint persistence
+    const userHumanMessage = new HumanMessage({
+      content: userMessage,
+      additional_kwargs: {
+        fileUrls: fileUrls && fileUrls.length > 0 ? fileUrls : [],
+        attachments: attachments && attachments.length > 0 ? attachments : [],
+        timestamp: Date.now(),
+      },
+    });
+
     if (callbacks?.onChunk) {
       const eventStream = Agent.streamEvents(
         {
-          messages: [new HumanMessage(userMessage)],
+          messages: [userHumanMessage],
           isFilesInclude: hasFiles,
         },
         { ...config, version: "v2" },
@@ -299,7 +333,7 @@ class AgentService {
 
     const result = await Agent.invoke(
       {
-        messages: [new HumanMessage(userMessage)],
+        messages: [userHumanMessage],
         isFilesInclude: hasFiles,
       },
       config,

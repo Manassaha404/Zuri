@@ -121,7 +121,6 @@ export const generateLongTermMemory: GraphNode<typeof MessagesState> = async (
   if (!memStore) return {};
 
   const msgs = [...state.messages].reverse();
-  const lastAi = msgs.find((m) => m.type === "ai" && textOf(m.content).trim());
   const lastHuman = msgs.find((m) => m.type === "human");
   if (!lastHuman) return {};
 
@@ -159,7 +158,6 @@ ${existingList}
 
 New exchange:
 User: ${textOf(lastHuman.content)}
-Assistant: ${textOf(lastAi?.content)}
 
 Rules:
 - For every "add" or "update", assign the appropriate type: "profile", "episodic", "semantic", or "procedural".
@@ -316,7 +314,7 @@ export const retrieve: GraphNode<typeof RagState> = async (state) => {
 
   const docs = await vectorStore.similaritySearch(
     state.refineQuery || state.query,
-    8,
+    4,
     filter,
   );
   return { docs };

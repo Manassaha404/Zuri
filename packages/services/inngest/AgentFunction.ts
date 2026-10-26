@@ -9,6 +9,11 @@ type RunChatAgentData = {
   userMessage: string;
   conversationId: string | null;
   fileUrls?: string[];
+  attachments?: Array<{
+    name: string;
+    url: string;
+    size?: number;
+  }>;
 };
 const runAgent = inngest.createFunction(
   {
@@ -18,7 +23,7 @@ const runAgent = inngest.createFunction(
     },
   },
   async ({ event, step }) => {
-    const { userId, userMessage, conversationId, fileUrls } =
+    const { userId, userMessage, conversationId, fileUrls, attachments } =
       event.data as RunChatAgentData;
     await step.run("publish-agent-running", async () => {
       await publisher.publish(
@@ -56,6 +61,7 @@ const runAgent = inngest.createFunction(
               userMessage,
               conversationId,
               fileUrls,
+              attachments,
               isFilesInclude: Boolean(fileUrls && fileUrls.length > 0),
             },
             {

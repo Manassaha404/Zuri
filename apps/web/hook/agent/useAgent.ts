@@ -204,6 +204,7 @@ export function useAgent(existingConversationId?: string) {
           userMessage: messageContent,
           conversationId: activeConversationId,
           fileUrls: fileUrls ?? [],
+          attachments: attachments ?? [],
         });
 
         // Sync backend conversation ID if different

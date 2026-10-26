@@ -35,8 +35,12 @@ export function useConversationMessages(conversationId?: string | null) {
       query.data.messages.length > 0
     ) {
       const storeState = useAgentStore.getState();
-      // Only populate if not currently in an active running turn and store is empty
-      if (storeState.status !== "running" && storeState.messages.length === 0) {
+      // Only populate if not currently in an active running turn
+      if (
+        storeState.status !== "running" &&
+        (storeState.messages.length === 0 ||
+          loadedConversationIdRef.current !== conversationId)
+      ) {
         loadedConversationIdRef.current = conversationId;
         setMessages(query.data.messages as AgentMessage[]);
         if (query.data.title) {

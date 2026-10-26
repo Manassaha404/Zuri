@@ -46,7 +46,6 @@ This document defines the architectural patterns, code style, backend standards,
 - **Real-Time Communication**: Socket.IO (`apps/socket`) backed by Redis Pub/Sub (`@repo/redis/pubsub`).
 - **AI Agent Engine**: LangGraph (`@langchain/langgraph`) with `PostgresSaver` checkpointing and LangSmith observability (`LANGSMITH_*` / `LANGCHAIN_*`).
 
-
 ---
 
 ## 3. End-to-End Data & Execution Flow
@@ -130,6 +129,7 @@ sequenceDiagram
 - Break execution into atomic, idempotent steps with `step.run("<step-id>", async () => ...)`.
 - Emit updates to the frontend by publishing to Redis pub/sub (`publisher.publish("redis:agent:status", ...)`).
 - **Document Ingestion & RAG**: If `fileUrls` are present in `run-chat-agent` event data, execute `step.run("ingest-documents")` to download and embed files via `AgentService.ingestDocument` with `conversationId` and `userId` metadata before invoking `AgentService.chat` with `isFilesInclude: true`. Similarity search in `retrieve` filters chunks by `metadata.conversationId` to ensure conversation-isolated retrieval.
+- **Uploaded Files Persistence**: `fileUrls` and `attachments` associated with each query turn are persisted in LangGraph's `PostgresSaver` checkpoints via `HumanMessage.additional_kwargs`. When loading conversations via `AgentService.getConversationMessages`, `fileUrls` and `attachments` are deserialized from checkpoints and returned with the corresponding user messages.
 - Export functions in `AgentFunction` array and ensure they are mounted in `inngestRouter`.
 
 ### E. Real-Time WebSockets (`packages/socket/` & `apps/socket/`)
@@ -193,4 +193,3 @@ Supported `AppError` codes:
   - Always validate environment variables in each package's `env.ts` using Zod.
   - Never access `process.env` directly outside configuration/env files.
   - **LangSmith Tracing**: Set `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in `apps/api/.env`. `packages/services/env.ts` automatically populates bidirectional `LANGCHAIN_*` aliases (`LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`) to ensure compatibility across all LangChain and LangGraph runtimes.
-
