@@ -11,12 +11,12 @@ import {
 import { type RefObject, useState } from "react";
 import type { AttachedFile } from "@/store/agentStore";
 import { ComposerAttachmentDock } from "./ComposerAttachmentDock";
+import { ZuriLogo } from "@/components/ui/avatar-logo/ZuriLogo";
 
 interface ChatComposerProps {
   darkMode: boolean;
   input: string;
   attachedFiles: AttachedFile[];
-  model: string;
   modelMenuOpen: boolean;
   loading: boolean;
   isUploading?: boolean;
@@ -27,7 +27,6 @@ interface ChatComposerProps {
   onSubmit: (event?: React.FormEvent<HTMLFormElement>) => void;
   onAttachFile: (file: File) => void;
   onRemoveAttachment: (id: string) => void;
-  onModelSelect: (model: string) => void;
   onModelMenuToggle: () => void;
   onOpenConnectors?: () => void;
 }
@@ -35,8 +34,6 @@ interface ChatComposerProps {
 export function ChatComposer({
   input,
   attachedFiles,
-  model,
-  modelMenuOpen,
   loading,
   isUploading = false,
   textareaRef,
@@ -46,8 +43,6 @@ export function ChatComposer({
   onSubmit,
   onAttachFile,
   onRemoveAttachment,
-  onModelSelect,
-  onModelMenuToggle,
   onOpenConnectors,
 }: ChatComposerProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -152,30 +147,7 @@ export function ChatComposer({
             <Plug size={18} />
           </button>
 
-          <div className="relative">
-            <button type="button" onClick={onModelMenuToggle} className="md">
-              <span>{model}</span>
-              <ChevronDown size={14} />
-            </button>
-
-            {modelMenuOpen && (
-              <div className="absolute bottom-11 left-0 z-30 w-44 rounded-xl border border-[var(--h)] bg-[var(--bg)] p-1 shadow-lg">
-                {["Zuri Fast", "Zuri Thinking"].map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => onModelSelect(item)}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium text-[var(--i)] hover:bg-[var(--s)]"
-                  >
-                    <span>{item}</span>
-                    {model === item && (
-                      <Check size={14} className="text-[#3b82f6]" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          
 
           <span className="flex-1" />
 

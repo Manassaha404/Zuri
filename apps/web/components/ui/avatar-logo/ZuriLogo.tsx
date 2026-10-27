@@ -1,41 +1,34 @@
-import React from "react";
-import definition from "./zuri.avatar.json";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
-interface ZuriLogoProps extends React.SVGProps<SVGSVGElement> {
+export interface ZuriLogoProps {
   size?: number;
+  className?: string;
+  priority?: boolean;
 }
 
 export function ZuriLogo({
   size = 32,
   className = "",
-  ...props
+  priority = false,
 }: ZuriLogoProps) {
-  const bodyColor = definition.colors?.body || "#3b82f6";
-  const eyeColor = definition.colors?.eyes || "#0b1220";
-
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      role="img"
-      aria-label={definition.name || "Zuri"}
-      className={className}
-      {...props}
+    <span
+      style={{ width: size, height: size }}
+      className={cn(
+        "relative inline-flex items-center justify-center shrink-0 rounded-lg overflow-hidden bg-[#101010] border border-[var(--h)] shadow-xs select-none",
+        className,
+      )}
     >
-      <path
-        d="M32 5c15 0 27 10 27 27 0 15-11 27-27 27S5 47 5 32C5 15 17 5 32 5z"
-        fill={bodyColor}
+      <Image
+        src="/logo.jpeg"
+        alt="Zuri"
+        width={size}
+        height={size}
+        priority={priority}
+        className="w-full h-full object-cover"
       />
-      <circle cx="23" cy="30" r="3.2" fill={eyeColor} />
-      <circle cx="41" cy="30" r="3.2" fill={eyeColor} />
-      <path
-        d="M27 40q5 5 10 0"
-        stroke={eyeColor}
-        strokeWidth="2.6"
-        fill="none"
-        strokeLinecap="round"
-      />
-    </svg>
+    </span>
   );
 }
+

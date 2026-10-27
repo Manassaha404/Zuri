@@ -369,7 +369,7 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
         )}
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 flex flex-col gap-3 [scrollbar-width:thin]">
+        <div className="flex-1 min-h-0 overflow-y-auto styled-scrollbar p-3 sm:p-5 flex flex-col gap-3">
           {/* Add New Memory Card */}
           {isAddingNew && (
             <div className="p-4 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 flex flex-col gap-3 animate-in fade-in-0 duration-200">
@@ -422,7 +422,7 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
                         ? "Prefers Tailwind CSS and TypeScript."
                         : "Always explain code changes with step-by-step reasoning."
                 })`}
-                className="w-full p-2.5 text-xs rounded-lg border border-[var(--h)] bg-[var(--bg)] text-[var(--i)] placeholder:text-[var(--m)] resize-none focus:outline-none focus:border-[var(--accent)] transition-colors"
+                className="w-full p-2.5 text-xs rounded-lg border border-[var(--h)] bg-[var(--bg)] text-[var(--i)] placeholder:text-[var(--m)] resize-none styled-scrollbar focus:outline-none focus:border-[var(--accent)] transition-colors"
                 autoFocus
               />
 
@@ -544,7 +544,7 @@ export function MemoryModal({ isOpen, onClose }: MemoryModalProps) {
                       rows={3}
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
-                      className="w-full p-2.5 text-xs rounded-lg border border-[var(--h)] bg-[var(--bg)] text-[var(--i)] resize-none focus:outline-none focus:border-[var(--accent)]"
+                      className="w-full p-2.5 text-xs rounded-lg border border-[var(--h)] bg-[var(--bg)] text-[var(--i)] resize-none styled-scrollbar focus:outline-none focus:border-[var(--accent)]"
                       autoFocus
                     />
 

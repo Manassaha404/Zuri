@@ -35,7 +35,6 @@ export function ChatInterface({
   } = useAgentUpload();
 
   const [input, setInput] = useState("");
-  const [model, setModel] = useState("Zuri Fast");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState("");
   const [connectorsModalOpen, setConnectorsModalOpen] = useState(false);
@@ -250,7 +249,6 @@ export function ChatInterface({
         darkMode={darkMode}
         input={input}
         attachedFiles={attachedFiles}
-        model={model}
         modelMenuOpen={modelMenuOpen}
         loading={agent.isRunning}
         isUploading={isUploading}
@@ -261,10 +259,6 @@ export function ChatInterface({
         onSubmit={(e) => void sendMessage(e)}
         onAttachFile={(file) => void uploadFile(file)}
         onRemoveAttachment={(id) => removeAttachedFile(id)}
-        onModelSelect={(m) => {
-          setModel(m);
-          setModelMenuOpen(false);
-        }}
         onModelMenuToggle={() => setModelMenuOpen((open) => !open)}
         onOpenConnectors={() => setConnectorsModalOpen(true)}
       />

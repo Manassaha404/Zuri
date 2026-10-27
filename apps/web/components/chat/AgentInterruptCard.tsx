@@ -106,14 +106,6 @@ export function AgentInterruptCard({
           ))}
         </div>
 
-        {/* Live Webhook Status Indicator */}
-        <div className="mt-3.5 flex items-center gap-2 text-[11px] text-[var(--m)] px-0.5">
-          <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-ping shrink-0" />
-          <span>
-            Webhook active — Zuri will automatically resume as soon as
-            authentication completes.
-          </span>
-        </div>
 
         {/* Action Controls */}
         <div className="mt-5 pt-4 border-t border-[var(--h)] flex items-center justify-between gap-3">

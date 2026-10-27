@@ -784,24 +784,18 @@ label small {
 .styled-scrollbar {
   --scrollbar-thumb: var(--h);
   --scrollbar-track: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .styled-scrollbar:hover {
   --scrollbar-thumb: var(--m);
 }
 
-/* Firefox scrollbars */
-@supports (-moz-appearance: none) {
-  .styled-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  }
-}
-
 /* WebKit / Chromium scrollbars */
 .styled-scrollbar::-webkit-scrollbar {
   width: 6px;
-  height: 5px;
+  height: 6px;
 }
 
 .styled-scrollbar::-webkit-scrollbar-track {
@@ -812,6 +806,7 @@ label small {
 .styled-scrollbar::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 9999px;
+  transition: background 0.15s ease;
 }
 
 .styled-scrollbar::-webkit-scrollbar-thumb:hover {
