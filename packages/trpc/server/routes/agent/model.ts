@@ -71,3 +71,41 @@ export const deleteUserMemoryDto = z.object({
   type: memoryTypeEnum.optional(),
 });
 export type deleteUserMemoryDtoType = z.infer<typeof deleteUserMemoryDto>;
+
+export const getAvailableToolkitsDto = z
+  .object({
+    category: z.string().optional(),
+    search: z.string().optional(),
+    cursor: z.string().nullable().optional(),
+    limit: z.number().min(1).max(100).optional().default(100),
+  })
+  .optional();
+export type getAvailableToolkitsDtoType = z.infer<
+  typeof getAvailableToolkitsDto
+>;
+
+export const initiateToolkitConnectionDto = z.object({
+  toolkit: z.string().trim().min(1, "Toolkit slug is required"),
+  callbackUrl: z.string().url().optional(),
+});
+export type initiateToolkitConnectionDtoType = z.infer<
+  typeof initiateToolkitConnectionDto
+>;
+
+export const disconnectToolkitDto = z.object({
+  connectionId: z.string().trim().min(1, "Connection ID is required"),
+});
+export type disconnectToolkitDtoType = z.infer<typeof disconnectToolkitDto>;
+
+export const checkToolkitConnectionStatusDto = z.object({
+  connectionId: z.string().trim().min(1, "Connection ID is required"),
+});
+export type checkToolkitConnectionStatusDtoType = z.infer<
+  typeof checkToolkitConnectionStatusDto
+>;
+
+export const resumeChatAgentDto = z.object({
+  conversationId: z.string().uuid(),
+  resumeValue: z.union([z.string(), z.record(z.string(), z.any())]),
+});
+export type resumeChatAgentDtoType = z.infer<typeof resumeChatAgentDto>;

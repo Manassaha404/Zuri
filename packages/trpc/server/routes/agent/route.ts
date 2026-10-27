@@ -10,12 +10,17 @@ import {
   createUserMemoryDto,
   updateUserMemoryDto,
   deleteUserMemoryDto,
+  getAvailableToolkitsDto,
+  initiateToolkitConnectionDto,
+  disconnectToolkitDto,
+  checkToolkitConnectionStatusDto,
+  resumeChatAgentDto,
 } from "./model";
 import { inngest } from "@repo/services/inngest";
 import { db } from "@repo/database";
 import { conversations } from "@repo/database/models";
 
-import { agentService } from "../../services";
+import { agentService, toolService } from "../../services";
 
 export const agentRouter = router({
   getAllConversations: protectedProcedure.query(async ({ ctx }) => {
@@ -160,6 +165,90 @@ export const agentRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         return await agentService.deleteUserMemory(ctx.user.id, input);
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  getAvailableToolkits: protectedProcedure
+    .input(getAvailableToolkitsDto)
+    .query(async ({ input }) => {
+      try {
+        return await toolService.getAvailableToolkits(input);
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  getToolkitCategories: protectedProcedure.query(async () => {
+    try {
+      return await toolService.getToolkitCategories();
+    } catch (error) {
+      handleRouteError(error);
+    }
+  }),
+  getUserConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      return await toolService.getUserConnectedAccounts(ctx.user.id);
+    } catch (error) {
+      handleRouteError(error);
+    }
+  }),
+  initiateToolkitConnection: protectedProcedure
+    .input(initiateToolkitConnectionDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await toolService.initiateToolkitConnection(
+          ctx.user.id,
+          input.toolkit,
+          input.callbackUrl,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  disconnectToolkit: protectedProcedure
+    .input(disconnectToolkitDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await toolService.disconnectToolkit(
+          ctx.user.id,
+          input.connectionId,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  checkToolkitConnectionStatus: protectedProcedure
+    .input(checkToolkitConnectionStatusDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await toolService.checkToolkitConnectionStatus(
+          ctx.user.id,
+          input.connectionId,
+        );
+      } catch (error) {
+        handleRouteError(error);
+      }
+    }),
+  refreshUserConnectedAccounts: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      return await toolService.refreshUserConnectedAccounts(ctx.user.id);
+    } catch (error) {
+      handleRouteError(error);
+    }
+  }),
+  resumeChatAgent: protectedProcedure
+    .input(resumeChatAgentDto)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await inngest.send({
+          name: "resume-chat-agent",
+          data: {
+            userId: ctx.user.id,
+            conversationId: input.conversationId,
+            resumeValue: input.resumeValue,
+          },
+        });
+        return { success: true, conversationId: input.conversationId };
       } catch (error) {
         handleRouteError(error);
       }

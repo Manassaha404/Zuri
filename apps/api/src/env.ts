@@ -20,6 +20,8 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string(),
   CLOUDINARY_API_SECRET: z.string(),
   QDRANT_URL: z.string(),
+  COMPOSIO_WEBHOOK_SECRET: z.string().optional(),
+  COMPOSIO_WEBHOOK_SUBSCRIPTION_ID: z.string().optional(),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

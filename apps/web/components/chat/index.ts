@@ -8,5 +8,7 @@ export { ChatInterface } from "./ChatInterface";
 export { Sidebar } from "./Sidebar";
 export { DeleteConversationModal } from "./DeleteConversationModal";
 export { MemoryModal } from "./MemoryModal";
+export { ConnectorsModal } from "./ConnectorsModal";
 export { MessageAttachments } from "./MessageAttachments";
 export { ComposerAttachmentDock } from "./ComposerAttachmentDock";
+export { MarkdownContent } from "./MarkdownContent";

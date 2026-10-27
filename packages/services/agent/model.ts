@@ -67,4 +67,45 @@ export const refineLLMSchema = z.object({
     ),
 });
 
+// router model decide which toolkits needed and what to search in tool catalog
+const ToolkitRoute = z.object({
+  toolkits: z
+    .array(z.string())
+    .describe("Toolkits needed for this request. Empty if none is needed."),
+  toolQuery: z
+    .string()
+    .describe(
+      "Short search query describing the API action needed, phrased like a tool name/description. Example: 'list repositories for the authenticated user'. Empty string if no toolkit is needed.",
+    ),
+});
+export const router = new ChatOpenAI({
+  model: "gpt-4o-mini",
+  temperature: 0,
+}).withStructuredOutput(ToolkitRoute);
+
+const RiskSchema = z.object({
+  needsApproval: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  reason: z
+    .string()
+    .describe("One short sentence a human can read in an approval prompt"),
+});
+// separate small model from the main agent
+export const riskJudge = new ChatOpenAI({
+  model: "gpt-4o-mini",
+  temperature: 0,
+}).withStructuredOutput(RiskSchema);
+
+const RagJudgeSchema = z.object({
+  isRagRequired: z
+    .boolean()
+    .describe(
+      "True if answering the user's message requires retrieving context from uploaded documents or specific knowledge base. False for general conversation, chit-chat, tool calls, or common knowledge.",
+    ),
+});
+export const ragJudge = new ChatOpenAI({
+  model: "gpt-4o-mini",
+  temperature: 0,
+}).withStructuredOutput(RagJudgeSchema);
+
 export default model;

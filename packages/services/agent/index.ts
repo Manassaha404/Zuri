@@ -1,6 +1,7 @@
 import fs from "fs";
 import { chatDto, chatDtoType } from "./dto-model";
 import { Agent } from "./graph";
+import { Command, isGraphInterrupt } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
 import db, { eq, desc, and, sql } from "@repo/database";
 import { conversations } from "@repo/database/models";
@@ -15,10 +16,19 @@ import { store } from "./pg-for-agent";
 import { MemoryType } from "./model";
 import loadAnyDocument from "./doc-loader";
 import { vectorStore } from "./vectorStore";
+import {
+  ToolService,
+  type UserConnectedAccount,
+  type AvailableToolkitsOptions,
+} from "./toolService";
+import redis from "@repo/redis";
 
 export interface AgentChatCallbacks {
   onChunk?: (chunk: string) => Promise<void> | void;
 }
+
+export type { UserConnectedAccount };
+export { ToolService };
 
 class AgentService {
   static async getAllConversations(userId: string) {
@@ -290,31 +300,51 @@ class AgentService {
     });
 
     if (callbacks?.onChunk) {
-      const eventStream = Agent.streamEvents(
-        {
-          messages: [userHumanMessage],
-          isFilesInclude: hasFiles,
-        },
-        { ...config, version: "v2" },
-      );
+      try {
+        const eventStream = Agent.streamEvents(
+          {
+            messages: [userHumanMessage],
+            isFilesInclude: hasFiles,
+          },
+          { ...config, version: "v2" },
+        );
 
-      for await (const event of eventStream) {
-        // Stream token chunks from llm_call, rag_node, or generate (RAG) node
-        if (
-          event.event === "on_chat_model_stream" &&
-          (event.metadata?.langgraph_node === "llm_call" ||
-            event.metadata?.langgraph_node === "rag_node" ||
-            event.metadata?.langgraph_node === "generate")
-        ) {
-          const chunk = event.data?.chunk?.content;
-          const text = typeof chunk === "string" ? chunk : textOf(chunk);
-          if (text) {
-            await callbacks.onChunk(text);
+        for await (const event of eventStream) {
+          // Stream token chunks from llm_call, rag_node, or generate (RAG) node
+          if (
+            event.event === "on_chat_model_stream" &&
+            (event.metadata?.langgraph_node === "llm_call" ||
+              event.metadata?.langgraph_node === "rag_node" ||
+              event.metadata?.langgraph_node === "generate")
+          ) {
+            const chunk = event.data?.chunk?.content;
+            const text = typeof chunk === "string" ? chunk : textOf(chunk);
+            if (text) {
+              await callbacks.onChunk(text);
+            }
           }
+        }
+      } catch (err: any) {
+        if (!isGraphInterrupt(err) && err?.name !== "GraphInterrupt") {
+          throw err;
         }
       }
 
       const state = await Agent.getState(config);
+      const interrupts =
+        state.tasks?.flatMap((t: any) => t.interrupts ?? []) ?? [];
+      if (interrupts.length > 0) {
+        const title = (state?.values as any)?.title;
+        return {
+          conversationId,
+          output: "",
+          title,
+          isInterrupted: true,
+          interrupt: interrupts[0]?.value,
+          result: { output: "", title },
+        };
+      }
+
       const messages = (state?.values as any)?.messages ?? [];
       const lastMessage = messages[messages.length - 1];
       const output =
@@ -328,16 +358,45 @@ class AgentService {
 
       const title = (state?.values as any)?.title;
 
-      return { conversationId, output, title, result: state?.values };
+      return {
+        conversationId,
+        output,
+        title,
+        isInterrupted: false,
+        result: { output, title },
+      };
     }
 
-    const result = await Agent.invoke(
-      {
-        messages: [userHumanMessage],
-        isFilesInclude: hasFiles,
-      },
-      config,
-    );
+    let result: any = null;
+    try {
+      result = await Agent.invoke(
+        {
+          messages: [userHumanMessage],
+          isFilesInclude: hasFiles,
+        },
+        config,
+      );
+    } catch (err: any) {
+      if (!isGraphInterrupt(err) && err?.name !== "GraphInterrupt") {
+        throw err;
+      }
+    }
+
+    const state = await Agent.getState(config);
+    const interrupts =
+      state.tasks?.flatMap((t: any) => t.interrupts ?? []) ?? [];
+    if (interrupts.length > 0) {
+      const title = (state?.values as any)?.title || (result as any)?.title;
+      return {
+        conversationId,
+        output: "",
+        title,
+        isInterrupted: true,
+        interrupt: interrupts[0]?.value,
+        result: { output: "", title },
+      };
+    }
+
     const messages = (result as any)?.messages ?? [];
     const lastMessage = messages[messages.length - 1];
     const output =
@@ -351,11 +410,147 @@ class AgentService {
 
     const title = result.title;
 
-    return { conversationId, output, title, result };
+    return {
+      conversationId,
+      output,
+      title,
+      isInterrupted: false,
+      result: { output, title },
+    };
   }
 
   public async chat(payload: chatDtoType, callbacks?: AgentChatCallbacks) {
     return AgentService.chat(payload, callbacks);
+  }
+
+  static async resumeChat(
+    payload: {
+      userId: string;
+      conversationId: string;
+      resumeValue: any;
+    },
+    callbacks?: AgentChatCallbacks,
+  ) {
+    const { userId, conversationId, resumeValue } = payload;
+    const config = {
+      configurable: { thread_id: conversationId, user_id: userId },
+    };
+
+    const command = new Command({ resume: resumeValue });
+
+    if (callbacks?.onChunk) {
+      try {
+        const eventStream = (await Agent.streamEvents(command as any, {
+          ...config,
+          version: "v2",
+        })) as any;
+
+        for await (const event of eventStream) {
+          if (
+            event.event === "on_chat_model_stream" &&
+            event.metadata?.langgraph_node === "llm_call"
+          ) {
+            const chunk = event.data?.chunk?.content;
+            const text = typeof chunk === "string" ? chunk : textOf(chunk);
+            if (text) {
+              await callbacks.onChunk(text);
+            }
+          }
+        }
+      } catch (err: any) {
+        if (!isGraphInterrupt(err) && err?.name !== "GraphInterrupt") {
+          throw err;
+        }
+      }
+
+      const state = await Agent.getState(config);
+      const interrupts =
+        state.tasks?.flatMap((t: any) => t.interrupts ?? []) ?? [];
+      if (interrupts.length > 0) {
+        const title = (state?.values as any)?.title;
+        return {
+          conversationId,
+          output: "",
+          title,
+          isInterrupted: true,
+          interrupt: interrupts[0]?.value,
+          result: { output: "", title },
+        };
+      }
+
+      const messages = (state?.values as any)?.messages ?? [];
+      const lastMessage = messages[messages.length - 1];
+      const output =
+        typeof lastMessage?.content === "string"
+          ? lastMessage.content
+          : Array.isArray(lastMessage?.content)
+            ? lastMessage.content
+                .map((c: any) => (typeof c === "string" ? c : (c?.text ?? "")))
+                .join("")
+            : (lastMessage?.kwargs?.content ?? "");
+
+      const title = (state?.values as any)?.title;
+      return {
+        conversationId,
+        output,
+        title,
+        isInterrupted: false,
+        result: { output, title },
+      };
+    }
+
+    let result: any = null;
+    try {
+      result = await Agent.invoke(command as any, config);
+    } catch (err: any) {
+      if (!isGraphInterrupt(err) && err?.name !== "GraphInterrupt") {
+        throw err;
+      }
+    }
+    const state = await Agent.getState(config);
+    const interrupts =
+      state.tasks?.flatMap((t: any) => t.interrupts ?? []) ?? [];
+    if (interrupts.length > 0) {
+      const title = (state?.values as any)?.title || (result as any)?.title;
+      return {
+        conversationId,
+        output: "",
+        title,
+        isInterrupted: true,
+        interrupt: interrupts[0]?.value,
+        result: { output: "", title },
+      };
+    }
+
+    const messages = (result as any)?.messages ?? [];
+    const lastMessage = messages[messages.length - 1];
+    const output =
+      typeof lastMessage?.content === "string"
+        ? lastMessage.content
+        : Array.isArray(lastMessage?.content)
+          ? lastMessage.content
+              .map((c: any) => (typeof c === "string" ? c : (c?.text ?? "")))
+              .join("")
+          : (lastMessage?.kwargs?.content ?? "");
+
+    return {
+      conversationId,
+      output,
+      title: result.title,
+      isInterrupted: false,
+      result: { output, title: result.title },
+    };
+  }
+
+  public async resumeChat(
+    payload: {
+      userId: string;
+      conversationId: string;
+      resumeValue: any;
+    },
+    callbacks?: AgentChatCallbacks,
+  ) {
+    return AgentService.resumeChat(payload, callbacks);
   }
 
   static async getUserMemories(userId: string) {
@@ -563,6 +758,14 @@ class AgentService {
 
       if (chunks.length > 0) {
         await vectorStore.addDocuments(chunks);
+        if (metadataOptions?.conversationId) {
+          await redis
+            .set(
+              `redis:agent:conversation_has_files:${metadataOptions.conversationId}`,
+              "1",
+            )
+            .catch(() => {});
+        }
       }
 
       return {
@@ -585,6 +788,100 @@ class AgentService {
     },
   ) {
     return AgentService.ingestDocument(source, metadataOptions);
+  }
+
+  static async getAvailableToolkits(options?: AvailableToolkitsOptions) {
+    return ToolService.getAvailableToolkits(options);
+  }
+
+  public async getAvailableToolkits(options?: AvailableToolkitsOptions) {
+    return ToolService.getAvailableToolkits(options);
+  }
+
+  static async getToolkitCategories() {
+    return ToolService.getToolkitCategories();
+  }
+
+  public async getToolkitCategories() {
+    return ToolService.getToolkitCategories();
+  }
+
+  static async getUserConnectedAccounts(userId: string) {
+    return ToolService.getUserConnectedAccounts(userId);
+  }
+
+  public async getUserConnectedAccounts(userId: string) {
+    return ToolService.getUserConnectedAccounts(userId);
+  }
+
+  static async initiateToolkitConnection(
+    userId: string,
+    toolkitSlug: string,
+    callbackUrl?: string,
+  ) {
+    return ToolService.initiateToolkitConnection(
+      userId,
+      toolkitSlug,
+      callbackUrl,
+    );
+  }
+
+  public async initiateToolkitConnection(
+    userId: string,
+    toolkitSlug: string,
+    callbackUrl?: string,
+  ) {
+    return ToolService.initiateToolkitConnection(
+      userId,
+      toolkitSlug,
+      callbackUrl,
+    );
+  }
+
+  static async disconnectToolkit(userId: string, connectionId: string) {
+    return ToolService.disconnectToolkit(userId, connectionId);
+  }
+
+  public async disconnectToolkit(userId: string, connectionId: string) {
+    return ToolService.disconnectToolkit(userId, connectionId);
+  }
+
+  static async checkToolkitConnectionStatus(
+    userId: string,
+    connectionId: string,
+  ) {
+    return ToolService.checkToolkitConnectionStatus(userId, connectionId);
+  }
+
+  public async checkToolkitConnectionStatus(
+    userId: string,
+    connectionId: string,
+  ) {
+    return ToolService.checkToolkitConnectionStatus(userId, connectionId);
+  }
+
+  static async refreshUserConnectedAccounts(userId: string) {
+    return ToolService.refreshUserConnectedAccounts(userId);
+  }
+
+  public async refreshUserConnectedAccounts(userId: string) {
+    return ToolService.refreshUserConnectedAccounts(userId);
+  }
+
+  static async syncCatalog(toolkit: string) {
+    return ToolService.syncCatalog(toolkit);
+  }
+
+  public async syncCatalog(toolkit: string) {
+    return ToolService.syncCatalog(toolkit);
+  }
+
+  static async ensureCatalog(toolkit: string) {
+    return ToolService.ensureCatalog(toolkit);
+  }
+
+  public async ensureCatalog(toolkit: string) {
+    return ToolService.ensureCatalog(toolkit);
   }
 }
 export default AgentService;

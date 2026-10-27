@@ -29,6 +29,7 @@ interface ChatComposerProps {
   onRemoveAttachment: (id: string) => void;
   onModelSelect: (model: string) => void;
   onModelMenuToggle: () => void;
+  onOpenConnectors?: () => void;
 }
 
 export function ChatComposer({
@@ -47,6 +48,7 @@ export function ChatComposer({
   onRemoveAttachment,
   onModelSelect,
   onModelMenuToggle,
+  onOpenConnectors,
 }: ChatComposerProps) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -142,12 +144,10 @@ export function ChatComposer({
 
           <button
             type="button"
-            title="Connectors"
-            aria-label="Connectors"
-            onClick={() =>
-              window.alert("Connectors: Google Drive and GitHub are active.")
-            }
-            className="ib"
+            title="Toolkit Connectors"
+            aria-label="Toolkit Connectors"
+            onClick={onOpenConnectors}
+            className="ib flex items-center justify-center text-[var(--m)] hover:text-[var(--i)]"
           >
             <Plug size={18} />
           </button>

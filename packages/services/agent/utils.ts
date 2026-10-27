@@ -6,6 +6,12 @@ import { trimMessages } from "@langchain/core/messages";
 import { AppError } from "@repo/error";
 import model from "./model";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { composio } from "./composio";
+import {
+  DynamicStructuredTool,
+  type StructuredToolInterface,
+} from "@langchain/core/tools";
+import ToolService from "./toolService";
 
 // for trimming recent chats with ai
 const MAX_TOKENS = 20000;
@@ -193,3 +199,132 @@ export const downloadRemoteFile = async (url: string): Promise<string> => {
   await fs.promises.writeFile(tempFilePath, buffer);
   return tempFilePath;
 };
+
+// composio schema sometimes has type "None" (python artifact), remove it at every level
+const stripBadTypes = (node: any): any => {
+  if (Array.isArray(node)) return node.map(stripBadTypes);
+  if (node && typeof node === "object") {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(node)) {
+      if (k === "type" && (v === "None" || v === null)) continue;
+      out[k] = stripBadTypes(v);
+    }
+    return out;
+  }
+  return node;
+};
+// openai need top level type object + properties, so fix the schema before giving to llm
+const normalizeSchema = (input: any): Record<string, any> => {
+  const s: Record<string, any> =
+    input && typeof input === "object" ? stripBadTypes(input) : {};
+  // openai dont allow these at top level
+  for (const k of ["anyOf", "oneOf", "allOf", "not", "enum", "$schema"]) {
+    delete s[k];
+  }
+  s.type = "object";
+  if (!s.properties || typeof s.properties !== "object") s.properties = {};
+  // required keys must exist in properties
+  if (Array.isArray(s.required)) {
+    s.required = s.required.filter((r: string) => r in s.properties);
+    if (!s.required.length) delete s.required;
+  } else {
+    delete s.required;
+  }
+  return s;
+};
+// make langchain tool from composio raw tool, run it with composio execute
+export const buildTool = (
+  userId: string,
+  raw: any,
+): StructuredToolInterface => {
+  const slug: string = raw.slug;
+  return new DynamicStructuredTool({
+    name: slug,
+    description: String(raw.description ?? raw.name ?? slug).slice(0, 1000),
+    schema: normalizeSchema(raw.inputParameters) as any,
+    func: async (args: Record<string, unknown>) => {
+      // Auto-correct "me" placeholder for GitHub tool username/owner arguments
+      if (slug.startsWith("GITHUB_")) {
+        if (args.username === "me" || args.owner === "me") {
+          try {
+            const accounts = await ToolService.getUserConnectedAccounts(userId);
+            const githubAcc = accounts.find((a) => a.toolkitSlug === "github");
+            if (githubAcc?.displayName) {
+              if (args.username === "me") args.username = githubAcc.displayName;
+              if (args.owner === "me") args.owner = githubAcc.displayName;
+            }
+          } catch (err) {
+            console.error("Failed to auto-correct github username:", err);
+          }
+        }
+      }
+
+      const res: any = await composio.tools.execute(slug, {
+        userId,
+        arguments: args,
+        dangerouslySkipVersionCheck: true,
+      });
+      // throw on failure so ToolNode mark it as error and llm can retry with other tool
+      if (res && res.successful === false) {
+        throw new Error(String(res.error ?? "Tool execution failed"));
+      }
+      return JSON.stringify(res?.data ?? res);
+    },
+  }) as unknown as StructuredToolInterface;
+};
+
+export const lastTurnHadToolError = (messages: any[]): boolean => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.type === "human") break;
+    if (m.type !== "tool") continue;
+    if (m.status === "error") return true;
+    const c = textOf(m.content);
+    if (/"successful"\s*:\s*false/i.test(c) || /^error/i.test(c.trim())) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Sanitize tool output to strip verbose URLs and truncate huge payloads
+export function sanitizeToolOutput(output: unknown): unknown {
+  if (!output) return output;
+  if (typeof output === "string") {
+    try {
+      const parsed = JSON.parse(output);
+      const cleaned = sanitizeToolOutput(parsed);
+      return JSON.stringify(cleaned);
+    } catch {
+      if (output.length > 50000) {
+        return (
+          output.slice(0, 50000) +
+          "\n... [Output truncated to avoid payload limits]"
+        );
+      }
+      return output;
+    }
+  }
+
+  if (Array.isArray(output)) {
+    return output.map((item) => sanitizeToolOutput(item));
+  }
+
+  if (typeof output === "object") {
+    const cleaned: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(
+      output as Record<string, unknown>,
+    )) {
+      if (key.endsWith("_url") && key !== "html_url" && key !== "url") {
+        continue;
+      }
+      if (key === "node_id" || key === "gravatar_id") {
+        continue;
+      }
+      cleaned[key] = sanitizeToolOutput(value);
+    }
+    return cleaned;
+  }
+
+  return output;
+}

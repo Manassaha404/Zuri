@@ -19,8 +19,17 @@ export function registerAgentSocket(io: Server) {
 
     subscriber.on("message", (channel, message) => {
       if (channel === AGENT_STATUS_CHANNEL_NAME) {
-        const { jobId, topic, payload } = JSON.parse(message);
-        io.to(`agent:${jobId}`).emit(topic, payload);
+        try {
+          const { jobId, topic, payload } = JSON.parse(message);
+          if (jobId) {
+            io.to(`agent:${jobId}`).emit(topic, payload);
+          }
+          if (payload?.userId) {
+            io.to(`user:${payload.userId}`).emit(topic, payload);
+          }
+        } catch (err) {
+          console.error("Failed to parse agent status message:", err);
+        }
       }
     });
   }
@@ -31,6 +40,12 @@ export function registerAgentSocket(io: Server) {
     });
     socket.on("leave:agent", (jobId: string) => {
       socket.leave(`agent:${jobId}`);
+    });
+    socket.on("join:user", (userId: string) => {
+      socket.join(`user:${userId}`);
+    });
+    socket.on("leave:user", (userId: string) => {
+      socket.leave(`user:${userId}`);
     });
   });
 }

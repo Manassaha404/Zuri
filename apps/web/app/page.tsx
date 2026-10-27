@@ -36,11 +36,12 @@ export default function DashboardPage() {
   const { deleteConversation } = useDeleteConversation();
   const isAgentRunning = useAgentStore((state) => state.status === "running");
   const agentMessages = useAgentStore((state) => state.messages);
+  const lastAgentMessage = agentMessages[agentMessages.length - 1];
   const isAgentThinking =
     isAgentRunning &&
-    !agentMessages.some(
-      (m) => m.role === "assistant" && m.content.trim().length > 0,
-    );
+    (!lastAgentMessage ||
+      lastAgentMessage.role !== "assistant" ||
+      lastAgentMessage.content.trim().length === 0);
   const agentTitle = useAgentStore((state) => state.title);
   const isTitleUpdating = useAgentStore((state) => state.isTitleUpdating);
   const currentConversationId = useAgentStore((state) => state.conversationId);

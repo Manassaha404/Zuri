@@ -17,6 +17,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@composio/core": "^0.27.0",
+    "@composio/langchain": "^0.11.2",
     "@inngest/realtime": "^0.4.7",
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.2.11",

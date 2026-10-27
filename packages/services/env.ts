@@ -45,6 +45,7 @@ const envSchema = z.object({
   LANGCHAIN_TRACING_V2: z.string().optional(),
   LANGCHAIN_API_KEY: z.string().optional(),
   LANGCHAIN_PROJECT: z.string().optional(),
+  COMPOSIO_API_KEY: z.string(),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

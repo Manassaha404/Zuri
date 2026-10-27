@@ -33,6 +33,7 @@ import { getInitials } from "./utils";
 import { useLogout } from "@/hook/auth/useLogout";
 import { DeleteConversationModal } from "./DeleteConversationModal";
 import { MemoryModal } from "./MemoryModal";
+import { ConnectorsModal } from "./ConnectorsModal";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -257,45 +258,10 @@ export function Sidebar({
       )}
 
       {/* Connectors Dialog */}
-      {connectorsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-sm rounded-2xl border border-[var(--h)] bg-[var(--bg)] p-6 shadow-2xl flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Plug size={18} className="text-[#3b82f6]" />
-              <h2 className="text-base font-semibold text-[var(--i)]">
-                Connectors
-              </h2>
-            </div>
-            <p className="text-xs text-[var(--m)]">
-              Manage your connected services and integrations.
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {connectors.map(({ name, enabled, icon: Icon }) => (
-                <div
-                  key={name}
-                  onClick={() => toggleConnector(name)}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--h)] hover:bg-[var(--s)] cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon size={16} className="text-[var(--m)]" />
-                    <span className="text-sm font-medium text-[var(--i)]">
-                      {name}
-                    </span>
-                  </div>
-                  <span className={`tg ${enabled ? "on" : ""}`} />
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setConnectorsModalOpen(false)}
-              className="bt p mt-2 text-xs"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
+      <ConnectorsModal
+        isOpen={connectorsModalOpen}
+        onClose={() => setConnectorsModalOpen(false)}
+      />
 
       {/* Memory Dialog */}
       <MemoryModal

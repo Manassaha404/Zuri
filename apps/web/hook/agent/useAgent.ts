@@ -9,8 +9,9 @@ import { useConversationMessages } from "./useConversationMessages";
 
 // Socket payload shape
 interface AgentStatusPayload {
-  status: "running" | "done" | "error";
+  status: "running" | "interrupted" | "done" | "error";
   result?: unknown;
+  interrupt?: any;
   error?: string;
   title?: string;
 }
@@ -30,6 +31,7 @@ export function useAgent(existingConversationId?: string) {
   const {
     conversationId: storeConversationId,
     status,
+    interrupt,
     messages,
     error,
     title,
@@ -38,6 +40,7 @@ export function useAgent(existingConversationId?: string) {
     setConversationId,
     setTitle,
     setStatus,
+    setInterrupt,
     appendAssistantChunk,
     appendAssistantMessage,
     setError,
@@ -51,6 +54,7 @@ export function useAgent(existingConversationId?: string) {
     useConversationMessages(conversationId);
 
   const mutation = trpc.agent.runChatAgent.useMutation();
+  const resumeMutation = trpc.agent.resumeChatAgent.useMutation();
   const utils = trpc.useUtils();
 
   // Stable status handler ref
@@ -65,6 +69,12 @@ export function useAgent(existingConversationId?: string) {
 
       if (agentStatus === "running") {
         setStatus("running" as AgentStatus);
+        return;
+      }
+
+      if (agentStatus === "interrupted") {
+        setStatus("interrupted" as AgentStatus);
+        setInterrupt(payload.interrupt ?? null);
         return;
       }
 
@@ -88,7 +98,14 @@ export function useAgent(existingConversationId?: string) {
         setError(errMsg ?? "An unknown agent error occurred.");
       }
     },
-    [setStatus, appendAssistantMessage, setTitle, setError, utils],
+    [
+      setStatus,
+      setInterrupt,
+      appendAssistantMessage,
+      setTitle,
+      setError,
+      utils,
+    ],
   );
 
   const handleStatusRef = useRef(handleStatus);
@@ -137,16 +154,22 @@ export function useAgent(existingConversationId?: string) {
       handleStreamRef.current(payload);
     };
 
+    const onConnectionSuccess = () => {
+      utils.agent.getUserConnectedAccounts.invalidate();
+    };
+
     socket.on("status", onStatus);
     socket.on("title", onTitle);
     socket.on("stream", onStream);
+    socket.on("connection_success", onConnectionSuccess);
 
     return () => {
       socket.off("status", onStatus);
       socket.off("title", onTitle);
       socket.off("stream", onStream);
+      socket.off("connection_success", onConnectionSuccess);
     };
-  }, []);
+  }, [utils]);
 
   // Sync socket room with active conversation ID
   useEffect(() => {
@@ -238,11 +261,43 @@ export function useAgent(existingConversationId?: string) {
     ],
   );
 
+  // Resume interrupted agent execution
+  const resume = useCallback(
+    async (resumeValue: any) => {
+      const activeConversationId = conversationId ?? storeConversationId;
+      if (!activeConversationId) return;
+
+      setStatus("running");
+      setInterrupt(null);
+
+      try {
+        await resumeMutation.mutateAsync({
+          conversationId: activeConversationId,
+          resumeValue,
+        });
+      } catch (err: any) {
+        setError(err?.message ?? "Failed to resume agent execution.");
+      }
+    },
+    [
+      conversationId,
+      storeConversationId,
+      resumeMutation,
+      setStatus,
+      setInterrupt,
+      setError,
+    ],
+  );
+
   return {
     send,
+    resume,
     status,
+    interrupt,
+    isInterrupted: status === "interrupted",
     messages,
-    isRunning: status === "running" || mutation.isPending,
+    isRunning:
+      status === "running" || mutation.isPending || resumeMutation.isPending,
     isLoadingMessages,
     error,
     conversationId,

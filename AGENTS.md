@@ -120,7 +120,8 @@ sequenceDiagram
    - Use `protectedProcedure` for authenticated actions (`ctx.user.id`).
    - Use `publicProcedure` for unauthenticated endpoints.
    - Always wrap execution in `try / catch` and call `handleRouteError(error)`.
-   - Agent memory management procedures: `getUserMemories`, `createUserMemory`, `updateUserMemory`, `deleteUserMemory`.
+   - Agent procedures: `getUserMemories`, `createUserMemory`, `updateUserMemory`, `deleteUserMemory`, `getAvailableToolkits`, `getToolkitCategories`, `getUserConnectedAccounts`, `initiateToolkitConnection`, `disconnectToolkit`, `checkToolkitConnectionStatus`, `refreshUserConnectedAccounts`, `resumeChatAgent`.
+   - **User Toolkit Connections & 24h Redis Caching**: User accounts connected to third-party services are managed via `ToolService` (`composio.connectedAccounts`) and cached in Redis under `redis:composio:user_connections:${userId}` with a 24-hour TTL (`86400`s). Initiating a connection, deleting a connection, or detecting an active status change automatically invalidates this key to keep connections synchronized.
 3. **Register routes** in `packages/trpc/server/routers/index.ts` under `serverRouter`.
 
 ### D. Inngest Background Jobs (`packages/services/inngest/`)
@@ -128,8 +129,12 @@ sequenceDiagram
 - Define functions using `inngest.createFunction` in `packages/services/inngest/`.
 - Break execution into atomic, idempotent steps with `step.run("<step-id>", async () => ...)`.
 - Emit updates to the frontend by publishing to Redis pub/sub (`publisher.publish("redis:agent:status", ...)`).
-- **Document Ingestion & RAG**: If `fileUrls` are present in `run-chat-agent` event data, execute `step.run("ingest-documents")` to download and embed files via `AgentService.ingestDocument` with `conversationId` and `userId` metadata before invoking `AgentService.chat` with `isFilesInclude: true`. Similarity search in `retrieve` filters chunks by `metadata.conversationId` to ensure conversation-isolated retrieval.
+- **Document Ingestion & RAG**: If `fileUrls` are present in `run-chat-agent` event data, execute `step.run("ingest-documents")` to download and embed files via `AgentService.ingestDocument` with `conversationId` and `userId` metadata before invoking `AgentService.chat` with `isFilesInclude: true`. Similarity search in `retrieve` filters chunks by `metadata.conversationId` to ensure conversation-isolated retrieval. In `decideRag`, if the current query turn includes files, RAG is executed immediately; if the query does not include files, the node checks if the conversation previously had files (via `state.messages` `additional_kwargs` and `redis:agent:conversation_has_files:${conversationId}`), executing `ragJudge` only when files exist in the conversation and bypassing it otherwise.
 - **Uploaded Files Persistence**: `fileUrls` and `attachments` associated with each query turn are persisted in LangGraph's `PostgresSaver` checkpoints via `HumanMessage.additional_kwargs`. When loading conversations via `AgentService.getConversationMessages`, `fileUrls` and `attachments` are deserialized from checkpoints and returned with the corresponding user messages.
+- **Human-in-the-Loop & Resume Execution**:
+  - `runAgent` detects interrupts via LangGraph checkpoint inspection and publishes `{ status: "interrupted", interrupt }`.
+  - `resumeAgent` listens to `"resume-chat-agent"` events (`conversationId`, `userId`, `resumeValue`), invoking `AgentService.resumeChat` with `Command({ resume: resumeValue })` and streaming chunks to Redis.
+  - **Always-Allowed Tools Redis Caching**: When a user approves actions with an `"always"` verdict (in the `approve` node), the tool names are persisted in Redis under `redis:agent:allowed_tools:${userId}` (Redis Set). The `riskCheck` node queries this cache alongside `state.allowedTools` to automatically bypass approval for trusted actions across conversations.
 - Export functions in `AgentFunction` array and ensure they are mounted in `inngestRouter`.
 
 ### E. Real-Time WebSockets (`packages/socket/` & `apps/socket/`)
@@ -139,12 +144,20 @@ sequenceDiagram
   ```json
   {
     "jobId": "<conversationId>",
-    "topic": "status" | "title" | "stream",
+    "topic": "status" | "title" | "stream" | "connection_success",
     "payload": { ... }
   }
   ```
-- Clients join rooms matching `agent:${jobId}` via socket event `join:agent`.
-- Handlers in `packages/socket/agentSocket.ts` forward Redis messages to `io.to("agent:" + jobId).emit(topic, payload)`.
+- Clients join rooms matching `agent:${jobId}` via socket event `join:agent`, and user rooms `user:${userId}` via `join:user`.
+- Handlers in `packages/socket/agentSocket.ts` forward Redis messages to `io.to("agent:" + jobId).emit(topic, payload)` and `io.to("user:" + payload.userId).emit(topic, payload)`.
+
+### F. Composio Webhook (`apps/api`)
+
+- Route: `/webhook/composio` and `/api/webhook/composio`.
+- When an account connection status updates (`ACTIVE` / `CONNECTED`):
+  1. Invalidates Redis cache `redis:composio:user_connections:${userId}`.
+  2. Publishes `connection_success` topic to `redis:agent:status`.
+  3. Checks `redis:agent:waiting_connection:${userId}`. If an agent is waiting, automatically triggers Inngest event `"resume-chat-agent"` with `{ status: "connected" }` to resume graph execution seamlessly.
 
 ---
 

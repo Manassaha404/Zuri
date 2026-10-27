@@ -1,7 +1,28 @@
 import { create } from "zustand";
 
 // Types
-export type AgentStatus = "idle" | "running" | "done" | "error";
+export type AgentStatus = "idle" | "running" | "interrupted" | "done" | "error";
+
+export interface ConnectionToolkit {
+  toolkit: string;
+  redirectUrl: string | null;
+  connectionId: string;
+}
+
+export interface ApprovalToolCall {
+  id: string;
+  name: string;
+  args: any;
+  reason: string;
+}
+
+export interface AgentInterrupt {
+  type: "connection" | "approval";
+  message?: string;
+  question?: string;
+  toolkits?: ConnectionToolkit[];
+  calls?: ApprovalToolCall[];
+}
 
 export interface AttachedFile {
   id: string;
@@ -31,6 +52,7 @@ export interface AgentMessage {
 export interface AgentState {
   conversationId: string | null;
   status: AgentStatus;
+  interrupt: AgentInterrupt | null;
   messages: AgentMessage[];
   error: string | null;
   title: string | null;
@@ -46,6 +68,7 @@ export interface AgentState {
   setConversationId: (id: string) => void;
   setTitle: (title: string) => void;
   setStatus: (status: AgentStatus) => void;
+  setInterrupt: (interrupt: AgentInterrupt | null) => void;
   appendAssistantChunk: (chunk: string) => void;
   appendAssistantMessage: (content: string) => void;
   setMessages: (messages: AgentMessage[]) => void;
@@ -62,6 +85,7 @@ const INITIAL_STATE: Pick<
   AgentState,
   | "conversationId"
   | "status"
+  | "interrupt"
   | "messages"
   | "error"
   | "title"
@@ -70,6 +94,7 @@ const INITIAL_STATE: Pick<
 > = {
   conversationId: null,
   status: "idle",
+  interrupt: null,
   messages: [],
   error: null,
   title: null,
@@ -128,7 +153,11 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   // Set agent status
-  setStatus: (status) => set({ status }),
+  setStatus: (status) =>
+    set({ status, ...(status !== "interrupted" ? { interrupt: null } : {}) }),
+
+  // Set agent interrupt
+  setInterrupt: (interrupt) => set({ interrupt }),
 
   // Append streaming chunk
   appendAssistantChunk: (chunk) => {

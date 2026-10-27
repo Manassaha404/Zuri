@@ -12,8 +12,17 @@ import {
   refineDocs,
   stepBackQuery,
   afterEvaluator,
-  ragNode,
-  isRagRequiredOrNot,
+  selectTools,
+  connect,
+  waitConnection,
+  afterConnect,
+  riskCheck,
+  approve,
+  toolsNode,
+  decideRag,
+  afterSelect,
+  afterLlm,
+  afterRisk,
 } from "./nodes";
 import { checkPointer, store } from "./pg-for-agent";
 
@@ -38,15 +47,32 @@ export const ragAgent = graph.compile();
 const mainAgentGraph = new StateGraph(MessagesState)
   .addNode("llm_call", llmCall)
   .addNode("generate_summary", generateSummery)
+  .addNode("selectTools", selectTools)
+  .addNode("connect", connect)
+  .addNode("wait_connection", waitConnection)
+  .addNode("riskCheck", riskCheck)
+  .addNode("approve", approve)
+  .addNode("tools", toolsNode)
   .addNode("generate_title", generateTitle)
   .addNode("generate_memories", generateLongTermMemory)
-  .addNode("rag_node", ragNode)
-  .addConditionalEdges(START, isRagRequiredOrNot)
+  .addNode("decide_rag", decideRag)
+  .addEdge(START, "decide_rag")
   .addEdge(START, "generate_title")
-  .addEdge("rag_node", "generate_summary")
-  .addEdge("llm_call", "generate_summary")
-  .addEdge("generate_title", "generate_summary")
-  .addEdge("generate_summary", "generate_memories")
+  .addEdge("decide_rag", "selectTools")
+  .addEdge("generate_title", END)
+  .addConditionalEdges("selectTools", afterSelect, ["connect", "llm_call"])
+  .addEdge("connect", "wait_connection")
+  .addConditionalEdges("wait_connection", afterConnect, ["llm_call", END])
+  .addConditionalEdges("llm_call", afterLlm, [
+    "riskCheck",
+    "generate_summary",
+    "generate_memories",
+    END,
+  ])
+  .addConditionalEdges("riskCheck", afterRisk, ["approve", "tools"])
+  .addEdge("approve", "tools")
+  .addEdge("tools", "llm_call")
+  .addEdge("generate_summary", END)
   .addEdge("generate_memories", END);
 
 export const Agent = mainAgentGraph.compile({

@@ -5,6 +5,8 @@ import type { ChatMessage } from "./types";
 import { EmptyState } from "./EmptyState";
 import { MessageBubble } from "./MessageBubble";
 import { ChatComposer } from "./ChatComposer";
+import { ConnectorsModal } from "./ConnectorsModal";
+import { AgentInterruptCard } from "./AgentInterruptCard";
 import { Sparkles } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
 import { useAgent } from "@/hook/agent/useAgent";
@@ -36,6 +38,7 @@ export function ChatInterface({
   const [model, setModel] = useState("Zuri Fast");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState("");
+  const [connectorsModalOpen, setConnectorsModalOpen] = useState(false);
 
   const messages: ChatMessage[] = agent.messages.map((m) => ({
     id: m.id,
@@ -45,24 +48,27 @@ export function ChatInterface({
     attachments: m.attachments,
   }));
 
-  // Identify the latest assistant message and streaming state
+  // Identify active turn message to determine streaming and thinking states
+  const lastMessage = messages[messages.length - 1];
+
+  // The active response is streaming only when the agent is running and the last message is an assistant message with content
+  const isStreaming =
+    agent.isRunning &&
+    lastMessage?.role === "assistant" &&
+    lastMessage.content.trim().length > 0;
+
+  const streamingMessageId = isStreaming ? lastMessage?.id : null;
+
+  // The thinking animation pill displays while waiting for the assistant response to begin
+  const isThinking = agent.isRunning && !isStreaming;
+
+  // Active assistant message receives the avatar when streaming or done; while thinking, the avatar moves to the thinking indicator
   const lastAssistantMessage = [...messages]
     .reverse()
     .find((m) => m.role === "assistant");
 
-  const isStreaming =
-    agent.isRunning &&
-    Boolean(
-      lastAssistantMessage && lastAssistantMessage.content.trim().length > 0,
-    );
-
-  const streamingMessageId = isStreaming ? lastAssistantMessage?.id : null;
-
-  // The thinking animation pill should only show while waiting for initial response chunks
-  const isThinking = agent.isRunning && !isStreaming;
-
-  // Last assistant message always gets the avatar (both during streaming and when done)
-  const lastAssistantMessageId = lastAssistantMessage?.id;
+  const lastAssistantMessageId =
+    agent.isRunning && isThinking ? null : lastAssistantMessage?.id;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -228,6 +234,14 @@ export function ChatInterface({
             </div>
           )}
 
+          {agent.isInterrupted && agent.interrupt && (
+            <AgentInterruptCard
+              interrupt={agent.interrupt}
+              onResume={(val) => agent.resume(val)}
+              onOpenConnectorsModal={() => setConnectorsModalOpen(true)}
+            />
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       )}
@@ -252,6 +266,13 @@ export function ChatInterface({
           setModelMenuOpen(false);
         }}
         onModelMenuToggle={() => setModelMenuOpen((open) => !open)}
+        onOpenConnectors={() => setConnectorsModalOpen(true)}
+      />
+
+      {/* Connectors Dialog */}
+      <ConnectorsModal
+        isOpen={connectorsModalOpen}
+        onClose={() => setConnectorsModalOpen(false)}
       />
     </main>
   );

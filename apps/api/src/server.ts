@@ -5,6 +5,7 @@ import { serverRouter, createContext } from "@repo/trpc/server";
 import { env } from "./env";
 import cookieParser from "cookie-parser";
 import authRouter from "./authRouter";
+import composioWebhookRouter from "./composioWebhook";
 import { inngestRouter } from "@repo/services/inngest/index";
 import rateLimiter from "@repo/services/utils/rateLimiting";
 import logger from "@repo/logger/logger";
@@ -32,7 +33,15 @@ const inngestCors = cors({
   credentials: false,
 });
 
-app.use(express.json());
+app.use(
+  express.json({
+    limit: "50mb",
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 app.use("/api/inngest", inngestCors, inngestRouter);
 
@@ -65,6 +74,9 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   return res.json({ message: "VibeCheck server is healthy", healthy: true });
 });
+
+app.use("/webhook/composio", composioWebhookRouter);
+app.use("/api/webhook/composio", composioWebhookRouter);
 
 app.use("/auth", authRouter);
 

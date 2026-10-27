@@ -347,12 +347,16 @@ export function AuthCardHeading({
         </div>
       )}
       {badge && (
-        <span className="text-[11px] font-semibold tracking-wider uppercase text-[var(--m)]">
+        <span className="badge-pill mb-1 uppercase text-[10px] tracking-wider font-semibold">
           {badge}
         </span>
       )}
-      <h1>{title}</h1>
-      <p>{description}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[var(--i)] leading-tight">
+        {title}
+      </h1>
+      <p className="text-xs sm:text-sm text-[var(--m)] leading-relaxed">
+        {description}
+      </p>
     </div>
   );
 }

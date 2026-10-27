@@ -190,7 +190,7 @@ export function ChatHeader({
                       if (canManage && onRename) handleStartEdit();
                     }}
                     className={cn(
-                      "text-base sm:text-lg md:text-xl font-bold tracking-tight text-[var(--i)] truncate",
+                      "text-base sm:text-lg md:text-xl font-semibold tracking-[-0.025em] text-[var(--i)] truncate",
                       canManage &&
                         onRename &&
                         "cursor-pointer hover:opacity-85 transition-opacity",
@@ -207,7 +207,7 @@ export function ChatHeader({
                       onClick={handleStartEdit}
                       title="Rename chat"
                       aria-label="Rename chat"
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--h)] text-[var(--m)] hover:text-[var(--i)] transition-all shrink-0"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-[var(--h)] text-[var(--m)] hover:text-[var(--i)] active:scale-95 transition-all shrink-0"
                     >
                       <Pencil size={14} />
                     </button>
@@ -236,7 +236,7 @@ export function ChatHeader({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <span className="hidden items-center gap-1.5 rounded-full border border-[var(--h)] px-2.5 py-1 text-[11px] text-[var(--m)] sm:inline-flex">
+        <span className="badge-pill hidden items-center gap-1.5 text-xs font-medium sm:inline-flex">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
               loading ? "animate-pulse bg-blue-500" : "bg-emerald-500"
@@ -251,7 +251,7 @@ export function ChatHeader({
             title={isPinned ? "Unpin chat" : "Pin chat"}
             aria-label={isPinned ? "Unpin chat" : "Pin chat"}
             className={cn(
-              "ib w-8 h-8 border transition-all",
+              "ib w-8 h-8 border transition-all active:scale-95",
               isPinned
                 ? "border-blue-500/40 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
                 : "border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)]",
@@ -272,7 +272,7 @@ export function ChatHeader({
             onClick={() => setDeleteModalOpen(true)}
             title="Delete chat"
             aria-label="Delete chat"
-            className="ib w-8 h-8 border border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+            className="ib w-8 h-8 border border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all"
           >
             <Trash2 size={15} />
           </button>
@@ -283,7 +283,7 @@ export function ChatHeader({
             onClick={onNewChat}
             title="New chat"
             aria-label="New chat"
-            className="ib w-8 h-8 border border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)] transition-colors"
+            className="ib w-8 h-8 border border-[var(--h)] bg-[var(--bg)] text-[var(--m)] hover:text-[var(--i)] hover:bg-[var(--s)] active:scale-95 transition-all"
           >
             <Plus size={16} />
           </button>

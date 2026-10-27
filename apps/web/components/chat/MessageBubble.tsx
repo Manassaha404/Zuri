@@ -3,6 +3,7 @@
 import { Check, Copy, Pin, RotateCw } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
 import { MessageAttachments } from "./MessageAttachments";
+import { MarkdownContent } from "./MarkdownContent";
 import type { ChatMessage } from "./types";
 
 interface MessageBubbleProps {
@@ -62,15 +63,7 @@ export function MessageBubble({
       </div>
 
       <div className="ai-body">
-        <div className="whitespace-pre-wrap leading-relaxed">
-          {message.content}
-          {isStreaming && (
-            <span
-              className="inline-block w-1.5 h-4 ml-1 bg-[var(--accent)] animate-pulse rounded-full align-middle"
-              aria-hidden="true"
-            />
-          )}
-        </div>
+        <MarkdownContent content={message.content} isStreaming={isStreaming} />
 
         {message.code && (
           <pre>
