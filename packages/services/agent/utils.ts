@@ -12,6 +12,8 @@ import {
   type StructuredToolInterface,
 } from "@langchain/core/tools";
 import ToolService from "./toolService";
+import redis from "@repo/redis";
+import { ChatOpenAI } from "@langchain/openai";
 
 // for trimming recent chats with ai
 const MAX_TOKENS = 20000;
@@ -259,6 +261,17 @@ export const buildTool = (
         }
       }
 
+      // Default to 10 results for Gmail list/fetch operations to prevent massive payloads
+      if (slug.startsWith("GMAIL_")) {
+        if (
+          args.max_results === undefined &&
+          args.maxResults === undefined &&
+          args.limit === undefined
+        ) {
+          args.max_results = 10;
+        }
+      }
+
       const res: any = await composio.tools.execute(slug, {
         userId,
         arguments: args,
@@ -287,18 +300,118 @@ export const lastTurnHadToolError = (messages: any[]): boolean => {
   return false;
 };
 
-// Sanitize tool output to strip verbose URLs and truncate huge payloads
+// Constants for tool output compaction
+const MAX_TOOL_OUTPUT_CHARS = 15000;
+const MAX_ARRAY_ITEMS = 15;
+const MAX_STRING_FIELD_CHARS = 1000;
+const ESSENTIAL_EMAIL_HEADERS = new Set([
+  "subject",
+  "from",
+  "to",
+  "date",
+  "cc",
+]);
+
+// Strip verbose, redundant, or massive fields from tool outputs
+export function cleanPayload(node: unknown, depth = 0): unknown {
+  if (!node || depth > 8) return node;
+
+  if (typeof node === "string") {
+    if (node.length > MAX_STRING_FIELD_CHARS) {
+      return node.slice(0, MAX_STRING_FIELD_CHARS) + "... [truncated]";
+    }
+    return node;
+  }
+
+  if (Array.isArray(node)) {
+    const sliced = node
+      .slice(0, MAX_ARRAY_ITEMS)
+      .map((item) => cleanPayload(item, depth + 1));
+    if (node.length > MAX_ARRAY_ITEMS) {
+      sliced.push({
+        _info: `Showing top ${MAX_ARRAY_ITEMS} of ${node.length} items (truncated)`,
+      });
+    }
+    return sliced;
+  }
+
+  if (typeof node === "object") {
+    const cleaned: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(
+      node as Record<string, unknown>,
+    )) {
+      const lowerKey = key.toLowerCase();
+
+      // Drop verbose URL metadata
+      if (
+        lowerKey.endsWith("_url") &&
+        lowerKey !== "html_url" &&
+        lowerKey !== "url"
+      ) {
+        continue;
+      }
+
+      // Drop internal IDs and heavy base64/raw structures
+      if (
+        lowerKey === "node_id" ||
+        lowerKey === "gravatar_id" ||
+        lowerKey === "raw" ||
+        lowerKey === "internaldate" ||
+        lowerKey === "historyid"
+      ) {
+        continue;
+      }
+
+      // Filter raw email headers to keep only essential ones
+      if (lowerKey === "headers" && Array.isArray(value)) {
+        cleaned[key] = value
+          .filter(
+            (h: any) =>
+              h?.name &&
+              ESSENTIAL_EMAIL_HEADERS.has(String(h.name).toLowerCase()),
+          )
+          .map((h: any) => ({ name: h.name, value: h.value }));
+        continue;
+      }
+
+      // Truncate base64 or attachment data fields
+      if (
+        (lowerKey === "data" || lowerKey === "attachmentdata") &&
+        typeof value === "string" &&
+        value.length > 200
+      ) {
+        cleaned[key] = `[${Math.round(value.length / 1024)} KB data omitted]`;
+        continue;
+      }
+
+      cleaned[key] = cleanPayload(value, depth + 1);
+    }
+    return cleaned;
+  }
+
+  return node;
+}
+
+// Sanitize tool output to strip verbose URLs, compact arrays, and hard-cap output size
 export function sanitizeToolOutput(output: unknown): unknown {
   if (!output) return output;
+
   if (typeof output === "string") {
     try {
       const parsed = JSON.parse(output);
-      const cleaned = sanitizeToolOutput(parsed);
-      return JSON.stringify(cleaned);
-    } catch {
-      if (output.length > 50000) {
+      const cleaned = cleanPayload(parsed);
+      const str = JSON.stringify(cleaned);
+      if (str.length > MAX_TOOL_OUTPUT_CHARS) {
         return (
-          output.slice(0, 50000) +
+          str.slice(0, MAX_TOOL_OUTPUT_CHARS) +
+          "\n... [Output truncated to avoid payload limits]"
+        );
+      }
+      return str;
+    } catch {
+      if (output.length > MAX_TOOL_OUTPUT_CHARS) {
+        return (
+          output.slice(0, MAX_TOOL_OUTPUT_CHARS) +
           "\n... [Output truncated to avoid payload limits]"
         );
       }
@@ -306,25 +419,96 @@ export function sanitizeToolOutput(output: unknown): unknown {
     }
   }
 
-  if (Array.isArray(output)) {
-    return output.map((item) => sanitizeToolOutput(item));
-  }
-
-  if (typeof output === "object") {
-    const cleaned: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(
-      output as Record<string, unknown>,
-    )) {
-      if (key.endsWith("_url") && key !== "html_url" && key !== "url") {
-        continue;
-      }
-      if (key === "node_id" || key === "gravatar_id") {
-        continue;
-      }
-      cleaned[key] = sanitizeToolOutput(value);
-    }
-    return cleaned;
-  }
-
-  return output;
+  const cleaned = cleanPayload(output);
+  return cleaned;
 }
+
+// Fast model for distilling oversized tool responses
+const fastDistiller = new ChatOpenAI({
+  model: "gpt-4o-mini",
+  temperature: 0,
+});
+
+const LARGE_OUTPUT_THRESHOLD = 6000;
+
+// Process tool output: small payloads pass through, large payloads are cached as artifacts and distilled via fast LLM
+export async function processToolOutput(
+  toolName: string,
+  rawContent: unknown,
+  userQuery: string,
+): Promise<string> {
+  const contentStr =
+    typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
+
+  // If small or normal, clean and return directly
+  if (!contentStr || contentStr.length <= LARGE_OUTPUT_THRESHOLD) {
+    const sanitized = sanitizeToolOutput(rawContent);
+    return typeof sanitized === "string"
+      ? sanitized
+      : JSON.stringify(sanitized);
+  }
+
+  // Large payload: save complete raw data into Redis artifact store (24h TTL)
+  const artifactId = `art_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+  try {
+    await redis.set(
+      `redis:agent:artifact:${artifactId}`,
+      contentStr,
+      "EX",
+      86400,
+    );
+  } catch (err) {
+    console.error(
+      `[artifact] Failed to cache tool artifact ${artifactId}:`,
+      err,
+    );
+  }
+
+  // Distill via fast LLM tailored to the user's query
+  try {
+    const sample =
+      contentStr.length > 50000
+        ? contentStr.slice(0, 50000) +
+          "\n... [content truncated for distillation]"
+        : contentStr;
+
+    const prompt = `You are a data distillation engine for an AI assistant.
+A tool just returned a very large raw response (${Math.round(contentStr.length / 1024)} KB).
+Extract and summarize the most relevant information so the assistant can accurately answer the user.
+
+User Goal / Query: "${userQuery || "Inspect tool result"}"
+Tool Name: "${toolName}"
+Artifact ID: "${artifactId}"
+
+Raw Tool Output:
+${sample}
+
+Instructions:
+1. Provide a concise summary of the items found (total count, date range, key senders/subjects/statuses).
+2. Extract the specific items that match or relate to the user's query, including their primary IDs (e.g. id, threadId, number) and key details so the assistant can use or reference them.
+3. Explicitly state: "[Full dataset (${Math.round(contentStr.length / 1024)} KB) preserved in artifactId: "${artifactId}". Use INSPECT_TOOL_ARTIFACT to retrieve more details if needed.]"
+4. Keep the entire distillation under 400 words. Format with clean bullet points.`;
+
+    const res = await fastDistiller.invoke(prompt);
+    const distilledText = textOf(res.content);
+    if (distilledText && distilledText.trim().length > 0) {
+      return distilledText;
+    }
+  } catch (err) {
+    console.error(
+      "[distiller] Fast model distillation failed, using fallback:",
+      err,
+    );
+  }
+
+  // Graceful fallback to deterministic circuit breaker
+  const fallback = sanitizeToolOutput(rawContent);
+  const fallbackStr =
+    typeof fallback === "string" ? fallback : JSON.stringify(fallback);
+  return (
+    fallbackStr +
+    `\n\n[Full dataset (${Math.round(contentStr.length / 1024)} KB) preserved in artifactId: "${artifactId}". Use INSPECT_TOOL_ARTIFACT if needed.]`
+  );
+}
+
+// Built-in tool allowing the agent to inspect or page through saved large artifacts

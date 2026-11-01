@@ -147,8 +147,6 @@ export function ChatComposer({
             <Plug size={18} />
           </button>
 
-          
-
           <span className="flex-1" />
 
           <button

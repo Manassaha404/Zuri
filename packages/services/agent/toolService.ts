@@ -390,26 +390,39 @@ export class ToolService {
   }
 
   // Sync tool catalog into PostgreSQL memory store for semantic search
-  static async syncCatalog(toolkit: string): Promise<void> {
-    const raw = await composio.tools.getRawComposioTools({
-      toolkits: [toolkit],
-      limit: 1000,
-    });
+  static async syncCatalog(toolkit: string, rawTools?: any[]): Promise<void> {
+    const raw =
+      rawTools ??
+      (await composio.tools.getRawComposioTools({
+        toolkits: [toolkit],
+        limit: 1000,
+      }));
     const CHUNK = 20; // don't fire hundreds of embedding calls at once
     for (let i = 0; i < raw.length; i += CHUNK) {
       await Promise.all(
         raw.slice(i, i + CHUNK).map((t: any) =>
-          store.put(["tool-catalog"], t.slug, {
+          store.put([`tool-catalog-${toolkit}`], t.slug, {
             text: `${t.name}: ${t.description}`, // embedded
             toolkit,
           }),
         ),
       );
     }
+    await store.put(["toolkit-registry"], toolkit, { synced: true }, false);
+    try {
+      await redis.set(
+        `redis:composio:catalog_synced:${toolkit}`,
+        "1",
+        "EX",
+        86400 * 7,
+      );
+    } catch (err) {
+      console.error(`Redis write error in syncCatalog for ${toolkit}:`, err);
+    }
   }
 
-  public async syncCatalog(toolkit: string) {
-    return ToolService.syncCatalog(toolkit);
+  public async syncCatalog(toolkit: string, rawTools?: any[]) {
+    return ToolService.syncCatalog(toolkit, rawTools);
   }
 
   // Ensure toolkit catalog is synced, using Redis for fast lookup
@@ -422,9 +435,12 @@ export class ToolService {
       console.error(`Redis read error in ensureCatalog for ${toolkit}:`, err);
     }
 
-    const done = await store.get(["toolkit-registry"], toolkit);
-    if (!done) {
+    const existing = await store
+      .search([`tool-catalog-${toolkit}`], { limit: 1 })
+      .catch(() => []);
+    if (!existing.length) {
       await ToolService.syncCatalog(toolkit);
+    } else {
       await store.put(["toolkit-registry"], toolkit, { synced: true }, false);
     }
 

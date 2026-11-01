@@ -24,6 +24,7 @@ import {
   buildTool,
   lastOfType,
   lastTurnHadToolError,
+  processToolOutput,
   sanitizeToolOutput,
   textOf,
   trimmer,
@@ -35,6 +36,7 @@ import { composio } from "./composio";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import redis from "@repo/redis";
 import { store } from "./pg-for-agent";
+import { inspectArtifactTool } from "./tools/inspectArtifactTool";
 
 // Decide whether RAG is required based on file attachments or LLM evaluation
 export const decideRag: GraphNode<typeof MessagesState> = async (
@@ -121,7 +123,14 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
 ) => {
   const userId = config.configurable?.user_id ?? "anonymous";
   const conversationId = config.configurable?.thread_id ?? null;
-  const trimmed = await trimmer.invoke(state.messages);
+  let trimmed = await trimmer.invoke(state.messages);
+  // Ensure message history is never empty if original messages existed
+  if (!trimmed.length && state.messages.length) {
+    const lastHumanMsg = lastOfType(state.messages, "human");
+    trimmed = lastHumanMsg
+      ? [lastHumanMsg]
+      : [state.messages[state.messages.length - 1]];
+  }
   const lastHuman = lastOfType(state.messages, "human");
   const query = lastHuman ? textOf(lastHuman.content) : "";
 
@@ -177,8 +186,11 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
     });
   }
 
-  // bind selected tools to model, if no tools then use plain model
-  const tools = await resolveTools(userId, state.activeTools);
+  // bind selected tools to model, including INSPECT_TOOL_ARTIFACT if external tools are active
+  const toolSlugs = state.activeTools.length
+    ? [...new Set([...state.activeTools, "INSPECT_TOOL_ARTIFACT"])]
+    : [];
+  const tools = await resolveTools(userId, toolSlugs);
   const runnable = tools.length ? model.bindTools(tools) : model;
 
   // grab response and return
@@ -398,7 +410,7 @@ Return an empty toolkits list for chit-chat or anything needing no external tool
   const searchQuery = route.toolQuery?.trim() || query;
   const perToolkit = await Promise.all(
     available.map(async (toolkit) => {
-      const hits = await store.search(["tool-catalog"], {
+      const hits = await store.search([`tool-catalog-${toolkit}`], {
         query: searchQuery,
         filter: { toolkit },
         limit: SEARCH_LIMIT_PER_TOOLKIT,
@@ -408,9 +420,25 @@ Return an empty toolkits list for chit-chat or anything needing no external tool
         try {
           const raw = await composio.tools.getRawComposioTools({
             toolkits: [toolkit],
-            limit: SEARCH_LIMIT_PER_TOOLKIT,
+            limit: 1000,
           });
-          searched = raw.map((t: any) => t.slug);
+          const existing = await store
+            .search([`tool-catalog-${toolkit}`], { limit: 1 })
+            .catch(() => []);
+          if (!existing.length) {
+            await ToolService.syncCatalog(toolkit, raw);
+            const freshHits = await store
+              .search([`tool-catalog-${toolkit}`], {
+                query: searchQuery,
+                filter: { toolkit },
+                limit: SEARCH_LIMIT_PER_TOOLKIT,
+              })
+              .catch(() => []);
+            searched = freshHits.map((h: any) => h.key as string);
+          }
+          if (!searched.length) {
+            searched = raw.map((t: any) => t.slug);
+          }
         } catch {}
       }
       return { toolkit, searched };
@@ -539,7 +567,7 @@ export const waitConnection: GraphNode<typeof MessagesState> = async (
       state.missingToolkits.map(async (toolkit) => {
         let hits: any[] = [];
         try {
-          hits = await store.search(["tool-catalog"], {
+          hits = await store.search([`tool-catalog-${toolkit}`], {
             query,
             filter: { toolkit },
             limit: SEARCH_LIMIT_PER_TOOLKIT,
@@ -551,9 +579,25 @@ export const waitConnection: GraphNode<typeof MessagesState> = async (
           try {
             const raw = await composio.tools.getRawComposioTools({
               toolkits: [toolkit],
-              limit: SEARCH_LIMIT_PER_TOOLKIT,
+              limit: 1000,
             });
-            searched = raw.map((t: any) => t.slug);
+            const existing = await store
+              .search([`tool-catalog-${toolkit}`], { limit: 1 })
+              .catch(() => []);
+            if (!existing.length) {
+              await ToolService.syncCatalog(toolkit, raw);
+              const freshHits = await store
+                .search([`tool-catalog-${toolkit}`], {
+                  query,
+                  filter: { toolkit },
+                  limit: SEARCH_LIMIT_PER_TOOLKIT,
+                })
+                .catch(() => []);
+              searched = freshHits.map((h: any) => h.key as string);
+            }
+            if (!searched.length) {
+              searched = raw.map((t: any) => t.slug);
+            }
           } catch {}
         }
         return searched;
@@ -628,12 +672,25 @@ const resolveTools = async (
 ): Promise<StructuredToolInterface[]> => {
   if (!slugs.length) return [];
 
+  const builtinTools: StructuredToolInterface[] = [];
+  const externalSlugs: string[] = [];
+
+  for (const slug of slugs) {
+    if (slug === "INSPECT_TOOL_ARTIFACT") {
+      builtinTools.push(inspectArtifactTool);
+    } else {
+      externalSlugs.push(slug);
+    }
+  }
+
+  if (!externalSlugs.length) return builtinTools;
+
   const rawToolsMap = new Map<string, any>();
   const missingSlugs: string[] = [];
 
   // Check Redis for cached raw tool definitions
   await Promise.all(
-    slugs.map(async (slug) => {
+    externalSlugs.map(async (slug) => {
       try {
         const cached = await redis.get(`redis:composio:raw_tool:${slug}`);
         if (cached) {
@@ -670,10 +727,12 @@ const resolveTools = async (
   }
 
   // Construct StructuredToolInterface with user credentials
-  return slugs
+  const externalResolved = externalSlugs
     .map((slug) => rawToolsMap.get(slug))
     .filter(Boolean)
     .map((raw) => buildTool(userId, raw));
+
+  return [...builtinTools, ...externalResolved];
 };
 
 export const riskCheck: GraphNode<typeof MessagesState> = async (
@@ -702,6 +761,7 @@ export const riskCheck: GraphNode<typeof MessagesState> = async (
   const allAllowedTools = new Set([
     ...state.allowedTools,
     ...cachedAllowedTools,
+    "INSPECT_TOOL_ARTIFACT",
   ]);
 
   const tools = await resolveTools(
@@ -857,29 +917,32 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
       { ...state, messages: [onlyApproved] },
       config,
     );
-    ran = out.messages.map((m: any) => {
-      if (
-        m instanceof ToolMessage ||
-        m._getType?.() === "tool" ||
-        m.tool_call_id
-      ) {
-        let content = m.content;
-        if (typeof content === "string") {
-          content = sanitizeToolOutput(content) as string;
-        } else if (typeof content === "object" && content !== null) {
-          content = JSON.stringify(sanitizeToolOutput(content));
+    const lastHuman = lastOfType(state.messages, "human");
+    const query = lastHuman ? textOf(lastHuman.content) : "";
+
+    ran = await Promise.all(
+      out.messages.map(async (m: any) => {
+        if (
+          m instanceof ToolMessage ||
+          m._getType?.() === "tool" ||
+          m.tool_call_id
+        ) {
+          const finalContent = await processToolOutput(
+            m.name || "tool",
+            m.content,
+            query,
+          );
+          return new ToolMessage({
+            content: finalContent,
+            tool_call_id: m.tool_call_id,
+            name: m.name,
+            status: m.status,
+            artifact: m.artifact,
+          });
         }
-        return new ToolMessage({
-          content:
-            typeof content === "string" ? content : JSON.stringify(content),
-          tool_call_id: m.tool_call_id,
-          name: m.name,
-          status: m.status,
-          artifact: m.artifact,
-        });
-      }
-      return m;
-    });
+        return m;
+      }),
+    );
   }
   return {
     messages: [...ran, ...deniedMsgs],

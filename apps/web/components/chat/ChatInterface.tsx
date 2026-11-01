@@ -84,12 +84,18 @@ export function ChatInterface({
     }
   }, [selectedChat, clearAttachedFiles]);
 
-  // Auto-scroll to the bottom on new messages / loading state
+  // Auto-scroll to the bottom on new messages, loading state, or agent interrupts
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: isStreaming ? "auto" : "smooth",
     });
-  }, [messages, agent.isRunning, isStreaming]);
+  }, [
+    messages,
+    agent.isRunning,
+    isStreaming,
+    agent.isInterrupted,
+    agent.interrupt,
+  ]);
 
   async function copyMessage(message: ChatMessage) {
     try {

@@ -868,12 +868,12 @@ class AgentService {
     return ToolService.refreshUserConnectedAccounts(userId);
   }
 
-  static async syncCatalog(toolkit: string) {
-    return ToolService.syncCatalog(toolkit);
+  static async syncCatalog(toolkit: string, rawTools?: any[]) {
+    return ToolService.syncCatalog(toolkit, rawTools);
   }
 
-  public async syncCatalog(toolkit: string) {
-    return ToolService.syncCatalog(toolkit);
+  public async syncCatalog(toolkit: string, rawTools?: any[]) {
+    return ToolService.syncCatalog(toolkit, rawTools);
   }
 
   static async ensureCatalog(toolkit: string) {

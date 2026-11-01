@@ -298,7 +298,11 @@ export function Sidebar({
               className="lg flex items-center gap-2.5 text-[var(--i)] font-semibold text-xl tracking-tight no-underline group"
               onClick={closeMobile}
             >
-              <ZuriLogo size={28} priority className="transition-transform group-hover:scale-105" />
+              <ZuriLogo
+                size={28}
+                priority
+                className="transition-transform group-hover:scale-105"
+              />
               <span>Zuri</span>
             </Link>
 
@@ -326,7 +330,11 @@ export function Sidebar({
               className="flex items-center justify-center group"
               title="Zuri"
             >
-              <ZuriLogo size={32} priority className="transition-transform group-hover:scale-105" />
+              <ZuriLogo
+                size={32}
+                priority
+                className="transition-transform group-hover:scale-105"
+              />
             </Link>
 
             <button

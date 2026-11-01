@@ -146,6 +146,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - `useAgentStore` supports `"interrupted"` status and `AgentInterrupt` payloads (`type: "connection" | "approval"`).
   - When missing toolkits or sensitive actions are detected, the agent interrupts execution and displays `AgentInterruptCard`.
   - For connection interrupts, `AgentInterruptCard` displays OAuth redirect links, listens for automated Composio webhooks via socket `"connection_success"`, and provides manual "I've Connected, Continue" and "Cancel / Deny" actions invoking `resume(resumeValue)`.
+  - For action approvals (e.g. sensitive tool calls, HLD reviews), tool calls are decomposed into `ApprovalCallItem` with strict horizontal containment (`min-w-0 max-w-full overflow-hidden`, `whitespace-pre-wrap break-all sm:break-words`, and `.styled-scrollbar`), preventing x-axis overflow during large AI payload displays while providing a quick parameters copy action.
 - **User Store (`apps/web/store/userInfoStore.ts`)**:
   - Never hardcode usernames (like `"alex"`). Pull `fullName`, `username`, or `email` from `useUserInfoStore()`.
 
