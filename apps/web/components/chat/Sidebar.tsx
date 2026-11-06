@@ -295,17 +295,16 @@ export function Sidebar({
           <div className="flex items-center justify-between gap-2 mb-2">
             <Link
               href="/"
-              className="lg flex items-center gap-2.5 text-[var(--i)] font-semibold text-xl tracking-tight no-underline group"
+              className="lg flex items-center justify-start text-[var(--i)] font-semibold text-xl tracking-tight no-underline group"
               onClick={closeMobile}
             >
               <ZuriLogo
-                size={28}
+                size={58}
                 priority
-                className="transition-transform group-hover:scale-105"
+                className="transition-transform group-hover:scale-155"
               />
-              <span>Zuri</span>
+              <span className="-ml-3">Zuri</span>
             </Link>
-
             <button
               type="button"
               onClick={() => {
@@ -331,7 +330,7 @@ export function Sidebar({
               title="Zuri"
             >
               <ZuriLogo
-                size={32}
+                size={52}
                 priority
                 className="transition-transform group-hover:scale-105"
               />
@@ -392,7 +391,7 @@ export function Sidebar({
             </div>
 
             {/* Scrollable Conversation List */}
-            <div className="flex-1 overflow-y-auto flex flex-col gap-3 -mx-2 px-2 pt-2 [scrollbar-width:thin]">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-3 -mx-2 px-2 pt-2 sidebar-scrollbar">
               {/* PINNED CONVERSATIONS (Top of the sidebar, no partition line, no emojis) */}
               <div className="flex flex-col gap-1">
                 <button

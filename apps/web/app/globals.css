@@ -839,6 +839,49 @@ label small {
   background: #71717a !important;
 }
 
+/* Sidebar custom modern minimalist scrollbar */
+.sidebar-scrollbar {
+  --sidebar-scroll-thumb: rgba(156, 163, 175, 0.4);
+  --sidebar-scroll-thumb-hover: rgba(107, 114, 128, 0.75);
+  --sidebar-scroll-track: transparent;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-scroll-thumb) var(--sidebar-scroll-track);
+}
+
+.dark .sidebar-scrollbar,
+[data-theme="dark"] .sidebar-scrollbar {
+  --sidebar-scroll-thumb: rgba(161, 161, 170, 0.22);
+  --sidebar-scroll-thumb-hover: rgba(212, 212, 216, 0.55);
+  --sidebar-scroll-track: transparent;
+  scrollbar-color: var(--sidebar-scroll-thumb) var(--sidebar-scroll-track);
+}
+
+.sidebar-scrollbar:hover {
+  scrollbar-color: var(--sidebar-scroll-thumb-hover) var(--sidebar-scroll-track);
+}
+
+/* WebKit / Chromium custom scrollbars */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: var(--sidebar-scroll-track);
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scroll-thumb);
+  border-radius: 9999px;
+  transition: background 0.15s ease-in-out;
+}
+
+.sidebar-scrollbar:hover::-webkit-scrollbar-thumb,
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--sidebar-scroll-thumb-hover);
+}
+
 /* Defer rendering heavy offscreen content per modern-web-guidance */
 .card-content-visibility {
   content-visibility: auto;
