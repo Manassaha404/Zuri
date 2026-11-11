@@ -13,13 +13,13 @@ export function ZuriLogo({
   priority = false,
 }: ZuriLogoProps) {
   return (
-      <Image
-        src="/logo.jpeg"
-        alt="Zuri"
-        width={size}
-        height={size}
-        priority={priority}
+    <Image
+      src="/logo.jpeg"
+      alt="Zuri"
+      width={size}
+      height={size}
+      priority={priority}
       className="w-full h-full object-fill "
-      />
+    />
   );
 }

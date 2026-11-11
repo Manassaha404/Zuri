@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
+  BookOpen,
   Brain,
   Check,
   ChevronDown,
@@ -350,7 +351,7 @@ export function Sidebar({
 
         {!collapsed ? (
           <>
-            {/* Top Action Buttons: New chat, Connectors, Memory */}
+            {/* Top Action Buttons: New chat, Connectors, Memory, Notes */}
             <div className="flex flex-col gap-2 my-2">
               <button
                 type="button"
@@ -388,6 +389,21 @@ export function Sidebar({
                   <span>Memory</span>
                 </button>
               </div>
+
+              <Link
+                href="/notes"
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Notes & Documentation Workspace"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen size={14} className="text-[#10b981]" />
+                  <span className="font-medium">Notes & Docs</span>
+                </div>
+                <span className="text-[10px] font-semibold text-[var(--m)] px-1.5 py-0.5 rounded bg-[var(--h)]">
+                  Workspace
+                </span>
+              </Link>
             </div>
 
             {/* Scrollable Conversation List */}
@@ -770,6 +786,15 @@ export function Sidebar({
                     <span>Settings</span>
                   </Link>
 
+                  <Link
+                    href="/notes"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <BookOpen size={15} className="text-[#10b981]" />
+                    <span>Notes & Docs</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -885,6 +910,15 @@ export function Sidebar({
               >
                 <Brain size={16} className="text-[#8b5cf6]" />
               </button>
+
+              <Link
+                href="/notes"
+                onClick={closeMobile}
+                title="Notes & Docs"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <BookOpen size={16} className="text-[#10b981]" />
+              </Link>
             </div>
 
             <div className="flex flex-col items-center gap-3">

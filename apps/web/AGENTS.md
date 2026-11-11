@@ -8,11 +8,14 @@ This document defines the architectural patterns, code style, UI standards, and 
 
 - **Framework**: Next.js 16 (App Router), React 19
 - **Language**: TypeScript (strict mode, `@/*` path aliases pointing to `apps/web/*`)
-- **State Management**: Zustand stores in `apps/web/store/`
+- **State Management**: Zustand stores strictly centralized in `apps/web/store/`
   - `useUIStore`: Theme, responsive layout (`isMobile`), sidebar open/collapsed state.
   - `useUserInfoStore`: Dynamic user credentials, profile name, username, email.
+  - `useAgentStore`: Agent chat, streaming tokens, interrupt handling, file attachments.
+  - `useNotesStore`: Notebooks, chapters, pages, blocks, attachments, and visual diagrams.
+  - `useDiagramStudioStore`: Hand-crafted diagram canvas elements, pan/zoom, connectors, and smart guides.
 - **Styling**: Tailwind CSS v4 + Vanilla CSS Tokens in `app/globals.css`.
-- **Icons**: `lucide-react` (SVG icons, size-controlled, minimal).
+- **Icons**: `lucide-react` (SVG icons, size-controlled, minimal) and `simple-icons` (brand and cloud architecture icons in Canvas Studio).
 - **API & Data Layer**: tRPC client (`apps/web/trpc/`) with `@tanstack/react-query`.
 - **Avatar System**: `@bible-strong/avatar-react` + `apps/web/components/ui/avatar-logo/`.
 
@@ -35,6 +38,18 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 | `--pt`           | `#ffffff` (Pure white)                     | `#111111` (Ink black)                                     | Primary button label text               |
 | `--accent`       | `#3b82f6` (System blue)                    | `#3b82f6` (System blue)                                   | Informational badges & active accents   |
 
+> [!IMPORTANT]
+> **DARK & LIGHT MODE ACCESSIBILITY RULE**:
+> **Every page, top-level layout, and major full-screen workspace view MUST provide an option to toggle between Dark Mode and Light Mode.**
+>
+> - **Shared Component**: Always use `<ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />` from `@/components/ui/ThemeToggle`.
+> - **State & Initialization**: Access `darkMode` and `toggleTheme` via `useUIStore()`. Every page, layout, or workspace root component must call `useInitUIStore()` to bind viewport listeners and synchronize theme with `localStorage` (`zuri-theme`) and system preference (`prefers-color-scheme`).
+> - **Standard Placement Locations**:
+>   - **Sidebar Footers**: Alongside trash/settings/profile actions (e.g. `Sidebar.tsx`, `NotesSidebar.tsx`).
+>   - **Workspace & Editorial Headers**: In top-right action clusters (e.g. `NotesHeader.tsx`).
+>   - **Standalone Layouts**: Top-right corner of viewport (e.g. `AuthLayout.tsx`).
+>   - **Full-Screen Modals & Studios**: Top-right action headers (e.g. `DiagramModal.tsx`).
+
 ### Cal.com Geometry & Component Primitives
 
 - **Radii**:
@@ -54,6 +69,8 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - Small status chips with `padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid var(--h)`.
 - **Focus Rings**:
   - Subtle 3px ring (`box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08)` / dark: `rgba(255, 255, 255, 0.12)`).
+- **Notes Sleek Scrollbars (`.notes-app`, `.notes-scrollbar`)**:
+  - 6px hairline scrollbar with transparent track, rounded-full thumb styled with `var(--h)`, and subtle hover transition to `var(--m)` for minimal distraction across editorial and canvas surfaces.
 
 ---
 
@@ -104,6 +121,44 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - Headings should only be the category names (`Pinned`, `Today`, `Yesterday`, etc.).
 - **No Emojis**:
   - Do not use emoji glyphs (e.g. 📌, 💬, 🤖). Use clean Lucide SVG icons and modern typography.
+- **Notes & Docs Workspace Navigation**:
+  - Dedicated workspace entry point with `BookOpen` icon leading to `/notes` ("Notes & Docs"), rendered in both expanded action cluster and collapsed icon dock with a clean "Workspace" badge pill.
+
+### Notes & Documentation Workspace (`apps/web/components/notes/`)
+
+- **Information Architecture**:
+  - Full Notion/Craft-style hierarchical workspace: Notebooks -> Chapters -> Pages -> Blocks.
+  - Fractional indexing (`fractional-index.ts` with `sortByPosition` and `generatePositionBetween`) ensures $O(1)$ reordering, drag-and-drop operations, and inter-chapter page transfers without bulk database renumbering.
+- **Sidebar Tree Navigation (`NotesSidebar.tsx`)**:
+  - Collapsible tree view (`NotebookSelector.tsx`, `ChapterTreeItem.tsx`, `PageTreeItem.tsx`) with customizable Lucide icons via `IconPicker.tsx`.
+  - Supports quick-add actions (+ Chapter, + Page), active page indicators, all-pages view toggle, and chapter-level asset drawer access.
+  - Sidebar footer houses the trash lifecycle modal trigger, dark/light theme toggle, and desktop collapse controls.
+- **Editorial Header (`NotesHeader.tsx`)**:
+  - Path breadcrumbs with chapter dropdown navigation.
+  - Quick action cluster: Move page modal (`MovePageModal.tsx`), chapter asset repository dock (`ChapterFileDock.tsx`), page attachments drawer (`AttachmentsDrawer.tsx`), global search trigger (`Cmd+K`), and page lifecycle actions (archive, pin, export).
+- **Block-Based Document Editor (`BlockEditor.tsx`)**:
+  - Modular, extensible block-based document editor supporting:
+    - `text`: Rich text with inline formatting (bold, italic, underline, strikethrough, inline code, highlights, links, and inline math).
+    - `heading_1`, `heading_2`, `heading_3`: Structured section headings with automatic anchors.
+    - `bullet_list`, `numbered_list`, `todo_list`: Interactive checkbox lists and nested ordered/unordered items.
+    - `code`: Multi-language code blocks with copy-to-clipboard actions and syntax highlighting.
+    - `callout`: Highlighted informational boxes with customizable status icons and themes.
+    - `divider`: Subtle hairline horizontal rules.
+    - `image` & `bookmark`: Responsive image embedding and rich web URL link metadata previews.
+    - `table`: Full editable inline tables with row/column additions and header row toggles.
+    - `page_link`: Inline references to other documentation pages with direct navigation.
+    - `file`: Chapter and page-level downloadable file attachment blocks.
+- **Command Palette & Formatting**:
+  - **Slash Command Menu (`SlashCommandMenu.tsx`)**: Filterable keyboard-navigable command menu opened by typing `/` on an empty line to insert any block type or launch the diagram studio.
+  - **Selection Formatting Toolbar (`BlockFormattingToolbar.tsx`)**: Floating contextual toolbar appearing on text selection for instant inline styling (bold, italic, code, underline, strikethrough, color highlights, link popover).
+- **Eraser-Grade Hand-Crafted Diagram Studio (`DiagramModal.tsx`, `components/notes/diagrams/canvas-studio/`)**:
+  - Infinite interactive architectural and workflow canvas with pan/zoom (0.1x to 8x), dot/line grid modes, smart alignment guides (`calculateSmartGuides`), and minimap overview.
+  - Rich geometric shape primitives (rectangles, rounded cards, diamonds, cylinders, stickies, pills, callouts, frames, tables, sequence steps) alongside architecture brand icons (`simple-icons` + Lucide).
+  - Smart arrow connectors with automatic orthogonal and curved routing, anchor point snapping, and `QuickAddPopover` for rapid flow charting.
+- **Search & Asset Drawers**:
+  - **Search Modal (`SearchModal.tsx`)**: Global full-text and title search modal across notebooks, chapters, pages, and block content with keyboard navigation (`Cmd+K` / `Ctrl+K`).
+  - **Trash Modal (`TrashModal.tsx`)**: Soft-deletion lifecycle: archive, restore, and permanent deletion of pages and chapters.
+  - **Chapter File Dock & Attachments Drawer (`ChapterFileDock.tsx`, `AttachmentsDrawer.tsx`)**: Centralized lateral slide-out drawers managing chapter-level assets and page attachments.
 
 ### Avatar & Graphic Logo Guidelines (`apps/web/components/ui/avatar-logo/`)
 
@@ -123,14 +178,30 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 
 ## 5. State Management & Hooks
 
+> [!IMPORTANT]
+> **STRICT ZUSTAND STORE LOCATION RULE (ZERO EXCEPTIONS)**:
+> **EVERY Zustand store in `apps/web` MUST be located directly inside `apps/web/store/` without exception.**
+>
+> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, and `diagramStudioStore.ts`.
+> - **ABSOLUTELY NO STORES OUTSIDE `apps/web/store/`**: Feature directories and component folders (e.g. `components/notes/`, `components/notes/diagrams/canvas-studio/`, etc.) must **NEVER** contain store files. All state stores must live strictly in `apps/web/store/`.
+> - **Index Export**: Every store must be exported from `apps/web/store/index.ts` and imported across the app via `@/store/<storeName>` or `@/store`.
+> - **Naming Standard**: All stores follow the `<feature>Store.ts` file naming convention with corresponding `use<Feature>Store` hook export.
+
 - **UI Store (`apps/web/store/uiStore.ts`)**:
-  - Use `useInitUIStore()` in top-level pages (`app/page.tsx`) to bind viewport change listeners and theme synchronization.
-  - Access `darkMode`, `isMobile`, `sidebarOpen`, `sidebarCollapsed`, and `toggleTheme` via `useUIStore`.
+  - Use `useInitUIStore()` in top-level pages and workspace roots (`app/page.tsx`, `NotesWorkspace.tsx`, `AuthLayout.tsx`) to bind viewport change listeners and theme synchronization.
+  - Access `darkMode`, `isMobile`, `sidebarOpen`, `sidebarCollapsed`, and `toggleTheme` via `useUIStore`. Every page must provide an accessible theme toggle using `ThemeToggle`.
 - **Agent Store (`apps/web/store/agentStore.ts`) & Streaming (`apps/web/hook/agent/useAgent.ts`)**:
   - `appendAssistantChunk(chunk)` appends in-flight token chunks received over WebSocket `"stream"` event.
   - `appendAssistantMessage(content)` synchronizes the final completion message on `"done"`.
   - `attachedFiles`: Tracks in-flight and uploaded attachments (`id`, `name`, `url`, `size`, `status`).
   - In `useAgent`, conversation IDs are pre-bound so the socket room is joined prior to mutation dispatch, preventing initial token drop. `send(message, fileUrls)` dispatches message and attachment URLs to `trpc.agent.runChatAgent`.
+- **Notes Store (`apps/web/store/notesStore.ts`)**:
+  - `useNotesStore` manages the complete notes workspace hierarchy: notebooks, chapters, pages, blocks, attachments, and visual diagrams.
+  - Manages fractional index ordering (`sortByPosition`, `generatePositionBetween`), active views (`"page"` | `"all-pages"`), full-text search scope, trash lifecycle (archive/restore/delete permanently), and chapter file dock modals.
+  - Persists state with Zustand `persist` middleware and must always be imported via `@/store/notesStore` (or `@/store`), never from component folders.
+- **Diagram Studio Store (`apps/web/store/diagramStudioStore.ts`)**:
+  - `useDiagramStudioStore` manages canvas state for the Eraser-grade diagram canvas: element tree, multi-element selection, pan (`panX`, `panY`), zoom, grid modes (`dots`, `lines`), smart guide alignment calculations (`calculateSmartGuides`), anchor snap targets, and connector routing.
+  - Located strictly in `apps/web/store/diagramStudioStore.ts` and exported via `@/store/diagramStudioStore` and `@/store/index.ts`.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
   - Uploaded Cloudinary URLs are passed alongside user queries to trigger background document ingestion and RAG routing.
@@ -156,6 +227,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 
 - **Strict Mode**: Ensure zero compile errors with `pnpm --filter web exec tsc --noEmit`.
 - **Path Aliases**: Always use `@/...` to import local files from `apps/web/` (e.g. `@/components/chat`, `@/store/uiStore`).
+- **Store Architecture**: All Zustand stores must be located strictly in `apps/web/store/` (`uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`). Feature and component directories must never contain any store files or store subfolders under any circumstances.
 - **Client Components**: Any file using React hooks (`useState`, `useEffect`, `useRef`), event handlers, or browser APIs must have `"use client";` as the very first line.
 - **Component Granularity**: Break complex UI views into small, focused sub-components rather than writing large, monolithic single-file components.
 - **Linting**: Keep code clean, free of unused imports, and avoid inline styles where design system variables/classes exist.
