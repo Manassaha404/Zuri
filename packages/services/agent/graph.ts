@@ -25,7 +25,7 @@ import {
   afterRisk,
   checkIfFullFileContextNeeded,
   summarizeAllDocs,
-  afterRetrieve
+  afterRetrieve,
 } from "./nodes";
 import { checkPointer, store } from "./pg-for-agent";
 
@@ -42,7 +42,10 @@ const graph = new StateGraph(RagState)
   .addEdge(START, "step-back-query")
   .addEdge("step-back-query", "check-full-file-context")
   .addEdge("check-full-file-context", "retrieve")
-  .addConditionalEdges("retrieve", afterRetrieve, ["evaluator", "summarize-all-docs"])
+  .addConditionalEdges("retrieve", afterRetrieve, [
+    "evaluator",
+    "summarize-all-docs",
+  ])
   .addEdge("summarize-all-docs", "generate")
   .addConditionalEdges("evaluator", afterEvaluator)
   .addEdge("web-search", "refine")

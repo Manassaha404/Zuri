@@ -1,7 +1,15 @@
 import { ConditionalEdgeRouter, GraphNode } from "@langchain/langgraph";
 import { Document } from "@langchain/core/documents";
 import { RagState } from "../state";
-import { model, nanoModel, evaluatorLLMSchema, tvly, refineLLMSchema, checkFullFileContextJudge, docSummeryLLM } from "../model";
+import {
+  model,
+  nanoModel,
+  evaluatorLLMSchema,
+  tvly,
+  refineLLMSchema,
+  checkFullFileContextJudge,
+  docSummeryLLM,
+} from "../model";
 import { vectorStore } from "../vectorStore";
 
 export const stepBackQuery: GraphNode<typeof RagState> = async (state) => {
@@ -101,7 +109,10 @@ Return only the brief summary.`;
             metadata: doc.metadata,
           });
         } catch (err) {
-          console.error(`[summarizeAllDocs] error summarizing doc ${idx}:`, err);
+          console.error(
+            `[summarizeAllDocs] error summarizing doc ${idx}:`,
+            err,
+          );
           results[idx] = doc;
         }
       }
