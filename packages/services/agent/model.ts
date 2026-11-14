@@ -6,6 +6,10 @@ export const model = new ChatOpenAI({
   model: env.OPENAI_MAIN_MODEL,
 });
 
+export const nanoModel = new ChatOpenAI({
+  model: "gpt-5-nano",
+});
+
 export const embeddings = new OpenAIEmbeddings({
   model: "text-embedding-3-large",
 });
@@ -48,8 +52,7 @@ const MemoryOps = z.object({
   ),
 });
 export const extractor = new ChatOpenAI({
-  model: "gpt-4o-mini",
-  temperature: 0,
+  model: "gpt-5-nano",
 }).withStructuredOutput(MemoryOps);
 
 export const evaluatorLLMSchema = z.object({
@@ -67,7 +70,7 @@ export const refineLLMSchema = z.object({
     ),
 });
 
-// router model decide which toolkits needed and what to search in tool catalog
+// Router model decides which toolkits are needed and query for tool catalog
 const ToolkitRoute = z.object({
   toolkits: z
     .array(z.string())
@@ -79,8 +82,7 @@ const ToolkitRoute = z.object({
     ),
 });
 export const router = new ChatOpenAI({
-  model: "gpt-4o-mini",
-  temperature: 0,
+  model: "gpt-5-nano",
 }).withStructuredOutput(ToolkitRoute);
 
 const RiskSchema = z.object({
@@ -90,7 +92,7 @@ const RiskSchema = z.object({
     .string()
     .describe("One short sentence a human can read in an approval prompt"),
 });
-// separate small model from the main agent
+// Stronger model for complex risk approval decisions
 export const riskJudge = new ChatOpenAI({
   model: "gpt-4o-mini",
   temperature: 0,
@@ -104,8 +106,29 @@ const RagJudgeSchema = z.object({
     ),
 });
 export const ragJudge = new ChatOpenAI({
-  model: "gpt-4o-mini",
-  temperature: 0,
+  model: "gpt-5-nano",
 }).withStructuredOutput(RagJudgeSchema);
+
+const checkFullFileContextSchema = z.object({
+  isFullFileContextNeeded: z
+    .boolean()
+    .describe(
+      "True if answering the user's message requires retrieving context from the full content of uploaded files. False if only specific sections or summaries are needed.",
+    ),
+});
+export const checkFullFileContextJudge = new ChatOpenAI({
+  model: "gpt-5-nano",
+}).withStructuredOutput(checkFullFileContextSchema);
+
+const docSummerySchema = z.object({
+  summery: z
+    .string()
+    .describe(
+      "A concise summary of the document's content, highlighting key points and relevant information.",
+    ),
+});
+export const docSummeryLLM = new ChatOpenAI({
+  model: "gpt-5-nano",
+}).withStructuredOutput(docSummerySchema);
 
 export default model;

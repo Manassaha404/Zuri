@@ -32,6 +32,7 @@ export const RagState = new StateSchema({
     .describe("The refined user question")
     .nullable()
     .default(null),
+  isFullFileContextNeeded: z.boolean().default(false),
   docs: new ReducedValue(z.array(z.instanceof(Document)).default([]), {
     reducer: (existing, update) => existing.concat(update),
   }),
