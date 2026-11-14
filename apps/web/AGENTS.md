@@ -2,6 +2,11 @@
 
 This document defines the architectural patterns, code style, UI standards, and design system rules for AI coding agents working inside `apps/web`.
 
+> [!IMPORTANT]
+> **PROHIBITION OF THIRD-PARTY BRAND NAMES (ZERO EXCEPTIONS)**:
+> **Agents must NEVER use other third-party brand names (such as Notion, Eraser, Cal, Cal.com, Craft, etc.) anywhere in this project — including code, comments, documentation, UI strings, placeholders, file names, or variable identifiers.**
+> Always use clean, generic, product-native terminology (e.g. "hierarchical block editor", "hand-crafted diagram studio", "canvas", "workspace").
+
 ---
 
 ## 1. Project Overview & Tech Stack
@@ -21,9 +26,9 @@ This document defines the architectural patterns, code style, UI standards, and 
 
 ---
 
-## 2. Design System & CSS Variables (Cal.com Standard)
+## 2. Design System & CSS Variables
 
-All colors and core surfaces are driven by CSS variables in `apps/web/app/globals.css`, following Cal.com's clean, high-contrast, editorial design standard:
+All colors and core surfaces are driven by CSS variables in `apps/web/app/globals.css`, following a clean, high-contrast, editorial design standard:
 
 | Token            | Light Theme (`.L`, `[data-theme="light"]`) | Dark / Black Theme (`.D`, `.dark`, `[data-theme="dark"]`) | Description                             |
 | ---------------- | ------------------------------------------ | --------------------------------------------------------- | --------------------------------------- |
@@ -50,7 +55,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 >   - **Standalone Layouts**: Top-right corner of viewport (e.g. `AuthLayout.tsx`).
 >   - **Full-Screen Modals & Studios**: Top-right action headers (e.g. `DiagramModal.tsx`).
 
-### Cal.com Geometry & Component Primitives
+### Geometry & Component Primitives
 
 - **Radii**:
   - Cards & Modals: `12px` to `16px` (`rounded-xl` / `rounded-2xl`).
@@ -127,7 +132,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 ### Notes & Documentation Workspace (`apps/web/components/notes/`)
 
 - **Information Architecture**:
-  - Full Notion/Craft-style hierarchical workspace: Notebooks -> Chapters -> Pages -> Blocks.
+  - Full hierarchical workspace: Notebooks -> Chapters -> Pages -> Blocks.
   - Fractional indexing (`fractional-index.ts` with `sortByPosition` and `generatePositionBetween`) ensures $O(1)$ reordering, drag-and-drop operations, and inter-chapter page transfers without bulk database renumbering.
 - **Sidebar Tree Navigation (`NotesSidebar.tsx`)**:
   - Collapsible tree view (`NotebookSelector.tsx`, `ChapterTreeItem.tsx`, `PageTreeItem.tsx`) with customizable Lucide icons via `IconPicker.tsx`.
@@ -144,21 +149,21 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
     - `code`: Multi-language code blocks with copy-to-clipboard actions and syntax highlighting.
     - `callout`: Highlighted informational boxes with customizable status icons and themes.
     - `divider`: Subtle hairline horizontal rules.
-    - `image` & `bookmark`: Responsive image embedding and rich web URL link metadata previews.
+    - `image` & `bookmark`: Responsive image embedding and rich web URL link metadata previews with OpenGraph title/description/favicon fetching and in-place URL and metadata editing.
     - `table`: Full editable inline tables with row/column additions and header row toggles.
-    - `page_link`: Inline references to other documentation pages with direct navigation.
+    - `page_link`: Internal documentation page reference cards featuring chapter-wise page selection, custom display title, editable caption note, and direct page navigation.
     - `file`: Chapter and page-level downloadable file attachment blocks.
 - **Command Palette & Formatting**:
   - **Slash Command Menu (`SlashCommandMenu.tsx`)**: Filterable keyboard-navigable command menu opened by typing `/` on an empty line to insert any block type or launch the diagram studio.
   - **Selection Formatting Toolbar (`BlockFormattingToolbar.tsx`)**: Floating contextual toolbar appearing on text selection for instant inline styling (bold, italic, code, underline, strikethrough, color highlights, link popover).
-- **Eraser-Grade Hand-Crafted Diagram Studio (`DiagramModal.tsx`, `components/notes/diagrams/canvas-studio/`)**:
+- **Hand-Crafted Diagram Studio (`DiagramModal.tsx`, `components/notes/diagrams/canvas-studio/`)**:
   - Infinite interactive architectural and workflow canvas with pan/zoom (0.1x to 8x), dot/line grid modes, smart alignment guides (`calculateSmartGuides`), and minimap overview.
   - Rich geometric shape primitives (rectangles, rounded cards, diamonds, cylinders, stickies, pills, callouts, frames, tables, sequence steps) alongside architecture brand icons (`simple-icons` + Lucide).
   - Smart arrow connectors with automatic orthogonal and curved routing, anchor point snapping, and `QuickAddPopover` for rapid flow charting.
 - **Search & Asset Drawers**:
   - **Search Modal (`SearchModal.tsx`)**: Global full-text and title search modal across notebooks, chapters, pages, and block content with keyboard navigation (`Cmd+K` / `Ctrl+K`).
   - **Trash Modal (`TrashModal.tsx`)**: Soft-deletion lifecycle: archive, restore, and permanent deletion of pages and chapters.
-  - **Chapter File Dock & Attachments Drawer (`ChapterFileDock.tsx`, `AttachmentsDrawer.tsx`)**: Centralized lateral slide-out drawers managing chapter-level assets and page attachments.
+  - **Chapter File Dock & Attachments Drawer (`ChapterFileDock.tsx`, `AttachmentsDrawer.tsx`)**: Centralized lateral slide-out drawers managing chapter-level assets and page attachments, supporting drag-and-drop Cloudinary direct uploads, deduplication, opening files in a new tab, copy storage keys, and downloads.
 
 ### Avatar & Graphic Logo Guidelines (`apps/web/components/ui/avatar-logo/`)
 
@@ -195,12 +200,16 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - `appendAssistantMessage(content)` synchronizes the final completion message on `"done"`.
   - `attachedFiles`: Tracks in-flight and uploaded attachments (`id`, `name`, `url`, `size`, `status`).
   - In `useAgent`, conversation IDs are pre-bound so the socket room is joined prior to mutation dispatch, preventing initial token drop. `send(message, fileUrls)` dispatches message and attachment URLs to `trpc.agent.runChatAgent`.
-- **Notes Store (`apps/web/store/notesStore.ts`)**:
-  - `useNotesStore` manages the complete notes workspace hierarchy: notebooks, chapters, pages, blocks, attachments, and visual diagrams.
-  - Manages fractional index ordering (`sortByPosition`, `generatePositionBetween`), active views (`"page"` | `"all-pages"`), full-text search scope, trash lifecycle (archive/restore/delete permanently), and chapter file dock modals.
+- **Notes Store (`apps/web/store/notesStore.ts`) & Notes Hooks (`apps/web/hook/notes/`)**:
+  - `useNotesStore` manages the complete notes workspace hierarchy: notebooks, chapters, pages, blocks, attachments, and visual diagrams with zero mock data.
+  - Manages fractional index ordering (`sortByPosition`, `generatePositionBetween`), active views (`"page"` | `"all-pages"`), full-text search scope, trash lifecycle (archive/restore/delete permanently), save status (`"idle" | "unsaved" | "saving" | "saved" | "error"`), and chapter file dock modals.
+  - `useNotes`: Coordinates workspace loading via `trpc.notes.getWorkspace` (auto-seeding an initial notebook if empty) and provides typed mutation methods for notebooks, chapters, and pages.
+  - `useNoteAutosave`: Automatically queries blocks and diagrams for `activePageId`, detects local changes to title, summary, or blocks, and executes dual-stage batch autosave via `trpc.notes.autosavePage`: an **Idle Debounce** (1.5s, 1 to 2s window) that resets with keystrokes to prevent saving mid-word or overloading the backend, and a **Max-Wait Throttle** (6s, 5 to 10s window) that guarantees continuous non-stop typing is persisted without data loss, plus automatic flush on navigation or `beforeunload`. Client blocks are the authoritative in-flight state and are never overwritten on autosave success, preventing cursor reset or component reloads while typing.
+  - `useChapterFileDock`: Manages chapter file dock queries and Cloudinary file uploads integrated into database `file_dock_files`. Creates `file_docks` records on demand only when a user uploads a file using the chapter's name and links it to `chapters.fileDockId` without creating folder scaffolding. Provides `getPreviewType` and `openFileInNewTab` helpers to support in-website modal previews for images, videos, and PDFs, and tab-links for other asset types without exposing internal infrastructure storage keys.
+  - `useNotesSearch`: Powers fast GIN/trigram full-text search across titles and block contents via `trpc.notes.searchNotes` and trash management via `trpc.notes.getTrash`.
   - Persists state with Zustand `persist` middleware and must always be imported via `@/store/notesStore` (or `@/store`), never from component folders.
 - **Diagram Studio Store (`apps/web/store/diagramStudioStore.ts`)**:
-  - `useDiagramStudioStore` manages canvas state for the Eraser-grade diagram canvas: element tree, multi-element selection, pan (`panX`, `panY`), zoom, grid modes (`dots`, `lines`), smart guide alignment calculations (`calculateSmartGuides`), anchor snap targets, and connector routing.
+  - `useDiagramStudioStore` manages canvas state for the diagram canvas: element tree, multi-element selection, pan (`panX`, `panY`), zoom, grid modes (`dots`, `lines`), smart guide alignment calculations (`calculateSmartGuides`), anchor snap targets, and connector routing.
   - Located strictly in `apps/web/store/diagramStudioStore.ts` and exported via `@/store/diagramStudioStore` and `@/store/index.ts`.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.

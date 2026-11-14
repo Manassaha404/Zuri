@@ -1,4 +1,4 @@
-// Comprehensive type definitions for Eraser-grade visual flowchart and diagram studio
+// Comprehensive type definitions for visual flowchart and diagram studio
 
 export type AnchorSide =
   | "top"

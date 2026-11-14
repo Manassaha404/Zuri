@@ -3,6 +3,7 @@
 // Primary workspace shell uniting Sidebar, Header, Editor, Diagrams, Search & Chapter File Dock
 import { useNotesStore } from "@/store/notesStore";
 import { useInitUIStore } from "@/store/uiStore";
+import { useNotes, useNoteAutosave } from "@/hook/notes";
 import { NotesSidebar } from "./sidebar/NotesSidebar";
 import { NotesHeader } from "./header/NotesHeader";
 import { BlockEditor } from "./editor/BlockEditor";
@@ -13,6 +14,9 @@ import { SearchModal } from "./search/SearchModal";
 
 export function NotesWorkspace() {
   useInitUIStore();
+  useNotes();
+  useNoteAutosave();
+
   const { activeView } = useNotesStore();
 
   return (

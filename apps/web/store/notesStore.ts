@@ -13,18 +13,21 @@ import {
   BlockType,
 } from "@/components/notes/types";
 import {
-  MOCK_NOTEBOOKS,
-  MOCK_CHAPTERS,
-  MOCK_PAGES,
-  MOCK_BLOCKS,
-  MOCK_ATTACHMENTS,
-  MOCK_DIAGRAMS,
-  MOCK_PAGE_LINKS,
-} from "@/components/notes/mock-data";
-import {
   generatePositionBetween,
   sortByPosition,
 } from "@/components/notes/utils/fractional-index";
+
+const generateUuid = (): string => {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+    (+c ^ ((Math.random() * 16) >> (+c / 4))).toString(16),
+  );
+};
 
 export interface NotesState {
   notebooks: Notebook[];
@@ -39,6 +42,24 @@ export interface NotesState {
   activeChapterId: string | null;
   activePageId: string | null;
   activeView: "page" | "all-pages";
+
+  // Autosave & Server Sync
+  saveStatus: "idle" | "unsaved" | "saving" | "saved" | "error";
+  lastSavedAt: string | null;
+  hasUnsavedChanges: boolean;
+  setSaveStatus: (
+    status: "idle" | "unsaved" | "saving" | "saved" | "error",
+    lastSavedAt?: string,
+  ) => void;
+  setHasUnsavedChanges: (val: boolean) => void;
+  setWorkspaceData: (data: {
+    notebooks: Notebook[];
+    chapters: Chapter[];
+    pages: Page[];
+  }) => void;
+  setPageBlocks: (pageId: string, blocks: Block[]) => void;
+  setPageDiagram: (diagram: Diagram | null) => void;
+  clearWorkspace: () => void;
 
   // Modals & Drawers
   isSearchOpen: boolean;
@@ -147,18 +168,22 @@ export interface NotesState {
 export const useNotesStore = create<NotesState>()(
   persist(
     (set, get) => ({
-      notebooks: MOCK_NOTEBOOKS,
-      chapters: MOCK_CHAPTERS,
-      pages: MOCK_PAGES,
-      blocks: MOCK_BLOCKS,
-      attachments: MOCK_ATTACHMENTS,
-      diagrams: MOCK_DIAGRAMS,
-      pageLinks: MOCK_PAGE_LINKS,
+      notebooks: [],
+      chapters: [],
+      pages: [],
+      blocks: [],
+      attachments: [],
+      diagrams: [],
+      pageLinks: [],
 
-      activeNotebookId: "nb-eng-001",
-      activeChapterId: "ch-db-02",
-      activePageId: "pg-notes-db-design",
+      activeNotebookId: "",
+      activeChapterId: null,
+      activePageId: null,
       activeView: "page",
+
+      saveStatus: "idle",
+      lastSavedAt: null,
+      hasUnsavedChanges: false,
 
       isSearchOpen: false,
       searchNotebookScope: null,
@@ -175,6 +200,103 @@ export const useNotesStore = create<NotesState>()(
       isDiagramModalOpen: false,
       activeDiagramId: null,
       focusedBlockId: null,
+
+      setSaveStatus: (status, lastSavedAt) =>
+        set((state) => ({
+          saveStatus: status,
+          lastSavedAt:
+            lastSavedAt !== undefined ? lastSavedAt : state.lastSavedAt,
+        })),
+
+      setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
+
+      setWorkspaceData: (data) => {
+        const current = get();
+        const nextNotebooks = data.notebooks || [];
+        const nextChapters = data.chapters || [];
+        const nextPages = data.pages || [];
+
+        let nextActiveNotebookId = current.activeNotebookId;
+        if (
+          !nextActiveNotebookId ||
+          !nextNotebooks.some((n) => n.notebookId === nextActiveNotebookId)
+        ) {
+          nextActiveNotebookId = nextNotebooks[0]?.notebookId || "";
+        }
+
+        let nextActiveChapterId = current.activeChapterId;
+        const validChapters = nextChapters.filter(
+          (c) => c.notebookId === nextActiveNotebookId && !c.isArchived,
+        );
+        if (
+          !nextActiveChapterId ||
+          !validChapters.some((c) => c.chapterId === nextActiveChapterId)
+        ) {
+          nextActiveChapterId = validChapters[0]?.chapterId || null;
+        }
+
+        let nextActivePageId = current.activePageId;
+        const validPages = nextPages.filter(
+          (p) =>
+            (!nextActiveChapterId || p.chapterId === nextActiveChapterId) &&
+            !p.isArchived,
+        );
+        if (
+          !nextActivePageId ||
+          !nextPages.some((p) => p.pageId === nextActivePageId)
+        ) {
+          nextActivePageId =
+            validPages[0]?.pageId || nextPages[0]?.pageId || null;
+        }
+
+        set({
+          notebooks: nextNotebooks,
+          chapters: nextChapters,
+          pages: nextPages,
+          activeNotebookId: nextActiveNotebookId,
+          activeChapterId: nextActiveChapterId,
+          activePageId: nextActivePageId,
+        });
+      },
+
+      setPageBlocks: (pageId, serverBlocks) => {
+        set((state) => {
+          const otherBlocks = state.blocks.filter((b) => b.pageId !== pageId);
+          return {
+            blocks: [...otherBlocks, ...serverBlocks],
+            hasUnsavedChanges: false,
+            saveStatus: "saved",
+          };
+        });
+      },
+
+      setPageDiagram: (diagram) => {
+        if (!diagram) return;
+        set((state) => {
+          const otherDiagrams = state.diagrams.filter(
+            (d) => d.pageId !== diagram.pageId,
+          );
+          return {
+            diagrams: [...otherDiagrams, diagram],
+          };
+        });
+      },
+
+      clearWorkspace: () =>
+        set({
+          notebooks: [],
+          chapters: [],
+          pages: [],
+          blocks: [],
+          attachments: [],
+          diagrams: [],
+          pageLinks: [],
+          activeNotebookId: "",
+          activeChapterId: null,
+          activePageId: null,
+          saveStatus: "idle",
+          hasUnsavedChanges: false,
+        }),
 
       setFocusedBlockId: (blockId) => set({ focusedBlockId: blockId }),
 
@@ -241,12 +363,11 @@ export const useNotesStore = create<NotesState>()(
         const newPos = generatePositionBetween(lastPos, null);
 
         const newNb: Notebook = {
-          notebookId: `nb-${Date.now()}`,
+          notebookId: data.notebookId || generateUuid(),
           userId: "usr-001",
           title: data.title || "Untitled Notebook",
           icon: data.icon || "BookOpen",
           color: data.color || "#3b82f6",
-          coverAttachmentId: data.coverAttachmentId || null,
           coverUrl: data.coverUrl,
           position: newPos,
           isArchived: false,
@@ -358,7 +479,7 @@ export const useNotesStore = create<NotesState>()(
         const newPos = generatePositionBetween(lastPos, null);
 
         const newCh: Chapter = {
-          chapterId: `ch-${Date.now()}`,
+          chapterId: data.chapterId || generateUuid(),
           notebookId: data.notebookId || activeNotebookId,
           title: data.title || "Untitled Chapter",
           icon: data.icon || "Folder",
@@ -476,7 +597,7 @@ export const useNotesStore = create<NotesState>()(
           : null;
         const newPos = generatePositionBetween(lastPos, null);
 
-        const pageId = `pg-${Date.now()}`;
+        const pageId = generateUuid();
         const newPage: Page = {
           pageId,
           chapterId,
@@ -493,7 +614,7 @@ export const useNotesStore = create<NotesState>()(
 
         // Create an initial paragraph block
         const initialBlock: Block = {
-          blockId: `blk-${Date.now()}`,
+          blockId: generateUuid(),
           pageId,
           parentBlockId: null,
           type: "paragraph",
@@ -521,6 +642,8 @@ export const useNotesStore = create<NotesState>()(
 
       updatePageTitle: (pageId, title) => {
         set((state) => ({
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
           pages: state.pages.map((p) =>
             p.pageId === pageId
               ? {
@@ -536,6 +659,8 @@ export const useNotesStore = create<NotesState>()(
 
       updatePageSummary: (pageId, summary) => {
         set((state) => ({
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
           pages: state.pages.map((p) =>
             p.pageId === pageId
               ? {
@@ -578,23 +703,73 @@ export const useNotesStore = create<NotesState>()(
 
       archivePage: (pageId) => {
         const now = new Date().toISOString();
-        set((state) => ({
-          pages: state.pages.map((p) =>
+        set((state) => {
+          const nextPages = state.pages.map((p) =>
             p.pageId === pageId
               ? { ...p, isArchived: true, archivedAt: now }
               : p,
-          ),
-        }));
+          );
+          let nextActivePageId = state.activePageId;
+          let nextActiveChapterId = state.activeChapterId;
+          let nextActiveNotebookId = state.activeNotebookId;
+
+          if (state.activePageId === pageId) {
+            const validPagesInChapter = nextPages.filter(
+              (p) =>
+                (!state.activeChapterId ||
+                  p.chapterId === state.activeChapterId) &&
+                !p.isArchived,
+            );
+            const anyValidPage = nextPages.find((p) => !p.isArchived);
+            const chosen = validPagesInChapter[0] || anyValidPage || null;
+            nextActivePageId = chosen?.pageId || null;
+            if (chosen) {
+              nextActiveChapterId = chosen.chapterId;
+              nextActiveNotebookId = chosen.notebookId;
+            }
+
+            if (typeof window !== "undefined") {
+              if (nextActivePageId) {
+                window.history.pushState({}, "", `/notes/${nextActivePageId}`);
+              } else {
+                window.history.pushState({}, "", "/notes");
+              }
+            }
+          }
+
+          return {
+            pages: nextPages,
+            activePageId: nextActivePageId,
+            activeChapterId: nextActiveChapterId,
+            activeNotebookId: nextActiveNotebookId,
+            hasUnsavedChanges: false,
+          };
+        });
       },
 
       restorePage: (pageId) => {
-        set((state) => ({
-          pages: state.pages.map((p) =>
-            p.pageId === pageId
-              ? { ...p, isArchived: false, archivedAt: null }
-              : p,
-          ),
-        }));
+        set((state) => {
+          const pageExists = state.pages.some((p) => p.pageId === pageId);
+          const nextPages = pageExists
+            ? state.pages.map((p) =>
+                p.pageId === pageId
+                  ? { ...p, isArchived: false, archivedAt: null }
+                  : p,
+              )
+            : state.pages;
+
+          const restored = nextPages.find((p) => p.pageId === pageId);
+          if (typeof window !== "undefined") {
+            window.history.pushState({}, "", `/notes/${pageId}`);
+          }
+
+          return {
+            pages: nextPages,
+            activePageId: pageId,
+            activeChapterId: restored?.chapterId || state.activeChapterId,
+            activeNotebookId: restored?.notebookId || state.activeNotebookId,
+          };
+        });
       },
 
       deletePagePermanently: (pageId) => {
@@ -614,8 +789,25 @@ export const useNotesStore = create<NotesState>()(
             (l) => l.sourcePageId !== pageId && l.targetPageId !== pageId,
           );
 
-          const nextActivePage =
-            remainingPages.find((p) => !p.isArchived)?.pageId || null;
+          let nextActivePage = state.activePageId;
+          let nextActiveChapterId = state.activeChapterId;
+          let nextActiveNotebookId = state.activeNotebookId;
+
+          if (state.activePageId === pageId) {
+            const nextP = remainingPages.find((p) => !p.isArchived);
+            nextActivePage = nextP?.pageId || null;
+            if (nextP) {
+              nextActiveChapterId = nextP.chapterId;
+              nextActiveNotebookId = nextP.notebookId;
+            }
+            if (typeof window !== "undefined") {
+              if (nextActivePage) {
+                window.history.pushState({}, "", `/notes/${nextActivePage}`);
+              } else {
+                window.history.pushState({}, "", "/notes");
+              }
+            }
+          }
 
           return {
             pages: remainingPages,
@@ -624,6 +816,8 @@ export const useNotesStore = create<NotesState>()(
             diagrams: remainingDiagrams,
             pageLinks: remainingLinks,
             activePageId: nextActivePage,
+            activeChapterId: nextActiveChapterId,
+            activeNotebookId: nextActiveNotebookId,
           };
         });
       },
@@ -666,7 +860,7 @@ export const useNotesStore = create<NotesState>()(
           );
         }
 
-        const blockId = `blk-${Date.now()}`;
+        const blockId = generateUuid();
         let content: BlockContent;
 
         switch (type) {
@@ -709,7 +903,7 @@ export const useNotesStore = create<NotesState>()(
           case "image":
             content = {
               type: "image",
-              attachmentId: "att-img-arch-01",
+              cloudinaryUrl: "",
               caption: "",
             };
             break;
@@ -723,17 +917,17 @@ export const useNotesStore = create<NotesState>()(
           case "bookmark":
             content = {
               type: "bookmark",
-              url: "https://orm.drizzle.team",
-              title: "Drizzle ORM Documentation",
-              description:
-                "TypeScript ORM with type safety and schema migrations.",
+              url: "",
+              title: "",
+              description: "",
+              favicon: "",
             };
             break;
           case "diagram":
             content = { type: "diagram", diagramId: "diag-mer-01" };
             break;
           case "page_link":
-            content = { type: "page_link", pageId: "" };
+            content = { type: "page_link", pageId: "", title: "", caption: "" };
             break;
           case "table":
             content = {
@@ -763,7 +957,12 @@ export const useNotesStore = create<NotesState>()(
           updatedAt: new Date().toISOString(),
         };
 
-        set({ blocks: [...blocks, newBlock], focusedBlockId: blockId });
+        set({
+          blocks: [...blocks, newBlock],
+          focusedBlockId: blockId,
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
+        });
         return blockId;
       },
 
@@ -811,10 +1010,16 @@ export const useNotesStore = create<NotesState>()(
         } else if (content.type === "code") {
           plainText = content.code;
         } else if (content.type === "bookmark") {
-          plainText = `${content.title || ""} ${content.url}`;
+          plainText = `${content.title || ""} ${content.description || ""} ${content.url}`;
+        } else if (content.type === "page_link") {
+          plainText = `${content.title || ""} ${content.caption || ""}`;
+        } else if (content.type === "image") {
+          plainText = content.caption ? `Image: ${content.caption}` : "Image";
         }
 
         set((state) => ({
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
           blocks: state.blocks.map((b) =>
             b.blockId === blockId
               ? {
@@ -831,6 +1036,8 @@ export const useNotesStore = create<NotesState>()(
       deleteBlock: (blockId) => {
         // When deleting block, attachment's blockId is set to null (survives block delete)
         set((state) => ({
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
           blocks: state.blocks.filter(
             (b) => b.blockId !== blockId && b.parentBlockId !== blockId,
           ),
@@ -842,6 +1049,8 @@ export const useNotesStore = create<NotesState>()(
 
       reorderBlock: (blockId, newPosition) => {
         set((state) => ({
+          hasUnsavedChanges: true,
+          saveStatus: "unsaved",
           blocks: state.blocks.map((b) =>
             b.blockId === blockId
               ? {
@@ -937,13 +1146,31 @@ export const useNotesStore = create<NotesState>()(
               case "divider":
                 content = { type: "divider" };
                 break;
-              case "bookmark":
+              case "bookmark": {
+                const trimmed = b.plainText ? b.plainText.trim() : "";
+                const isUrl = /^https?:\/\//i.test(trimmed);
                 content = {
                   type: "bookmark",
-                  url: "https://orm.drizzle.team",
-                  title: "Drizzle ORM Documentation",
-                  description:
-                    "TypeScript ORM with type safety and schema migrations.",
+                  url: isUrl ? trimmed : "",
+                  title: "",
+                  description: "",
+                  favicon: "",
+                };
+                break;
+              }
+              case "page_link":
+                content = {
+                  type: "page_link",
+                  pageId: "",
+                  title: "",
+                  caption: "",
+                };
+                break;
+              case "image":
+                content = {
+                  type: "image",
+                  cloudinaryUrl: "",
+                  caption: b.plainText.replace(/^\//, "") || "",
                 };
                 break;
               case "table":
@@ -1019,7 +1246,7 @@ export const useNotesStore = create<NotesState>()(
       createDiagram: (pageId, data) => {
         const { diagrams } = get();
         const newDiag: Diagram = {
-          diagramId: `diag-${Date.now()}`,
+          diagramId: data.diagramId || generateUuid(),
           pageId,
           title: data.title || "Untitled Diagram",
           kind: data.kind || "canvas",
@@ -1100,31 +1327,13 @@ export const useNotesStore = create<NotesState>()(
         set({ isDiagramModalOpen: false, activeDiagramId: null }),
 
       resetToDefaultData: () => {
-        set({
-          notebooks: MOCK_NOTEBOOKS,
-          chapters: MOCK_CHAPTERS,
-          pages: MOCK_PAGES,
-          blocks: MOCK_BLOCKS,
-          attachments: MOCK_ATTACHMENTS,
-          diagrams: MOCK_DIAGRAMS,
-          pageLinks: MOCK_PAGE_LINKS,
-          activeNotebookId: "nb-eng-001",
-          activeChapterId: "ch-db-02",
-          activePageId: "pg-notes-db-design",
-          activeView: "page",
-        });
+        get().clearWorkspace();
       },
     }),
     {
       name: "zuri_notes_store",
+      version: 2,
       partialize: (state) => ({
-        notebooks: state.notebooks,
-        chapters: state.chapters,
-        pages: state.pages,
-        blocks: state.blocks,
-        attachments: state.attachments,
-        diagrams: state.diagrams,
-        pageLinks: state.pageLinks,
         activeNotebookId: state.activeNotebookId,
         activeChapterId: state.activeChapterId,
         activePageId: state.activePageId,

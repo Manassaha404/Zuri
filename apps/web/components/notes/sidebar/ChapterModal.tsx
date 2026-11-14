@@ -3,6 +3,7 @@
 // Modal for creating and editing chapters with icon and color
 import { useState, useEffect } from "react";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { X } from "lucide-react";
 import { IconPicker } from "./IconPicker";
 
@@ -21,9 +22,9 @@ export function ChapterModal() {
     editingChapter,
     activeNotebookId,
     closeChapterModal,
-    createChapter,
-    updateChapter,
   } = useNotesStore();
+
+  const { createChapter, updateChapter } = useNotes();
 
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("Folder");

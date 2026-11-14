@@ -1,0 +1,1 @@
+ALTER TABLE "notebooks" DROP COLUMN "cover_attachment_id";

@@ -280,7 +280,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search connectors (e.g. Gmail, GitHub, Notion, Slack)..."
+              placeholder="Search connectors (e.g. Gmail, GitHub, Slack)..."
               className="w-full pl-9 pr-9 h-10 text-xs sm:text-sm rounded-lg border border-[var(--h)] bg-[var(--bg)] text-[var(--i)] placeholder:text-[var(--m)] focus:outline-hidden focus:border-[var(--i)] focus:ring-2 focus:ring-neutral-900/5 dark:focus:ring-white/10 transition-all"
             />
             {searchInput && (
@@ -295,7 +295,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
             )}
           </div>
 
-          {/* Cal.com Segmented Category Filter Pills */}
+          {/* Segmented Category Filter Pills */}
           <div className="w-full min-w-0 max-w-full overflow-hidden">
             <div
               ref={categoryScrollRef}

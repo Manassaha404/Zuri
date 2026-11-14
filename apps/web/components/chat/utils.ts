@@ -22,7 +22,7 @@ export const initialChatGroups: ChatGroup[] = [
 export const initialConnectors: Connector[] = [
   { name: "Google Drive", enabled: true, icon: HardDrive },
   { name: "GitHub", enabled: true, icon: HardDrive },
-  { name: "Notion", enabled: false, icon: BookOpen },
+  { name: "Documentation", enabled: false, icon: BookOpen },
 ];
 
 export function getInitials(name: string): string {

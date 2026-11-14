@@ -48,7 +48,25 @@ export type BlockContent =
   | { type: "callout"; richText: RichText; icon?: string; color?: string }
   | { type: "code"; language: string; code: string; caption?: string }
   | { type: "divider" }
-  | { type: "image" | "file"; attachmentId: string; caption?: string }
+  | {
+      type: "image";
+      cloudinaryUrl?: string;
+      cloudinaryPublicId?: string;
+      attachmentId?: string;
+      caption?: string;
+      width?: number;
+      height?: number;
+    }
+  | {
+      type: "file";
+      attachmentId?: string;
+      cloudinaryPublicId?: string;
+      cloudinaryUrl?: string;
+      fileName?: string;
+      mimeType?: string;
+      sizeBytes?: number;
+      caption?: string;
+    }
   | {
       type: "bookmark";
       url: string;
@@ -57,7 +75,7 @@ export type BlockContent =
       favicon?: string;
     }
   | { type: "diagram"; diagramId: string }
-  | { type: "page_link"; pageId: string }
+  | { type: "page_link"; pageId: string; title?: string; caption?: string }
   | { type: "table"; rows: RichText[][] };
 
 export interface Block {
@@ -142,7 +160,7 @@ export interface Diagram {
   title?: string; // Optional - diagrams belong directly to page without requiring a name
   kind: DiagramKind;
   source?: string; // mermaid / DSL text
-  scene?: DiagramScene; // canvas JSON (Excalidraw/tldraw scene)
+  scene?: DiagramScene; // canvas JSON scene
   thumbnailAttachmentId?: string | null;
   updatedAt: string;
 }
@@ -153,7 +171,6 @@ export interface Notebook {
   title: string;
   icon?: string;
   color?: string;
-  coverAttachmentId?: string | null;
   coverUrl?: string;
   position: string;
   isArchived: boolean;
@@ -165,10 +182,12 @@ export interface Notebook {
 export interface Chapter {
   chapterId: string;
   notebookId: string;
+  fileDockId?: string | null;
   title: string;
   icon?: string;
   color?: string;
   position: string;
+  summary?: string;
   isArchived: boolean;
   isFavorite: boolean;
   archivedAt?: string | null;

@@ -4,6 +4,7 @@
 import { useState, useRef } from "react";
 import { Page } from "../types";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { Pin, MoreHorizontal, Archive } from "lucide-react";
 
 interface PageTreeItemProps {
@@ -11,8 +12,8 @@ interface PageTreeItemProps {
 }
 
 export function PageTreeItem({ page }: PageTreeItemProps) {
-  const { activePageId, setActivePage, togglePinPage, archivePage } =
-    useNotesStore();
+  const { activePageId, setActivePage } = useNotesStore();
+  const { togglePinPage, archivePage } = useNotes();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

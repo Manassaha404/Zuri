@@ -27,7 +27,6 @@ export default class UploadService {
     const paramsToSign: Record<string, string | number> = {
       timestamp,
       folder: input.folder,
-      access_mode: "public",
     };
     if (input.publicId) paramsToSign.public_id = input.publicId;
 
@@ -43,7 +42,6 @@ export default class UploadService {
       apiKey,
       folder: input.folder,
       publicId: input.publicId,
-      accessMode: "public",
       uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${input.resourceType}/upload`,
     };
   }

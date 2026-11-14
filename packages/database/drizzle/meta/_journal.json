@@ -36,6 +36,20 @@
       "when": 1794416817691,
       "tag": "0004_even_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794491105782,
+      "tag": "0005_dashing_wraith",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794637818871,
+      "tag": "0006_fearless_leopardon",
+      "breakpoints": true
     }
   ]
 }

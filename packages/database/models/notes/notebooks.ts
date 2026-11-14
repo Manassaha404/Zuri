@@ -17,6 +17,7 @@ export const notebooks = pgTable(
     title: text("title").notNull().default("Untitled notebook"),
     icon: text("icon"),
     color: text("color"),
+    coverUrl: text("cover_url"),
     position: text("position").notNull(), // fractional index
     isArchived: boolean("is_archived").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),

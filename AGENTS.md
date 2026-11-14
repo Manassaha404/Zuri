@@ -5,6 +5,9 @@ This document defines the architectural patterns, code style, backend standards,
 > [!IMPORTANT]
 > **DOCUMENTATION MAINTENANCE**:
 > Agents must update this `AGENTS.md` file whenever backend architecture, database schemas, tRPC routes, Redis channels, or Inngest background jobs change. Keep documentation concise and accurate.
+>
+> **PROHIBITION OF THIRD-PARTY BRAND NAMES (ZERO EXCEPTIONS)**:
+> Agents must NEVER use third-party brand names (such as Notion, Eraser, Cal, Cal.com, Craft, etc.) anywhere in this project — including code, comments, documentation, UI strings, placeholders, file names, or variable identifiers. Always use generic terminology.
 
 ---
 
@@ -101,7 +104,8 @@ sequenceDiagram
 ### B. Service Layer Workflow (`packages/services/`)
 
 - All business logic lives in `packages/services/<domain>/index.ts`.
-- Service classes must provide both `static` and instance methods for clean caller flexibility.
+- **Pure Instance Methods Only (Prohibition of Static Wrappers)**: Service classes must define standard instance methods only. Never create duplicate `static` proxy methods or `private static instance` wrappers on service classes.
+- **Service Instantiation in tRPC**: Services must be instantiated and exported as shared instances in `packages/trpc/server/services/index.ts` (e.g. `export const noteService = new NoteService();`). tRPC procedures and consumers must import and call these instances directly (e.g. `noteService.getWorkspace(...)`).
 - Use `db` imported from `@repo/database`.
 - Throw `AppError` from `@repo/error` for predictable application errors.
 - Never write raw SQL where Drizzle query builder methods exist, except for external checkpoint/vector tables using `sql`.
@@ -121,6 +125,8 @@ sequenceDiagram
    - Use `publicProcedure` for unauthenticated endpoints.
    - Always wrap execution in `try / catch` and call `handleRouteError(error)`.
    - Agent procedures: `getUserMemories`, `createUserMemory`, `updateUserMemory`, `deleteUserMemory`, `getAvailableToolkits`, `getToolkitCategories`, `getUserConnectedAccounts`, `initiateToolkitConnection`, `disconnectToolkit`, `checkToolkitConnectionStatus`, `refreshUserConnectedAccounts`, `resumeChatAgent`.
+   - Notes procedures (`packages/trpc/server/routes/notes/`): `getWorkspace`, `getNotebooks`, `createNotebook`, `updateNotebook`, `archiveNotebook`, `restoreNotebook`, `deleteNotebookPermanently`, `reorderNotebook`, `getChapters`, `createChapter`, `updateChapter`, `toggleFavoriteChapter`, `archiveChapter`, `restoreChapter`, `deleteChapterPermanently`, `reorderChapter`, `getPages`, `getPageById`, `createPage`, `updatePage`, `togglePinPage`, `movePage`, `archivePage`, `restorePage`, `deletePagePermanently`, `reorderPage`, `getBlocks`, `createBlock`, `updateBlock`, `deleteBlock`, `autosavePage`, `getDiagram`, `saveDiagram`, `deleteDiagram`, `getChapterFileDock`, `addDockFile`, `deleteDockFile`, `createDockFolder`, `deleteDockFolder`, `searchNotes`, `getTrash`, `getLinkPreview`.
+   - **Notes System & Atomic Autosave (`packages/services/notes/`)**: `NoteService` provides complete workspace hierarchy management (notebooks, chapters, pages, blocks, diagrams, and chapter file docks). `autosavePage` performs atomic debounced batch reconciliation of page title, summary, and blocks in a single operation. The frontend autosave strategy couples a 1.5s Idle Debounce (1-2s window) with a 6s Max-Wait Throttle (5-10s window) to safeguard continuous typing against browser crashes or network dropouts. When new users initialize `/notes`, `getWorkspace` automatically provisions a default starter notebook, chapter, and blank page. Chapter file docks link directly to `file_docks` and `file_dock_files` to manage Cloudinary attachments, provisioning `file_docks` records on-demand using the chapter name only when a file is uploaded (without folder scaffolding).
    - **User Toolkit Connections & 24h Redis Caching**: User accounts connected to third-party services are managed via `ToolService` (`composio.connectedAccounts`) and cached in Redis under `redis:composio:user_connections:${userId}` with a 24-hour TTL (`86400`s). Initiating a connection, deleting a connection, or detecting an active status change automatically invalidates this key to keep connections synchronized.
    - **Tool Catalog & Isolated Semantic Search Namespaces**: Tool definitions for each toolkit are synced into LangGraph's `PostgresStore` under the per-toolkit namespace `tool-catalog-${toolkit}` with text embeddings for fast, isolated semantic search. If a toolkit is missing from the Postgres store during tool selection or connection resolution, tools are fetched from Composio and automatically synced into the store for subsequent semantic search queries.
    - **Tool Output Scaling (Pointer / Artifact Store & Autonomous Distillation)**: Large tool responses (>6,000 characters) are cached in Redis with a 24-hour TTL under `redis:agent:artifact:${artifactId}` to prevent data loss. `processToolOutput` distills the output using a fast model (`gpt-4o-mini`) tailored to the user's active query turn, providing key identifiers, matching items, and an artifact reference. The agent can page or filter the raw data via the built-in `INSPECT_TOOL_ARTIFACT` tool. In addition, `sanitizeToolOutput` serves as an in-memory circuit breaker that compacts arrays and hard-caps output strings to 15,000 characters.

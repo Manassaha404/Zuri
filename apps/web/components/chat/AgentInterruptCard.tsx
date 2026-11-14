@@ -285,7 +285,7 @@ export function AgentInterruptCard({
           ))}
         </div>
 
-        {/* Actions in Cal.com Button Style - Always pinned & visible at bottom */}
+        {/* Actions in Primary Button Style - Always pinned & visible at bottom */}
         <div className="mt-4 pt-3.5 border-t border-[var(--h)] flex items-center justify-between gap-2.5 flex-wrap shrink-0 bg-[var(--bg)]">
           <button
             type="button"

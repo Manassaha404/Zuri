@@ -3,6 +3,7 @@
 // Flat table view for fast "all pages in notebook" queries without joining through chapters
 import { useState } from "react";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { sortByPosition } from "../utils/fractional-index";
 import {
   FileText,
@@ -25,11 +26,10 @@ export function AllPagesView() {
     notebooks,
     activeNotebookId,
     setActivePage,
-    togglePinPage,
     openMovePage,
-    archivePage,
-    createPage,
   } = useNotesStore();
+
+  const { togglePinPage, archivePage, createPage } = useNotes();
 
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortAsc, setSortAsc] = useState(false);

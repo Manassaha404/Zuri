@@ -1,6 +1,6 @@
 "use client";
 
-// Notion-like canvas editor — full page with cover, in-place editable title, page summary, diagram trigger, and block stream
+// Canvas editor — full page with cover, in-place editable title, page summary, diagram trigger, and block stream
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNotesStore } from "@/store/notesStore";
 import { sortByPosition } from "../utils/fractional-index";
@@ -133,7 +133,7 @@ export function BlockEditor() {
         className="mx-auto max-w-5xl px-8 sm:px-16 pt-14 pb-80 transition-all"
         onClick={handleCanvasClick}
       >
-        {/* Page title — Notion-style in-place editable heading with large clear typography */}
+        {/* Page title — in-place editable heading with large clear typography */}
         <div className="mb-3" onClick={(e) => e.stopPropagation()}>
           <h1
             ref={titleRef}
@@ -303,7 +303,7 @@ export function BlockEditor() {
           ))}
         </div>
 
-        {/* Click-anywhere-below to add a paragraph — Notion behavior */}
+        {/* Click-anywhere-below to add a paragraph */}
         {pageBlocks.length === 0 && (
           <div
             className="mt-6 h-28 cursor-text flex items-center"

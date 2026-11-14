@@ -1,6 +1,6 @@
 "use client";
 
-// High-contrast, Cal.com-styled notes sidebar
+// High-contrast notes sidebar
 import { useState } from "react";
 import Link from "next/link";
 import { useNotesStore } from "@/store/notesStore";
@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react";
+import { useNotesTrash } from "@/hook/notes";
 
 export function NotesSidebar() {
   const { darkMode, toggleTheme } = useUIStore();
@@ -39,6 +40,12 @@ export function NotesSidebar() {
     setActivePage,
   } = useNotesStore();
 
+  const {
+    pages: trashPages,
+    chapters: trashChapters,
+    notebooks: trashNotebooks,
+  } = useNotesTrash();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const notebookChapters = sortByPosition(
@@ -53,9 +60,7 @@ export function NotesSidebar() {
 
   // Archived count
   const archivedCount =
-    pages.filter((p) => p.isArchived).length +
-    chapters.filter((c) => c.isArchived).length +
-    notebooks.filter((n) => n.isArchived).length;
+    trashPages.length + trashChapters.length + trashNotebooks.length;
 
   if (isCollapsed) {
     return (

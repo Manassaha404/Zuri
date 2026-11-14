@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useNotesStore } from "@/store/notesStore";
 import { useUIStore } from "@/store/uiStore";
+import { useNotes } from "@/hook/notes";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   Pin,
@@ -15,6 +16,8 @@ import {
   BookOpen,
   Folder,
   Layers,
+  Check,
+  Loader2,
 } from "lucide-react";
 
 export function NotesHeader() {
@@ -26,11 +29,13 @@ export function NotesHeader() {
     activeNotebookId,
     activeChapterId,
     activePageId,
-    togglePinPage,
-    archivePage,
+    saveStatus,
+    lastSavedAt,
     openChapterFileDock,
     openPageDiagram,
   } = useNotesStore();
+
+  const { togglePinPage, archivePage } = useNotes();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -88,6 +93,34 @@ export function NotesHeader() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Autosave Status Indicator */}
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--m)] px-2">
+            {saveStatus === "saving" && (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
+                <span>Saving...</span>
+              </>
+            )}
+            {saveStatus === "saved" && (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Saved{lastSavedAt ? ` at ${lastSavedAt}` : ""}</span>
+              </>
+            )}
+            {saveStatus === "unsaved" && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-amber-500/80 animate-pulse" />
+                <span className="text-[var(--m)]/80">Unsaved changes</span>
+              </>
+            )}
+            {saveStatus === "error" && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span className="text-rose-500 font-medium">Save failed</span>
+              </>
+            )}
+          </div>
+
           {/* Pin page */}
           <button
             type="button"

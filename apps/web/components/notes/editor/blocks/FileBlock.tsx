@@ -9,6 +9,7 @@ import {
   FileCode,
   FileSpreadsheet,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 
 interface FileBlockProps {
@@ -69,16 +70,30 @@ export function FileBlock({ block }: FileBlockProps) {
         </div>
       </div>
 
-      <a
-        href={attachment.url || "#"}
-        download={attachment.fileName}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex h-9 items-center gap-2 rounded-xl border border-[var(--h)] bg-[var(--bg)] px-3.5 text-xs sm:text-sm font-semibold text-[var(--i)] hover:bg-[var(--s)] transition-colors shrink-0"
-      >
-        <Download className="h-4 w-4 text-[var(--m)]" />
-        <span className="hidden sm:inline">Download</span>
-      </a>
+      <div className="flex items-center gap-2 shrink-0">
+        {attachment.url && (
+          <a
+            href={attachment.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-[var(--h)] bg-[var(--bg)] px-3 text-xs sm:text-sm font-semibold text-[var(--i)] hover:bg-[var(--s)] transition-colors shadow-2xs"
+            title="Open file in new tab"
+          >
+            <ExternalLink className="h-4 w-4 text-[var(--m)]" />
+            <span className="hidden sm:inline">Open</span>
+          </a>
+        )}
+        <a
+          href={attachment.url || "#"}
+          download={attachment.fileName}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 items-center gap-2 rounded-xl border border-[var(--h)] bg-[var(--bg)] px-3.5 text-xs sm:text-sm font-semibold text-[var(--i)] hover:bg-[var(--s)] transition-colors shrink-0 shadow-2xs"
+        >
+          <Download className="h-4 w-4 text-[var(--m)]" />
+          <span className="hidden sm:inline">Download</span>
+        </a>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-// Block wrapper — Notion-style smooth drag & drop motion reordering, beside-block aligned handles, middle formatting toolbar, options dropdown
+// Block wrapper — smooth drag & drop motion reordering, beside-block aligned handles, middle formatting toolbar, options dropdown
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Block, BlockType } from "../types";

@@ -3,6 +3,7 @@
 // Modal for viewing and restoring archived notebooks, chapters, and pages
 import { useState } from "react";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes, useNotesTrash } from "@/hook/notes";
 import {
   X,
   Trash2,
@@ -11,32 +12,33 @@ import {
   FileText,
   Folder,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 
 type TrashTab = "pages" | "chapters" | "notebooks";
 
 export function TrashModal() {
+  const { isTrashOpen, closeTrash } = useNotesStore();
+
   const {
-    isTrashOpen,
-    closeTrash,
-    notebooks,
-    chapters,
-    pages,
     restorePage,
     deletePagePermanently,
     restoreChapter,
     deleteChapterPermanently,
     restoreNotebook,
     deleteNotebookPermanently,
-  } = useNotesStore();
+  } = useNotes();
+
+  const {
+    pages: archivedPages,
+    chapters: archivedChapters,
+    notebooks: archivedNotebooks,
+    isLoading,
+  } = useNotesTrash();
 
   const [activeTab, setActiveTab] = useState<TrashTab>("pages");
 
   if (!isTrashOpen) return null;
-
-  const archivedPages = pages.filter((p) => p.isArchived);
-  const archivedChapters = chapters.filter((c) => c.isArchived);
-  const archivedNotebooks = notebooks.filter((n) => n.isArchived);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-0">
@@ -100,9 +102,19 @@ export function TrashModal() {
 
         {/* Content list */}
         <div className="flex-1 overflow-y-auto notes-scrollbar p-5 space-y-2">
+          {isLoading &&
+          archivedPages.length === 0 &&
+          archivedChapters.length === 0 &&
+          archivedNotebooks.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-2 text-xs text-[var(--m)]">
+              <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+              <span>Loading trash items...</span>
+            </div>
+          ) : null}
+
           {activeTab === "pages" && (
             <>
-              {archivedPages.length === 0 ? (
+              {!isLoading && archivedPages.length === 0 ? (
                 <div className="py-12 text-center text-xs text-[var(--m)]">
                   No archived pages found.
                 </div>
@@ -116,15 +128,27 @@ export function TrashModal() {
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-[var(--m)] shrink-0" />
                         <span className="font-medium text-[var(--i)] truncate">
-                          {page.title}
+                          {page.title || "Untitled Page"}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-[var(--m)]">
-                        Archived{" "}
-                        {page.archivedAt
-                          ? new Date(page.archivedAt).toLocaleDateString()
-                          : "recently"}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[var(--m)]">
+                        {Boolean((page as any).notebookTitle) && (
+                          <span>{(page as any).notebookTitle}</span>
+                        )}
+                        {Boolean((page as any).chapterTitle) && (
+                          <>
+                            <span>/</span>
+                            <span>{(page as any).chapterTitle}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>
+                          Archived{" "}
+                          {page.archivedAt
+                            ? new Date(page.archivedAt).toLocaleDateString()
+                            : "recently"}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -153,7 +177,7 @@ export function TrashModal() {
 
           {activeTab === "chapters" && (
             <>
-              {archivedChapters.length === 0 ? (
+              {!isLoading && archivedChapters.length === 0 ? (
                 <div className="py-12 text-center text-xs text-[var(--m)]">
                   No archived chapters found.
                 </div>
@@ -168,6 +192,20 @@ export function TrashModal() {
                         <Folder className="h-4 w-4 text-[var(--m)] shrink-0" />
                         <span className="font-medium text-[var(--i)] truncate">
                           {ch.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[var(--m)]">
+                        {Boolean((ch as any).notebookTitle) && (
+                          <>
+                            <span>{(ch as any).notebookTitle}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>
+                          Archived{" "}
+                          {ch.archivedAt
+                            ? new Date(ch.archivedAt).toLocaleDateString()
+                            : "recently"}
                         </span>
                       </div>
                     </div>

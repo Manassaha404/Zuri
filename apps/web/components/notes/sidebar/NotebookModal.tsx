@@ -3,6 +3,7 @@
 // Modal for creating and editing notebooks with icon, color, and cover image
 import { useState, useEffect } from "react";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { X } from "lucide-react";
 import { IconPicker } from "./IconPicker";
 
@@ -16,13 +17,10 @@ const COLOR_OPTIONS = [
 ];
 
 export function NotebookModal() {
-  const {
-    isNotebookModalOpen,
-    editingNotebook,
-    closeNotebookModal,
-    createNotebook,
-    updateNotebook,
-  } = useNotesStore();
+  const { isNotebookModalOpen, editingNotebook, closeNotebookModal } =
+    useNotesStore();
+
+  const { createNotebook, updateNotebook } = useNotes();
 
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("BookOpen");

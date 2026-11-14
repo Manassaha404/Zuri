@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Chapter, Page } from "../types";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { sortByPosition } from "../utils/fractional-index";
 import { PageTreeItem } from "./PageTreeItem";
 import { getLucideIcon } from "./IconPicker";
@@ -26,14 +27,13 @@ export function ChapterTreeItem({ chapter, pages }: ChapterTreeItemProps) {
   const {
     activeChapterId,
     setActiveChapter,
-    createPage,
-    toggleFavoriteChapter,
     openChapterModal,
-    archiveChapter,
     openChapterFileDock,
     attachments,
     activeNotebookId,
   } = useNotesStore();
+
+  const { createPage, toggleFavoriteChapter, archiveChapter } = useNotes();
 
   const [isOpen, setIsOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);

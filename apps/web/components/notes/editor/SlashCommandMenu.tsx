@@ -1,6 +1,6 @@
 "use client";
 
-// Slash command palette for Notion-like fast block insertion
+// Slash command palette for fast block insertion
 import { useState, useEffect, useRef } from "react";
 import { BlockType } from "../types";
 import {

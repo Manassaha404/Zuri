@@ -1,6 +1,6 @@
 "use client";
 
-// Comprehensive floating/top toolbar for Eraser visual diagram studio
+// Comprehensive floating/top toolbar for visual diagram studio
 import { useState } from "react";
 import { useDiagramStudioStore } from "@/store/diagramStudioStore";
 import { CanvasTool, ElementType } from "./types";

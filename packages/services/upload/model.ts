@@ -13,7 +13,7 @@ export interface UploadSignatureResult {
   apiKey: string;
   folder: string;
   publicId?: string;
-  accessMode: string;
+  accessMode?: string;
   uploadUrl: string;
 }
 

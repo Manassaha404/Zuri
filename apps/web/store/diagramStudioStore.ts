@@ -1,4 +1,4 @@
-// Zustand store managing state for the Eraser-grade hand-crafted diagram canvas
+// Zustand store managing state for the hand-crafted diagram canvas
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {

@@ -36,13 +36,24 @@ export type BlockContent =
   | { type: "divider" }
   | {
       type: "image";
-      cloudinaryPublicId: string;
-      cloudinaryUrl: string;
+      cloudinaryPublicId?: string;
+      cloudinaryUrl?: string;
+      attachmentId?: string;
       caption?: string;
       width?: number;
       height?: number;
     }
-  | { type: "page_link"; pageId: string; title?: string }
+  | {
+      type: "file";
+      attachmentId?: string;
+      cloudinaryPublicId?: string;
+      cloudinaryUrl?: string;
+      fileName?: string;
+      mimeType?: string;
+      sizeBytes?: number;
+      caption?: string;
+    }
+  | { type: "page_link"; pageId: string; title?: string; caption?: string }
   | {
       type: "bookmark";
       url: string;
@@ -66,6 +77,7 @@ export const blockType = pgEnum("block_type", [
   "code",
   "divider",
   "image",
+  "file",
   "bookmark",
   "diagram",
   "table",

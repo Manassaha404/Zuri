@@ -3,6 +3,7 @@
 // Modal to move a page to another chapter or notebook, updating denormalized notebookId
 import { useState, useEffect } from "react";
 import { useNotesStore } from "@/store/notesStore";
+import { useNotes } from "@/hook/notes";
 import { X, ArrowRightLeft, BookOpen, Folder, Check } from "lucide-react";
 
 export function MovePageModal() {
@@ -13,8 +14,9 @@ export function MovePageModal() {
     pages,
     notebooks,
     chapters,
-    movePage,
   } = useNotesStore();
+
+  const { movePage } = useNotes();
 
   const targetPage = pages.find((p) => p.pageId === targetMovePageId);
 

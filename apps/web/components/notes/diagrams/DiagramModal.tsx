@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNotesStore } from "@/store/notesStore";
 import { useUIStore } from "@/store/uiStore";
+import { useNoteAutosave } from "@/hook/notes";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useDiagramStudioStore } from "@/store/diagramStudioStore";
 import { DiagramStudioApp } from "./canvas-studio";
@@ -21,6 +22,8 @@ export function DiagramModal() {
     updateDiagram,
     createDiagram,
   } = useNotesStore();
+
+  const { saveDiagram } = useNoteAutosave();
 
   const activePage = pages.find((p) => p.pageId === activePageId);
   const diagram =
@@ -47,36 +50,37 @@ export function DiagramModal() {
 
   if (!isDiagramModalOpen) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const studioElements = useDiagramStudioStore.getState().elements;
+    const scene = {
+      elements: studioElements as any,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+    };
+    const title = activePage?.title
+      ? `${activePage.title} Diagram`
+      : "Page Diagram";
 
     if (diagram) {
       updateDiagram(diagram.diagramId, {
-        title: activePage?.title
-          ? `${activePage.title} Diagram`
-          : "Page Diagram",
+        title,
         kind: "canvas",
-        scene: {
-          elements: studioElements as any,
-          zoom: 1,
-          panX: 0,
-          panY: 0,
-        },
+        scene,
       });
     } else if (activePageId) {
       createDiagram(activePageId, {
-        title: activePage?.title
-          ? `${activePage.title} Diagram`
-          : "Page Diagram",
+        title,
         kind: "canvas",
-        scene: {
-          elements: studioElements as any,
-          zoom: 1,
-          panX: 0,
-          panY: 0,
-        },
+        scene,
       });
     }
+
+    await saveDiagram({
+      title,
+      kind: "canvas",
+      scene,
+    });
     closeDiagramModal();
   };
 
