@@ -22,12 +22,18 @@ import {
   type AvailableToolkitsOptions,
 } from "./toolService";
 import redis from "@repo/redis";
+import { isYouTubeUrl } from "./youtube";
 
 export interface AgentChatCallbacks {
   onChunk?: (chunk: string) => Promise<void> | void;
 }
 
 export type { UserConnectedAccount };
+export {
+  extractYouTubeUrls,
+  isYouTubeUrl,
+  loadYouTubeTranscript,
+} from "./youtube";
 export { ToolService };
 
 class AgentService {
@@ -745,7 +751,7 @@ class AgentService {
       const chunks = await splitter.splitDocuments(docs);
 
       for (const chunk of chunks) {
-        if (isTempFile) {
+        if (isTempFile || !chunk.metadata.source) {
           chunk.metadata.source = source;
         }
         if (metadataOptions?.conversationId) {

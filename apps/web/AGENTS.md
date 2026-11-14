@@ -211,9 +211,10 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Diagram Studio Store (`apps/web/store/diagramStudioStore.ts`)**:
   - `useDiagramStudioStore` manages canvas state for the diagram canvas: element tree, multi-element selection, pan (`panX`, `panY`), zoom, grid modes (`dots`, `lines`), smart guide alignment calculations (`calculateSmartGuides`), anchor snap targets, and connector routing.
   - Located strictly in `apps/web/store/diagramStudioStore.ts` and exported via `@/store/diagramStudioStore` and `@/store/index.ts`.
-- **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`)**:
+- **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`, `apps/web/lib/youtube.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
-  - Uploaded Cloudinary URLs are passed alongside user queries to trigger background document ingestion and RAG routing.
+  - YouTube video links can be pasted into the chat composer, attached via the YouTube link button, or pasted within query text. YouTube transcripts are ingested as timestamped RAG documents.
+  - Uploaded Cloudinary URLs and YouTube video URLs are passed alongside user queries to trigger background document ingestion and RAG routing.
 - **Memory System (`apps/web/hook/agent/useUserMemories.ts`, `apps/web/components/chat/MemoryModal.tsx`)**:
   - `staleTime: 0` ensures memory data is always treated as fresh when fetched.
   - `MemoryModal` refetches automatically via `useEffect` whenever `isOpen` transitions to `true`.

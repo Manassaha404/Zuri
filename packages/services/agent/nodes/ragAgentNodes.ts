@@ -8,6 +8,7 @@ import {
   tvly,
   refineLLMSchema,
   checkFullFileContextJudge,
+  crossFileComparisonJudge,
   docSummeryLLM,
 } from "../model";
 import { vectorStore } from "../vectorStore";
@@ -44,28 +45,74 @@ Output: hey thanks!`;
 export const checkIfFullFileContextNeeded: GraphNode<typeof RagState> = async (
   state,
 ) => {
-  const { query } = state;
+  const { query, currentFileUrls } = state;
   const prompt = `You are a context evaluation engine. Determine if answering the user's message requires retrieving context from the full content of uploaded files or specific sections/summaries. True means full file context is needed, false means only specific sections or summaries are sufficient.
 
 User query: "${query}"`;
   const response = await checkFullFileContextJudge.invoke(prompt);
-  return { isFullFileContextNeeded: response.isFullFileContextNeeded };
+
+  let targetFileUrls: string[] = [];
+  if (currentFileUrls && currentFileUrls.length > 0) {
+    // Check if query explicitly asks to compare with or reference historical files
+    try {
+      const comparisonPrompt = `The user attached new file(s) in this message.
+Determine whether answering their question requires referencing, comparing with, or searching files/videos from previous turns in the conversation.
+Return false if the user is only asking about the newly attached file(s) (e.g. "summarize this", "what is this video about", "explain this file").
+Return true ONLY if they explicitly ask to compare or combine with earlier files (e.g. "compare this with the previous file").
+
+User query: "${query}"`;
+      const comparisonRes =
+        await crossFileComparisonJudge.invoke(comparisonPrompt);
+      if (!comparisonRes.needsHistoricalFiles) {
+        targetFileUrls = currentFileUrls;
+      }
+    } catch {
+      // Default to newly attached files if evaluation fails
+      targetFileUrls = currentFileUrls;
+    }
+  }
+
+  return {
+    isFullFileContextNeeded: response.isFullFileContextNeeded,
+    targetFileUrls,
+  };
 };
 
 export const retrieve: GraphNode<typeof RagState> = async (state) => {
-  const { isFullFileContextNeeded } = state;
-  const filter = state.conversationId
-    ? {
-        must: [
-          {
-            key: "metadata.conversationId",
-            match: {
-              value: state.conversationId,
-            },
+  const { isFullFileContextNeeded, targetFileUrls } = state;
+
+  const mustClauses: any[] = [];
+  if (state.conversationId) {
+    mustClauses.push({
+      key: "metadata.conversationId",
+      match: {
+        value: state.conversationId,
+      },
+    });
+  }
+
+  // Filter by metadata.source to isolate chunks from target file(s)
+  if (targetFileUrls && targetFileUrls.length > 0) {
+    if (targetFileUrls.length === 1) {
+      mustClauses.push({
+        key: "metadata.source",
+        match: {
+          value: targetFileUrls[0],
+        },
+      });
+    } else {
+      mustClauses.push({
+        should: targetFileUrls.map((url) => ({
+          key: "metadata.source",
+          match: {
+            value: url,
           },
-        ],
-      }
-    : undefined;
+        })),
+      });
+    }
+  }
+
+  const filter = mustClauses.length > 0 ? { must: mustClauses } : undefined;
   let k = 8;
   if (isFullFileContextNeeded) {
     k = 100;

@@ -164,8 +164,18 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
 
   let promptValue;
   if (state.isRagRequired) {
-    // Call RAG agent to retrieve context and generate initial findings
-    const result = await ragAgent.invoke({ query, conversationId });
+    const lastHuman = lastOfType(state.messages, "human");
+    const lastKwargs = (lastHuman as any)?.additional_kwargs;
+    const currentFileUrls: string[] = Array.isArray(lastKwargs?.fileUrls)
+      ? lastKwargs.fileUrls
+      : [];
+
+    // Call RAG agent to retrieve context with active file scoping
+    const result = await ragAgent.invoke({
+      query,
+      conversationId,
+      currentFileUrls,
+    });
     const ragAnswer =
       result?.answer || "No relevant information found in the documents.";
 
@@ -379,19 +389,27 @@ export const selectTools: GraphNode<typeof MessagesState> = async (
   );
   const userId = config.configurable?.user_id ?? "anonymous";
   const query = textOf(lastOfType(state.messages, "human")?.content);
+  const userConnectedAccounts =
+    await ToolService.getUserConnectedAccounts(userId);
+  const owned = userConnectedAccounts
+    .filter((acc) => acc.status === "ACTIVE")
+    .map((acc) => acc.toolkitSlug.toLowerCase());
+  const userConnectedToolkits = owned;
 
   // which toolkits does this message need?
   // router also give short tool search query, better for semantic search than raw user message
   const route = await router.invoke(
-    `Supported toolkits: ${SUPPORTED_TOOLKITS.join(", ")}
+    `User connected toolkits: ${userConnectedToolkits.length ? userConnectedToolkits.join(", ") : "(none)"}
+Supported toolkits: ${SUPPORTED_TOOLKITS.join(", ")}
 Recent conversation summary: ${state.summery || "(none)"}
 User message: ${query}
 
-Return every supported toolkit needed to fulfil the message
-(e.g. email -> gmail, repos/issues/PRs -> github).
-Also return toolQuery: a short, tool-oriented search phrase for the action needed
-(e.g. "list repositories for the authenticated user", "send an email").
-Return an empty toolkits list for chit-chat or anything needing no external tool.`,
+Rules for selecting toolkits:
+1. Prioritize user connected toolkits: Always select from "User connected toolkits" first if they can satisfy the request.
+2. Unconnected toolkits constraint: Do NOT select an unconnected toolkit from "Supported toolkits" unless it is strictly essential (the task is impossible to execute without it) or the user explicitly specified that service in their query.
+3. YouTube video Q&A exception: We have a dedicated built-in transcript RAG system for discussing, summarizing, or answering questions about YouTube videos and links. Do NOT select the "youtube" toolkit for talking about or asking questions on YouTube videos. Only select "youtube" if the user explicitly asks to manage their YouTube account (e.g. upload videos, manage playlists, like/comment).
+4. Return an empty toolkits list for general queries, chit-chat, RAG inquiries, or anything needing no external tool.
+5. Also return toolQuery: a short, tool-oriented search phrase for the action needed (e.g. "send an email", "list repositories for authenticated user"). Return empty string if no toolkit is needed.`,
   );
   const wanted = route.toolkits
     .map((t) => t.toLowerCase())
@@ -399,10 +417,6 @@ Return an empty toolkits list for chit-chat or anything needing no external tool
   if (!wanted.length) return { activeTools: [], missingToolkits: [] };
 
   // split into connected vs missing
-  const userAccounts = await ToolService.getUserConnectedAccounts(userId);
-  const owned = userAccounts
-    .filter((acc) => acc.status === "ACTIVE")
-    .map((acc) => acc.toolkitSlug.toLowerCase());
   const missing = wanted.filter((t) => !owned.includes(t));
   const available = wanted.filter((t) => owned.includes(t));
 

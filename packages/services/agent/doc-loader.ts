@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 import { convert } from "html-to-text";
 import fs from "fs";
 import path from "path";
+import { isYouTubeUrl, loadYouTubeTranscript } from "./youtube";
 
 const MIN_CHARS_PER_PAGE = 30;
 const MIN_TOTAL_CHARS = 100;
@@ -121,6 +122,10 @@ async function ocrPdf(source: string): Promise<Document[]> {
 // ---------- Main loader ----------
 
 async function loadAnyDocument(source: string): Promise<Document[]> {
+  if (isYouTubeUrl(source)) {
+    return loadYouTubeTranscript(source);
+  }
+
   if (/^https?:\/\//.test(source)) {
     return new CheerioWebBaseLoader(source).load();
   }

@@ -70,11 +70,17 @@ export function getFileNameFromUrl(url: string): string {
   return "attachment";
 }
 
+import { isYouTubeUrl } from "./youtube";
+
 // Inspect file category and extension
 export function getFileCategory(nameOrUrl: string): {
-  category: "pdf" | "image" | "sheet" | "doc" | "code" | "file";
+  category: "pdf" | "image" | "sheet" | "doc" | "code" | "video" | "file";
   ext: string;
 } {
+  if (isYouTubeUrl(nameOrUrl)) {
+    return { category: "video", ext: "YOUTUBE" };
+  }
+
   const clean = nameOrUrl.split("?")[0]?.split("#")[0] ?? "";
   const ext = (clean.split(".").pop() || "").toLowerCase();
 

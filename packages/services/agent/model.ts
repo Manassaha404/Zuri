@@ -120,6 +120,17 @@ export const checkFullFileContextJudge = new ChatOpenAI({
   model: "gpt-5-nano",
 }).withStructuredOutput(checkFullFileContextSchema);
 
+const crossFileComparisonSchema = z.object({
+  needsHistoricalFiles: z
+    .boolean()
+    .describe(
+      "True if answering the user's message requires comparing with, referencing, or analyzing files/documents/videos from previous turns in the conversation. False if the question is exclusively about the newly attached file(s) or does not require previous files.",
+    ),
+});
+export const crossFileComparisonJudge = new ChatOpenAI({
+  model: "gpt-5-nano",
+}).withStructuredOutput(crossFileComparisonSchema);
+
 const docSummerySchema = z.object({
   summery: z
     .string()

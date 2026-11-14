@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { ChatMessage } from "./types";
 import { EmptyState } from "./EmptyState";
 import { MessageBubble } from "./MessageBubble";
@@ -11,6 +11,12 @@ import { Sparkles } from "lucide-react";
 import { ZuriAvatar } from "@/components/ui/avatar-logo/ZuriAvatar";
 import { useAgent } from "@/hook/agent/useAgent";
 import { useAgentUpload } from "@/hook/agent/useAgentUpload";
+import { useAgentStore } from "@/store/agentStore";
+import {
+  extractYouTubeVideoId,
+  extractYouTubeUrls,
+  fetchYouTubeVideoDetails,
+} from "@/lib/youtube";
 
 interface ChatInterfaceProps {
   selectedChat: string;
@@ -33,11 +39,45 @@ export function ChatInterface({
     clearAttachedFiles,
     isUploading,
   } = useAgentUpload();
+  const addAttachedFile = useAgentStore((state) => state.addAttachedFile);
+  const updateAttachedFile = useAgentStore((state) => state.updateAttachedFile);
 
   const [input, setInput] = useState("");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState("");
   const [connectorsModalOpen, setConnectorsModalOpen] = useState(false);
+
+  // Attach YouTube video link
+  const handleAttachYouTubeUrl = useCallback(
+    async (url: string) => {
+      const videoId = extractYouTubeVideoId(url);
+      if (!videoId) return;
+
+      const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const existing = attachedFiles.find((f) => f.url === normalizedUrl);
+      if (existing) return;
+
+      const fileId = crypto.randomUUID();
+      addAttachedFile({
+        id: fileId,
+        name: "YouTube Video",
+        url: normalizedUrl,
+        status: "uploaded",
+      });
+
+      try {
+        const details = await fetchYouTubeVideoDetails(videoId);
+        if (details?.title) {
+          updateAttachedFile(fileId, {
+            name: details.title,
+          });
+        }
+      } catch {
+        // Fallback default name is retained
+      }
+    },
+    [attachedFiles, addAttachedFile, updateAttachedFile],
+  );
 
   const messages: ChatMessage[] = agent.messages.map((m) => ({
     id: m.id,
@@ -135,6 +175,19 @@ export function ChatInterface({
       }));
 
     const fileUrls = attachments.map((a) => a.url);
+
+    // Auto-detect YouTube links in user message if not already attached
+    const ytUrls = extractYouTubeUrls(text);
+    for (const ytUrl of ytUrls) {
+      if (!fileUrls.includes(ytUrl)) {
+        fileUrls.push(ytUrl);
+        attachments.push({
+          name: "YouTube Video",
+          url: ytUrl,
+          size: undefined,
+        });
+      }
+    }
 
     setInput("");
     clearAttachedFiles();
@@ -264,6 +317,7 @@ export function ChatInterface({
         onKeyDown={handleComposerKeyDown}
         onSubmit={(e) => void sendMessage(e)}
         onAttachFile={(file) => void uploadFile(file)}
+        onAttachYouTubeUrl={handleAttachYouTubeUrl}
         onRemoveAttachment={(id) => removeAttachedFile(id)}
         onModelMenuToggle={() => setModelMenuOpen((open) => !open)}
         onOpenConnectors={() => setConnectorsModalOpen(true)}

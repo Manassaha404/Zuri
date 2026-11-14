@@ -9,10 +9,12 @@ import {
   FileSpreadsheet,
   FileText,
   Image as ImageIcon,
+  SquarePlay,
   X,
 } from "lucide-react";
 import type { AttachedFile } from "@/store/agentStore";
 import { formatFileSize, getFileCategory } from "@/lib/utils";
+import { extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 
 interface ComposerAttachmentDockProps {
   attachedFiles: AttachedFile[];
@@ -49,6 +51,11 @@ function getCategoryIcon(
         icon: ImageIcon,
         colorClass: "text-amber-500 bg-amber-500/10",
       };
+    case "video":
+      return {
+        icon: SquarePlay,
+        colorClass: "text-red-500 bg-red-500/10",
+      };
     default:
       return {
         icon: FileIcon,
@@ -66,7 +73,9 @@ function AttachmentItem({
   onRemove: (id: string) => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const { category, ext } = getFileCategory(file.name);
+  const { category, ext } = getFileCategory(file.url || file.name);
+  const ytVideoId = file.url ? extractYouTubeVideoId(file.url) : null;
+  const ytThumbnail = ytVideoId ? getYouTubeThumbnail(ytVideoId) : null;
   const { icon: Icon, colorClass } = getCategoryIcon(category);
   const formattedSize = formatFileSize(file.size);
 
@@ -82,9 +91,9 @@ function AttachmentItem({
   return (
     <div className="flex items-center gap-2 rounded-xl border border-[var(--h)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--b)] max-w-xs shadow-xs animate-in fade-in-0 duration-150">
       {/* Thumbnail or Category Icon */}
-      {previewUrl ? (
+      {previewUrl || ytThumbnail ? (
         <img
-          src={previewUrl}
+          src={previewUrl || ytThumbnail!}
           alt={file.name}
           className="w-6 h-6 object-cover rounded-md shrink-0 border border-[var(--h)]"
         />

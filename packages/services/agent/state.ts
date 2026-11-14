@@ -43,4 +43,6 @@ export const RagState = new StateSchema({
     .default(null),
   good_docs: z.array(z.instanceof(Document)).default([]),
   conversationId: z.string().nullable().default(null),
+  currentFileUrls: z.array(z.string()).default([]),
+  targetFileUrls: z.array(z.string()).default([]),
 });

@@ -14,9 +14,9 @@ export function EmptyState({
   userName = "alex",
 }: EmptyStateProps) {
   const chips = [
+    "Ask a YouTube video",
     "Summarize a PDF",
     "Debug my TypeScript",
-    "Plan a study week",
     "Explain RAG simply",
   ];
 

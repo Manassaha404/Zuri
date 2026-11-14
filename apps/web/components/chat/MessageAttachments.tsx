@@ -6,6 +6,7 @@ import {
   FileCode,
   FileSpreadsheet,
   FileText,
+  SquarePlay,
 } from "lucide-react";
 import type { ChatAttachment } from "./types";
 import {
@@ -13,6 +14,7 @@ import {
   getFileCategory,
   getFileNameFromUrl,
 } from "@/lib/utils";
+import { extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 
 interface MessageAttachmentsProps {
   attachments?: ChatAttachment[];
@@ -48,6 +50,12 @@ function getCategoryTheme(
         badgeBg:
           "bg-blue-500/15 text-blue-400 dark:bg-blue-500/15 dark:text-blue-600",
       };
+    case "video":
+      return {
+        icon: SquarePlay,
+        badgeBg:
+          "bg-red-500/15 text-red-500 dark:bg-red-500/15 dark:text-red-500",
+      };
     default:
       return {
         icon: FileIcon,
@@ -72,16 +80,69 @@ export function MessageAttachments({
 
   if (normalized.length === 0) return null;
 
-  // Separate images from document/code files
+  // Separate videos, images, and other document/code files
+  const videos = normalized.filter(
+    (item) => getFileCategory(item.name || item.url).category === "video",
+  );
   const images = normalized.filter(
     (item) => getFileCategory(item.name || item.url).category === "image",
   );
-  const documents = normalized.filter(
-    (item) => getFileCategory(item.name || item.url).category !== "image",
-  );
+  const documents = normalized.filter((item) => {
+    const cat = getFileCategory(item.name || item.url).category;
+    return cat !== "image" && cat !== "video";
+  });
 
   return (
     <div className="flex flex-col gap-2 w-full">
+      {/* Video attachments */}
+      {videos.length > 0 && (
+        <div className="flex flex-col gap-2 w-full max-w-sm">
+          {videos.map((vid, idx) => {
+            const videoId = extractYouTubeVideoId(vid.url);
+            const thumb = videoId ? getYouTubeThumbnail(videoId) : null;
+            return (
+              <a
+                key={idx}
+                href={vid.url}
+                target="_blank"
+                rel="noreferrer"
+                title={vid.name || "Open YouTube video"}
+                className="group flex flex-col overflow-hidden rounded-xl border border-white/20 dark:border-black/10 bg-black/20 dark:bg-black/5 hover:bg-black/30 dark:hover:bg-black/10 transition-all text-[var(--pt)] dark:text-[#111111]"
+              >
+                {thumb && (
+                  <div className="relative w-full aspect-video overflow-hidden bg-black/40">
+                    <img
+                      src={thumb}
+                      alt={vid.name || "YouTube Video"}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+                        <SquarePlay size={20} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="p-2.5 flex items-center justify-between gap-2">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-semibold truncate group-hover:underline">
+                      {vid.name || "YouTube Video"}
+                    </span>
+                    <span className="text-[10px] opacity-75 font-mono uppercase">
+                      YouTube Video
+                    </span>
+                  </div>
+                  <ExternalLink
+                    size={14}
+                    className="opacity-60 group-hover:opacity-100 transition-opacity shrink-0"
+                  />
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
       {/* Image attachments */}
       {images.length > 0 && (
         <div
