@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 export const MessagesState = new StateSchema({
   isFilesInclude: z.boolean().default(false),
   isRagRequired: z.boolean().default(false),
+  ragQuery: z.string().nullable().default(null),
   activeTools: z.array(z.string()).default([]),
   missingToolkits: z.array(z.string()).default([]),
   pending: z

@@ -20,6 +20,7 @@ import {
   router,
   riskJudge,
   ragJudge,
+  ragQueryGenerator,
 } from "../model";
 import {
   buildTool,
@@ -47,6 +48,7 @@ export const decideRag: GraphNode<typeof MessagesState> = async (
   const conversationId = config.configurable?.thread_id;
   const lastHuman = lastOfType(state.messages, "human");
   const lastKwargs = (lastHuman as any)?.additional_kwargs;
+  const query = lastHuman ? textOf(lastHuman.content) : "";
 
   // Check if current query turn directly included files
   const currentQueryHasFiles = Boolean(
@@ -63,7 +65,29 @@ export const decideRag: GraphNode<typeof MessagesState> = async (
         .set(`redis:agent:conversation_has_files:${conversationId}`, "1")
         .catch(() => {});
     }
-    return { isRagRequired: true };
+
+    let ragQuery = query.trim() || "summarize document content and key takeaways";
+    try {
+      const summaryText = state.summery || "(none)";
+      const genRes = await ragQueryGenerator.invoke(
+        `User query: "${ragQuery}"
+Recent conversation summary: "${summaryText}"
+
+Task: Extract ONLY the substantive topic or question to look up in the attached document or video.
+Rules:
+- Eliminate all external tool actions (e.g. "make a text file in my drive", "save to drive", "send an email", "create a notion page").
+- Eliminate all output formatting instructions (e.g. "as a JSON tree", "create a text file outline").
+- Eliminate conversational filler (e.g. "can you please").
+- Return a concise search query (under 10 words) focused strictly on the information to find in the document/transcript (e.g. "detailed key topics inside this video").`,
+      );
+      if (genRes?.ragQuery?.trim()) {
+        ragQuery = genRes.ragQuery.trim();
+      }
+    } catch (err) {
+      console.error("[decideRag] error generating rag query for uploaded file:", err);
+    }
+
+    return { isRagRequired: true, ragQuery };
   }
 
   // Check if historical messages in this conversation contained files
@@ -97,24 +121,27 @@ export const decideRag: GraphNode<typeof MessagesState> = async (
 
   // If the conversation never had files, skip ragJudge entirely
   if (!conversationHadFiles) {
-    return { isRagRequired: false };
+    return { isRagRequired: false, ragQuery: null };
   }
 
   // If the conversation had files, evaluate with ragJudge if this query requires searching them
-  const query = lastHuman ? textOf(lastHuman.content) : "";
   if (!query.trim()) {
-    return { isRagRequired: false };
+    return { isRagRequired: false, ragQuery: null };
   }
 
   try {
     const summaryText = state.summery || "(none)";
     const decision = await ragJudge.invoke(
-      `User query: "${query}"\nRecent conversation summary: "${summaryText}"\nDoes answering this message require searching uploaded files/documents or knowledge base?`,
+      `User query: "${query}"\nRecent conversation summary: "${summaryText}"\nDoes answering this message require searching uploaded files/documents or knowledge base? If so, generate an optimized ragQuery containing ONLY the substantive topic to look up, eliminating all external tool actions (e.g. save to drive, send email) and formatting instructions.`,
     );
-    return { isRagRequired: Boolean(decision.isRagRequired) };
+    const isRagRequired = Boolean(decision.isRagRequired);
+    const ragQuery = isRagRequired
+      ? decision.ragQuery?.trim() || query
+      : null;
+    return { isRagRequired, ragQuery };
   } catch (err) {
     console.error("[ragJudge] error evaluating rag requirement:", err);
-    return { isRagRequired: false };
+    return { isRagRequired: false, ragQuery: null };
   }
 };
 
@@ -170,9 +197,11 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
       ? lastKwargs.fileUrls
       : [];
 
-    // Call RAG agent to retrieve context with active file scoping
+    const effectiveRagQuery = state.ragQuery?.trim() || query;
+
+    // Call RAG agent to retrieve context with active file scoping and specialized RAG query
     const result = await ragAgent.invoke({
-      query,
+      query: effectiveRagQuery,
       conversationId,
       currentFileUrls,
     });

@@ -104,10 +104,28 @@ const RagJudgeSchema = z.object({
     .describe(
       "True if answering the user's message requires retrieving context from uploaded documents or specific knowledge base. False for general conversation, chit-chat, tool calls, or common knowledge.",
     ),
+  ragQuery: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "If isRagRequired is true, a clean search phrase (3-10 words) representing ONLY the substantive content or topic to look up in the documents/video, stripping away all tool actions (e.g. 'save to drive', 'make a file', 'send an email') and formatting instructions. Null if isRagRequired is false.",
+    ),
 });
 export const ragJudge = new ChatOpenAI({
   model: "gpt-5-nano",
 }).withStructuredOutput(RagJudgeSchema);
+
+const ragQueryGenSchema = z.object({
+  ragQuery: z
+    .string()
+    .describe(
+      "A concise search phrase (3-10 words) representing ONLY the substantive content or topic to look up in the documents or video transcript, completely stripping away all external tool requests (e.g. 'make a text file', 'save to drive', 'send an email') and formatting instructions.",
+    ),
+});
+export const ragQueryGenerator = new ChatOpenAI({
+  model: "gpt-5-nano",
+}).withStructuredOutput(ragQueryGenSchema);
 
 const checkFullFileContextSchema = z.object({
   isFullFileContextNeeded: z

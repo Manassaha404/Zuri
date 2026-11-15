@@ -141,12 +141,12 @@ export const summarizeAllDocs: GraphNode<typeof RagState> = async (state) => {
       while (currentIndex < docs.length) {
         const idx = currentIndex++;
         const doc = docs[idx]!;
-        const prompt = `Generate a concise summary (1-4 sentences) of the following document excerpt:
+        const prompt = `Summarize the following document excerpt in 1-4 informative sentences. Make sure to preserve any timestamps (e.g. [MM:SS]), core arguments, key topics, and named entities:
 
 Document:
 ${doc.pageContent}
 
-Return only the brief summary.`;
+Summary:`;
         try {
           const response = await docSummeryLLM.invoke(prompt);
           const content = response?.summery?.trim();
@@ -300,10 +300,10 @@ export const generate: GraphNode<typeof RagState> = async (state) => {
     : state.docs.map((d, i) => `[${i + 1}] ${d.pageContent}`).join("\n\n");
 
   const response = await model.invoke(
-    `Answer the question using ONLY the context below. If the context is insufficient, say so.
+    `Answer the query comprehensively using the context below. Synthesize all relevant key topics, arguments, details, and timestamps found in the context.
     Context:
     ${context}
-    Question: ${state.query}
+    Query: ${state.query}
     Answer:`,
   );
 
