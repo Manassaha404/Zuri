@@ -63,23 +63,38 @@ export function useNoteAutosave(options: UseNoteAutosaveOptions = {}) {
     },
   );
 
-  // Sync server blocks to store ONLY on initial page load (never overwrite active client editing state)
+  // Sync server blocks to store
   useEffect(() => {
-    if (
-      activePageId &&
-      blocksQuery.data &&
-      !loadedPagesRef.current.has(activePageId)
-    ) {
-      loadedPagesRef.current.add(activePageId);
+    if (activePageId && blocksQuery.data) {
+      const serverBlocks = blocksQuery.data as unknown as Block[];
       const currentBlocks = useNotesStore.getState().blocks;
-      const alreadyHasBlocks = currentBlocks.some(
-        (b) => b.pageId === activePageId,
-      );
-      if (!alreadyHasBlocks) {
-        setPageBlocks(activePageId, blocksQuery.data as unknown as Block[]);
+      const pageBlocks = currentBlocks.filter((b) => b.pageId === activePageId);
+
+      const isPlaceholderOnly =
+        pageBlocks.length === 0 ||
+        (pageBlocks.length === 1 &&
+          (!pageBlocks[0]?.plainText?.trim() ||
+            (pageBlocks[0]?.content &&
+              "richText" in pageBlocks[0].content &&
+              Array.isArray(pageBlocks[0].content.richText) &&
+              pageBlocks[0].content.richText.every((r) => !r.text?.trim()))));
+
+      const isInitialPageLoad = !loadedPagesRef.current.has(activePageId);
+
+      if (
+        isInitialPageLoad ||
+        isPlaceholderOnly ||
+        (!hasUnsavedChanges &&
+          serverBlocks.length > 0 &&
+          pageBlocks.length === 0)
+      ) {
+        loadedPagesRef.current.add(activePageId);
+        if (!hasUnsavedChanges || isPlaceholderOnly) {
+          setPageBlocks(activePageId, serverBlocks);
+        }
       }
     }
-  }, [activePageId, blocksQuery.data, setPageBlocks]);
+  }, [activePageId, blocksQuery.data, hasUnsavedChanges, setPageBlocks]);
 
   // Query diagram for current active page
   const diagramQuery = trpc.notes.getDiagram.useQuery(

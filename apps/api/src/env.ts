@@ -22,6 +22,11 @@ const envSchema = z.object({
   QDRANT_URL: z.string(),
   COMPOSIO_WEBHOOK_SECRET: z.string().optional(),
   COMPOSIO_WEBHOOK_SUBSCRIPTION_ID: z.string().optional(),
+  JWT_ACCESS_TOKEN_SERECT: z.string(),
+  JWT_REFRESH_TOKEN_SERECT: z.string(),
+  JWT_ACCESS_TOKEN_EXPIRY: z.string(),
+  JWT_REFRESH_TOKEN_EXPIRY: z.string(),
+  MCP_SERVER_URL: z.string().default("http://localhost:9000/mcp"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

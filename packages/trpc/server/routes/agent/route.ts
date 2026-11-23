@@ -17,6 +17,8 @@ import {
   resumeChatAgentDto,
 } from "./model";
 import { inngest } from "@repo/services/inngest";
+import { encrypt } from "@repo/services/utils/encryption";
+import redis from "@repo/services/redis";
 import { db } from "@repo/database";
 import { conversations } from "@repo/database/models";
 
@@ -103,6 +105,21 @@ export const agentRouter = router({
         // Create conversation ID in backend once if not provided (new chat)
         if (!conversationId) {
           conversationId = crypto.randomUUID();
+        }
+
+        // Encrypt and store tokens in Redis with 5-minute TTL without leaking into Inngest
+        const accessToken = ctx.getCookie("accessToken");
+        const refreshToken = ctx.getCookie("refreshToken");
+        if (accessToken || refreshToken) {
+          const encryptedTokens = encrypt(
+            JSON.stringify({ accessToken, refreshToken }),
+          );
+          await redis.set(
+            `redis:agent:tokens:${conversationId}`,
+            encryptedTokens,
+            "EX",
+            300,
+          );
         }
 
         // Save conversation record with userId in database
@@ -240,6 +257,21 @@ export const agentRouter = router({
     .input(resumeChatAgentDto)
     .mutation(async ({ input, ctx }) => {
       try {
+        // Refresh encrypted tokens in Redis with 5-minute TTL on resume
+        const accessToken = ctx.getCookie("accessToken");
+        const refreshToken = ctx.getCookie("refreshToken");
+        if (accessToken || refreshToken) {
+          const encryptedTokens = encrypt(
+            JSON.stringify({ accessToken, refreshToken }),
+          );
+          await redis.set(
+            `redis:agent:tokens:${input.conversationId}`,
+            encryptedTokens,
+            "EX",
+            300,
+          );
+        }
+
         await inngest.send({
           name: "resume-chat-agent",
           data: {

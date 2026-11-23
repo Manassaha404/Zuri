@@ -5,6 +5,7 @@ export const MessagesState = new StateSchema({
   isFilesInclude: z.boolean().default(false),
   isRagRequired: z.boolean().default(false),
   ragQuery: z.string().nullable().default(null),
+  mcpServers: z.array(z.string()).default(["zuriMcp"]),
   activeTools: z.array(z.string()).default([]),
   missingToolkits: z.array(z.string()).default([]),
   pending: z

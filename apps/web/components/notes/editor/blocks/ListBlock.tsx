@@ -8,6 +8,7 @@ import {
   richTextToHtml,
   htmlToRichText,
   toggleRichTextFormat,
+  extractRichText,
 } from "../richTextUtils";
 import { Check, ChevronRight, ChevronDown } from "lucide-react";
 
@@ -42,7 +43,16 @@ export function ListBlock({
   const editableRef = useRef<HTMLDivElement>(null);
   const isUserEditingRef = useRef(false);
 
-  const content = block.content;
+  const richText = extractRichText(
+    block.content &&
+      typeof block.content === "object" &&
+      "richText" in block.content
+      ? block.content.richText
+      : block.content,
+    block.plainText,
+  );
+  const isTodoChecked =
+    block.type === "todo" && Boolean((block.content as any)?.checked);
 
   // Auto-focus when this block was just created
   useEffect(() => {
@@ -60,17 +70,13 @@ export function ListBlock({
 
   // Sync HTML from store when not actively editing
   useEffect(() => {
-    if (
-      !isUserEditingRef.current &&
-      editableRef.current &&
-      "richText" in content
-    ) {
-      const html = richTextToHtml(content.richText);
+    if (!isUserEditingRef.current && editableRef.current) {
+      const html = richTextToHtml(richText);
       if (editableRef.current.innerHTML !== html) {
         editableRef.current.innerHTML = html;
       }
     }
-  }, [content]);
+  }, [richText]);
 
   const handleFocus = () => {
     isUserEditingRef.current = true;
@@ -80,12 +86,20 @@ export function ListBlock({
   const handleBlur = () => {
     isUserEditingRef.current = false;
     onBlur?.();
-    if (editableRef.current && "richText" in content) {
+    if (editableRef.current) {
       const newRichText = htmlToRichText(editableRef.current);
-      updateBlockContent(block.blockId, {
-        ...content,
-        richText: newRichText,
-      });
+      if (block.type === "todo") {
+        updateBlockContent(block.blockId, {
+          type: "todo",
+          richText: newRichText,
+          checked: isTodoChecked,
+        });
+      } else {
+        updateBlockContent(block.blockId, {
+          type: block.type as any,
+          richText: newRichText,
+        });
+      }
     }
   };
 
@@ -177,31 +191,32 @@ export function ListBlock({
   };
 
   // ── Todo ──────────────────────────────────────────────────────────────────
-  if (block.type === "todo" && content.type === "todo") {
+  if (block.type === "todo") {
     return (
       <div className="flex items-start gap-4 py-2.5 text-[22px] sm:text-[24px]">
         <button
           type="button"
           onClick={() => toggleTodoBlock(block.blockId)}
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all mt-1 ${
-            content.checked
+            isTodoChecked
               ? "border-[var(--i)] bg-[var(--i)] text-[var(--pt)]"
               : "border-[var(--m)]/50 hover:border-[var(--i)] bg-transparent"
           }`}
         >
-          {content.checked && <Check className="h-4.5 w-4.5 stroke-[3]" />}
+          {isTodoChecked && <Check className="h-4.5 w-4.5 stroke-[3]" />}
         </button>
 
         <div
           ref={editableRef}
           contentEditable
           suppressContentEditableWarning
+          dangerouslySetInnerHTML={{ __html: richTextToHtml(richText) }}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           data-placeholder="To-do item…"
           className={`flex-1 min-w-0 leading-[1.8] outline-none cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--m)]/40 empty:before:pointer-events-none transition-opacity ${
-            content.checked
+            isTodoChecked
               ? "line-through opacity-40 text-[var(--m)]"
               : "text-[var(--b)]"
           }`}
@@ -211,7 +226,7 @@ export function ListBlock({
   }
 
   // ── Bulleted list ──────────────────────────────────────────────────────────
-  if (block.type === "bulleted_list" && "richText" in content) {
+  if (block.type === "bulleted_list") {
     return (
       <div className="flex items-start gap-4 py-2 text-[22px] sm:text-[24px]">
         <span className="mt-3.5 h-3 w-3 shrink-0 rounded-full bg-[var(--i)]/80" />
@@ -219,6 +234,7 @@ export function ListBlock({
           ref={editableRef}
           contentEditable
           suppressContentEditableWarning
+          dangerouslySetInnerHTML={{ __html: richTextToHtml(richText) }}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
@@ -230,7 +246,7 @@ export function ListBlock({
   }
 
   // ── Numbered list ──────────────────────────────────────────────────────────
-  if (block.type === "numbered_list" && "richText" in content) {
+  if (block.type === "numbered_list") {
     return (
       <div className="flex items-start gap-4 py-2 text-[22px] sm:text-[24px]">
         <span className="min-w-[2rem] shrink-0 text-right text-lg sm:text-xl font-bold text-[var(--m)] pt-0.5">
@@ -240,6 +256,7 @@ export function ListBlock({
           ref={editableRef}
           contentEditable
           suppressContentEditableWarning
+          dangerouslySetInnerHTML={{ __html: richTextToHtml(richText) }}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
@@ -251,7 +268,7 @@ export function ListBlock({
   }
 
   // ── Toggle ─────────────────────────────────────────────────────────────────
-  if (block.type === "toggle" && "richText" in content) {
+  if (block.type === "toggle") {
     return (
       <div className="py-2 text-[22px] sm:text-[24px]">
         <div className="flex items-start gap-2.5">
@@ -270,6 +287,7 @@ export function ListBlock({
             ref={editableRef}
             contentEditable
             suppressContentEditableWarning
+            dangerouslySetInnerHTML={{ __html: richTextToHtml(richText) }}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}

@@ -16,3 +16,8 @@ export * from "./notes/diagrams";
 export * from "./file-dock/docks";
 export * from "./file-dock/folders";
 export * from "./file-dock/files";
+
+// mcp-oauth
+export * from "./mcp-oauth/clients";
+export * from "./mcp-oauth/codes";
+export * from "./mcp-oauth/tokens";

@@ -38,7 +38,7 @@ export const getChaptersDto = z.object({
 export type GetChaptersDto = z.infer<typeof getChaptersDto>;
 
 export const createChapterDto = z.object({
-  notebookId: z.string().uuid(),
+  notebookId: z.string().uuid().optional(),
   title: z.string().trim().min(1).optional(),
   icon: z.string().optional(),
   color: z.string().optional(),
@@ -81,8 +81,8 @@ export const pageIdDto = z.object({
 export type PageIdDto = z.infer<typeof pageIdDto>;
 
 export const createPageDto = z.object({
-  notebookId: z.string().uuid(),
-  chapterId: z.string().uuid(),
+  notebookId: z.string().uuid().optional(),
+  chapterId: z.string().uuid().optional(),
   title: z.string().trim().optional(),
   summary: z.string().optional(),
   position: z.string().optional(),

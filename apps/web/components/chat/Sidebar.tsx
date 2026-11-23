@@ -400,9 +400,6 @@ export function Sidebar({
                   <BookOpen size={14} className="text-[#10b981]" />
                   <span className="font-medium">Notes & Docs</span>
                 </div>
-                <span className="text-[10px] font-semibold text-[var(--m)] px-1.5 py-0.5 rounded bg-[var(--h)]">
-                  Workspace
-                </span>
               </Link>
             </div>
 

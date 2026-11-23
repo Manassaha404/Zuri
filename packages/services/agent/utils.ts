@@ -510,5 +510,3 @@ Instructions:
     `\n\n[Full dataset (${Math.round(contentStr.length / 1024)} KB) preserved in artifactId: "${artifactId}". Use INSPECT_TOOL_ARTIFACT if needed.]`
   );
 }
-
-// Built-in tool allowing the agent to inspect or page through saved large artifacts

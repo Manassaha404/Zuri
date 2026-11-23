@@ -1,4 +1,11 @@
-import { RichText, RichTextSpan, RichTextMark } from "../types";
+import {
+  RichText,
+  RichTextSpan,
+  RichTextMark,
+  Block,
+  BlockType,
+  BlockContent,
+} from "../types";
 
 export function escapeHtml(str: string): string {
   return str
@@ -460,4 +467,238 @@ export function isFormatActive(
   }
 
   return false;
+}
+
+// Extract and normalize richText from any format (array of spans, string, object, or Slate format)
+export function extractRichText(content: any, plainText?: string): RichText {
+  if (!content) {
+    return plainText ? [{ text: plainText }] : [{ text: "" }];
+  }
+
+  // If already array of spans or text nodes
+  if (Array.isArray(content)) {
+    if (content.length === 0) {
+      return plainText ? [{ text: plainText }] : [{ text: "" }];
+    }
+    return content.map((item) => {
+      if (typeof item === "string") return { text: item };
+      return {
+        text: item.text ?? item.plainText ?? "",
+        marks: Array.isArray(item.marks) ? item.marks : undefined,
+        href: item.href,
+        pageId: item.pageId,
+      };
+    });
+  }
+
+  // If JSON string or plain text string
+  if (typeof content === "string") {
+    try {
+      const parsed = JSON.parse(content);
+      return extractRichText(parsed, plainText);
+    } catch {
+      return [{ text: content }];
+    }
+  }
+
+  // If object
+  if (typeof content === "object") {
+    if (Array.isArray(content.richText)) {
+      return extractRichText(content.richText, plainText);
+    }
+    if (typeof content.text === "string") {
+      return [{ text: content.text }];
+    }
+  }
+
+  return plainText ? [{ text: plainText }] : [{ text: "" }];
+}
+
+// Normalize any arbitrary block content into canonical typed BlockContent
+export function normalizeBlockContent(
+  type: BlockType,
+  rawContent: any,
+  plainText?: string,
+): BlockContent {
+  let content = rawContent;
+  if (typeof content === "string") {
+    try {
+      content = JSON.parse(content);
+    } catch {
+      content = { richText: [{ text: content }] };
+    }
+  }
+
+  switch (type) {
+    case "heading_1":
+    case "heading_2":
+    case "heading_3":
+    case "paragraph":
+    case "quote":
+    case "bulleted_list":
+    case "numbered_list":
+    case "toggle":
+      return {
+        type,
+        richText: extractRichText(
+          content?.richText !== undefined ? content.richText : content,
+          plainText,
+        ),
+      };
+
+    case "todo":
+      return {
+        type: "todo",
+        richText: extractRichText(
+          content?.richText !== undefined ? content.richText : content,
+          plainText,
+        ),
+        checked: Boolean(content?.checked),
+      };
+
+    case "callout":
+      return {
+        type: "callout",
+        richText: extractRichText(
+          content?.richText !== undefined ? content.richText : content,
+          plainText,
+        ),
+        icon: content?.icon || "Lightbulb",
+        color: content?.color || "blue",
+      };
+
+    case "code":
+      return {
+        type: "code",
+        language: content?.language || "typescript",
+        code:
+          typeof content?.code === "string"
+            ? content.code
+            : typeof content === "string"
+              ? content
+              : plainText || "",
+        caption: content?.caption,
+      };
+
+    case "divider":
+      return { type: "divider" };
+
+    case "table":
+      return {
+        type: "table",
+        rows: Array.isArray(content?.rows) ? content.rows : [],
+      };
+
+    case "bookmark":
+      return {
+        type: "bookmark",
+        url: content?.url || "",
+        title: content?.title,
+        description: content?.description,
+        favicon: content?.favicon,
+      };
+
+    case "file":
+      return {
+        type: "file",
+        ...(typeof content === "object" ? content : {}),
+      };
+
+    case "image":
+      return {
+        type: "image",
+        ...(typeof content === "object" ? content : {}),
+      };
+
+    case "page_link":
+      return {
+        type: "page_link",
+        pageId: content?.pageId || "",
+        title: content?.title,
+        caption: content?.caption,
+      };
+
+    case "diagram":
+      return {
+        type: "diagram",
+        diagramId: content?.diagramId || "",
+      };
+
+    default:
+      return {
+        type: "paragraph",
+        richText: extractRichText(content, plainText),
+      };
+  }
+}
+
+// Safely unwrap blocks from direct arrays, tRPC batch responses, or wrapped objects
+export function unwrapBlocks(payload: any): any[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) {
+    // Check if it's a tRPC batch response: [{ result: { data: [...] } }]
+    if (
+      payload.length > 0 &&
+      payload[0]?.result?.data &&
+      Array.isArray(payload[0].result.data)
+    ) {
+      return payload[0].result.data;
+    }
+    // Check if single wrapper object: [{ data: [...] }]
+    if (
+      payload.length === 1 &&
+      payload[0]?.data &&
+      Array.isArray(payload[0].data)
+    ) {
+      return payload[0].data;
+    }
+    return payload;
+  }
+  if (typeof payload === "object") {
+    if (Array.isArray(payload.result?.data)) return payload.result.data;
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.blocks)) return payload.blocks;
+  }
+  return [];
+}
+
+// Normalize an entire block to guarantee consistent structure across rendering and autosave
+export function normalizeBlock(raw: any): Block {
+  const type = (raw.type || "paragraph") as BlockType;
+  const rawPlainText = raw.plainText || raw.plain_text || "";
+  const content = normalizeBlockContent(type, raw.content, rawPlainText);
+  let plainText = rawPlainText;
+  if (!plainText) {
+    if ("richText" in content && Array.isArray(content.richText)) {
+      plainText = content.richText.map((s) => s.text || "").join("");
+    } else if (content.type === "code") {
+      plainText = content.code || "";
+    }
+  }
+
+  const blockId =
+    raw.blockId ||
+    raw.block_id ||
+    raw.id ||
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : String(Math.random()));
+
+  const pageId = raw.pageId || raw.page_id || "";
+  const parentBlockId = raw.parentBlockId ?? raw.parent_block_id ?? null;
+  const position = raw.position || "a0";
+  const createdAt = raw.createdAt || raw.created_at || new Date().toISOString();
+  const updatedAt = raw.updatedAt || raw.updated_at || new Date().toISOString();
+
+  return {
+    blockId,
+    pageId,
+    parentBlockId,
+    type,
+    content,
+    position,
+    plainText,
+    createdAt,
+    updatedAt,
+  };
 }

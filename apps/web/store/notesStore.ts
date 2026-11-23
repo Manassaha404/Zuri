@@ -16,6 +16,10 @@ import {
   generatePositionBetween,
   sortByPosition,
 } from "@/components/notes/utils/fractional-index";
+import {
+  normalizeBlock,
+  unwrapBlocks,
+} from "@/components/notes/editor/richTextUtils";
 
 const generateUuid = (): string => {
   if (
@@ -262,8 +266,15 @@ export const useNotesStore = create<NotesState>()(
       setPageBlocks: (pageId, serverBlocks) => {
         set((state) => {
           const otherBlocks = state.blocks.filter((b) => b.pageId !== pageId);
+          const rawList = unwrapBlocks(serverBlocks);
+          const normalized = rawList.map((item) =>
+            normalizeBlock({
+              ...item,
+              pageId: item.pageId || item.page_id || pageId,
+            }),
+          );
           return {
-            blocks: [...otherBlocks, ...serverBlocks],
+            blocks: [...otherBlocks, ...normalized],
             hasUnsavedChanges: false,
             saveStatus: "saved",
           };

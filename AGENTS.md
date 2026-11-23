@@ -16,6 +16,7 @@ This document defines the architectural patterns, code style, backend standards,
 ```
 ├── apps/
 │   ├── api/                  # Express HTTP server (:3000) hosting tRPC, Inngest & Auth
+│   ├── mcp/                  # Remote FastMCP server (:9000) with OAuth 2.1 & tool definitions
 │   └── socket/               # Standalone Socket.IO WebSocket server (:8080)
 └── packages/
     ├── database/             # PostgreSQL schema (Drizzle ORM) & database migrations
@@ -48,6 +49,7 @@ This document defines the architectural patterns, code style, backend standards,
 - **Async Jobs**: Inngest (`inngest/index.ts`, `inngest.createFunction`) triggered by events.
 - **Real-Time Communication**: Socket.IO (`apps/socket`) backed by Redis Pub/Sub (`@repo/redis/pubsub`).
 - **AI Agent Engine**: LangGraph (`@langchain/langgraph`) with `PostgresSaver` checkpointing and LangSmith observability (`LANGSMITH_*` / `LANGCHAIN_*`).
+- **Model Context Protocol (MCP)**: Remote FastMCP server (`apps/mcp`) with OAuth 2.1 authentication and `@langchain/mcp-adapters` for model tool/prompt bindings.
 
 ---
 
@@ -100,12 +102,15 @@ sequenceDiagram
    pnpm --filter @repo/database db:migrate
    ```
 5. **Always provide default values** for new non-null columns (e.g. `.default(false)`, `.defaultNow()`).
+6. **MCP OAuth Schemas (`packages/database/models/mcp-oauth/`)**: Tables `oauth_clients`, `oauth_codes`, and `oauth_tokens` support RFC-compliant OAuth 2.1 client registration, authorization code grants with PKCE (`S256`), and refresh token management for the remote FastMCP server.
 
 ### B. Service Layer Workflow (`packages/services/`)
 
 - All business logic lives in `packages/services/<domain>/index.ts`.
 - **Pure Instance Methods Only (Prohibition of Static Wrappers)**: Service classes must define standard instance methods only. Never create duplicate `static` proxy methods or `private static instance` wrappers on service classes.
 - **Service Instantiation in tRPC**: Services must be instantiated and exported as shared instances in `packages/trpc/server/services/index.ts` (e.g. `export const noteService = new NoteService();`). tRPC procedures and consumers must import and call these instances directly (e.g. `noteService.getWorkspace(...)`).
+- **OAuth 2.1 Server Service (`packages/services/mcp-oauth/`)**: `OAuthServerService` manages authorization server workflows for remote MCP access: client registration, PKCE verification (`code_challenge` / `code_verifier`), authorization code exchange, refresh token lifecycles, and session access token generation.
+- **Note Management & Flexible Hierarchy (`packages/services/notes/`)**: `NoteService` methods `createChapter` and `createPage` accept optional `notebookId` and `chapterId`, automatically defaulting to the active workspace container when omitted. `getBlocks` returns blocks ordered via natural alphanumeric sorting (`localeCompare` with `numeric: true`) and tie-breaks duplicate positions by creation timestamp (`createdAt`).
 - Use `db` imported from `@repo/database`.
 - Throw `AppError` from `@repo/error` for predictable application errors.
 - Never write raw SQL where Drizzle query builder methods exist, except for external checkpoint/vector tables using `sql`.
@@ -130,6 +135,8 @@ sequenceDiagram
    - **User Toolkit Connections & 24h Redis Caching**: User accounts connected to third-party services are managed via `ToolService` (`composio.connectedAccounts`) and cached in Redis under `redis:composio:user_connections:${userId}` with a 24-hour TTL (`86400`s). Initiating a connection, deleting a connection, or detecting an active status change automatically invalidates this key to keep connections synchronized.
    - **Tool Catalog & Isolated Semantic Search Namespaces**: Tool definitions for each toolkit are synced into LangGraph's `PostgresStore` under the per-toolkit namespace `tool-catalog-${toolkit}` with text embeddings for fast, isolated semantic search. If a toolkit is missing from the Postgres store during tool selection or connection resolution, tools are fetched from Composio and automatically synced into the store for subsequent semantic search queries.
    - **Tool Output Scaling (Pointer / Artifact Store & Autonomous Distillation)**: Large tool responses (>6,000 characters) are cached in Redis with a 24-hour TTL under `redis:agent:artifact:${artifactId}` to prevent data loss. `processToolOutput` distills the output using a fast model (`gpt-4o-mini`) tailored to the user's active query turn, providing key identifiers, matching items, and an artifact reference. The agent can page or filter the raw data via the built-in `INSPECT_TOOL_ARTIFACT` tool. In addition, `sanitizeToolOutput` serves as an in-memory circuit breaker that compacts arrays and hard-caps output strings to 15,000 characters.
+   - **Remote Server MCP Tools & Encrypted Redis Token Passing**: When invoking or resuming the chat agent (`runChatAgent`, `resumeChatAgent`), user authentication tokens (`accessToken`, `refreshToken`) are extracted from tRPC cookies, encrypted with AES-256-CBC via `@repo/services/utils/encryption`, and stored in Redis under `redis:agent:tokens:${conversationId}` with a 5-minute TTL (`300`s). Inngest background events carry zero tokens to prevent credential leaks in event logs. The remote FastMCP server (`apps/mcp/src/server.ts`) registers domain tools including full notes management tools from `@repo/services/agent/mcp/tools/note` validated with strict Zod schemas for `BlockContent` and `blockType`, and the agent worker hydrates remote MCP tools using `MultiServerMCPClient` (`getMCPClient` / `getMCPServerTools` in `packages/services/agent/mcp/`) by decrypting the tokens, binding live tools to the model and `ToolNode`. Prompts, resources, and tool definitions from remote MCP servers are accessible on demand via introspection tools (`listPrompts`, `getPrompt`, `listResources`, `readResource`, `listTools`, `getTool`, `callTool` in `@repo/services/agent/tools/MCPTool`) bound to the agent in `llmCall`. Notes interactions enforce a mandatory protocol requiring the agent to call `get_mcp_prompt` (`notes_read_guidelines`, `notes_write_guidelines`, `notes_page_structure`) to retrieve structural schemas before executing read/write operations.
+   - **Zuri MCP Tools Graph Node & Parallel Multi-Tool Execution**: The main agent graph includes `fetch_zuri_mcp_tools` at initialization to populate `state.zuriMcpTools` and self-heal checkpoints if an earlier execution terminated before tool responses were recorded. Internal Zuri MCP tools bypass `riskCheck` approval checks (`needs: false`) to prevent unnecessary human confirmation interrupts for first-party workspace operations. The LLM binds tools with `{ parallel_tool_calls: true }`, allowing the agent to emit and execute multiple tool calls simultaneously in `toolsNode` (`ToolNode` with `handleToolErrors: true` and parallel `processToolOutput`) for faster turn execution. If an MCP tool call fails to produce a response in `ToolNode`, `toolsNode` executes a direct fallback call against the remote FastMCP client. Graph execution runs with `recursionLimit: 150`, and `sanitizeMessageHistory` ensures every assistant `tool_calls` message is matched with corresponding `ToolMessage` instances before invoking LLM completions.
 3. **Register routes** in `packages/trpc/server/routers/index.ts` under `serverRouter`.
 
 ### D. Inngest Background Jobs (`packages/services/inngest/`)

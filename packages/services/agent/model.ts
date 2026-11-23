@@ -3,7 +3,7 @@ import { env } from "../env";
 import { z } from "zod/v4";
 import { tavily } from "@tavily/core";
 export const model = new ChatOpenAI({
-  model: env.OPENAI_MAIN_MODEL,
+  model: "gpt-5.6-luna",
 });
 
 export const nanoModel = new ChatOpenAI({
@@ -94,7 +94,7 @@ const RiskSchema = z.object({
 });
 // Stronger model for complex risk approval decisions
 export const riskJudge = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: "gpt-5.6-luna",
   temperature: 0,
 }).withStructuredOutput(RiskSchema);
 

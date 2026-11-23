@@ -64,11 +64,22 @@ export function generatePositionBetween(
   return "a0";
 }
 
-// Sort items by fractional position string
-export function sortByPosition<T extends { position: string }>(
-  items: T[],
-): T[] {
-  return [...items].sort((a, b) =>
-    a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
-  );
+// Sort items by fractional position string with natural alphanumeric ordering and creation time tie-breaking
+export function sortByPosition<
+  T extends { position: string; createdAt?: string },
+>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    // 1. Natural alphanumeric ordering (ensures "a2" comes before "a10", "a11", etc.)
+    const cmp = a.position.localeCompare(b.position, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    if (cmp !== 0) return cmp;
+
+    // 2. Creation time tie-breaker for duplicate positions (e.g. multiple "a0" blocks)
+    if (a.createdAt && b.createdAt) {
+      return a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0;
+    }
+    return 0;
+  });
 }

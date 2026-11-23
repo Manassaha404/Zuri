@@ -29,14 +29,20 @@ export function CodeBlock({ block }: CodeBlockProps) {
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const content = block.content;
-  if (content.type !== "code") return null;
+  const rawCode =
+    typeof (block.content as any)?.code === "string"
+      ? (block.content as any).code
+      : typeof block.content === "string"
+        ? block.content
+        : block.plainText || "";
+  const language = (block.content as any)?.language || "typescript";
+  const caption = (block.content as any)?.caption;
 
   // Local buffered code — flush to store only on blur
-  const [localCode, setLocalCode] = useState(content.code);
+  const [localCode, setLocalCode] = useState(rawCode);
   useEffect(() => {
-    setLocalCode(content.code);
-  }, [content.code]);
+    setLocalCode(rawCode);
+  }, [rawCode]);
 
   // Auto-resize without changing rows — prevents shake
   useEffect(() => {
@@ -47,23 +53,27 @@ export function CodeBlock({ block }: CodeBlockProps) {
   }, [localCode]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(content.code);
+    navigator.clipboard.writeText(localCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleLanguageChange = (lang: string) => {
     updateBlockContent(block.blockId, {
-      ...content,
+      type: "code",
       language: lang,
+      code: localCode,
+      caption,
     });
   };
 
   const handleCodeBlur = () => {
     setIsEditing(false);
     updateBlockContent(block.blockId, {
-      ...content,
+      type: "code",
+      language,
       code: localCode,
+      caption,
     });
   };
 
@@ -74,7 +84,7 @@ export function CodeBlock({ block }: CodeBlockProps) {
         <div className="flex items-center gap-3">
           <Code2 className="h-5 w-5 text-[var(--m)]" />
           <select
-            value={content.language}
+            value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
             className="bg-transparent text-xs sm:text-sm font-bold text-[var(--i)] outline-none uppercase tracking-wider cursor-pointer"
           >
@@ -88,9 +98,9 @@ export function CodeBlock({ block }: CodeBlockProps) {
               </option>
             ))}
           </select>
-          {content.caption && (
+          {caption && (
             <span className="text-xs sm:text-sm text-[var(--m)] italic font-sans truncate max-w-xs">
-              — {content.caption}
+              — {caption}
             </span>
           )}
         </div>
@@ -132,7 +142,7 @@ export function CodeBlock({ block }: CodeBlockProps) {
             className="text-[var(--i)] whitespace-pre leading-[1.7] cursor-text min-h-[5em]"
           >
             <code>
-              {content.code || (
+              {localCode || (
                 <span className="text-[var(--m)]/50">
                   Click to write code...
                 </span>

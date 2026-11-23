@@ -22,8 +22,6 @@ import {
   type AvailableToolkitsOptions,
 } from "./toolService";
 import redis from "@repo/redis";
-import { isYouTubeUrl } from "./youtube";
-
 export interface AgentChatCallbacks {
   onChunk?: (chunk: string) => Promise<void> | void;
 }
@@ -35,6 +33,7 @@ export {
   loadYouTubeTranscript,
 } from "./youtube";
 export { ToolService };
+export { getMCPClient, getMCPServerTools, type MCPClientOptions } from "./mcp";
 
 class AgentService {
   static async getAllConversations(userId: string) {
@@ -290,9 +289,10 @@ class AgentService {
     if (!conversationId) {
       conversationId = crypto.randomUUID();
     }
-    // Config for passing conversation id and user id each turn
+    // Config for passing conversation id and user id each turn with high recursion limit for complex multi-tool workflows
     const config = {
       configurable: { thread_id: conversationId, user_id: userId },
+      recursionLimit: 150,
     };
 
     // Store query fileUrls and attachments in HumanMessage additional_kwargs for PostgresSaver checkpoint persistence
@@ -440,6 +440,7 @@ class AgentService {
     const { userId, conversationId, resumeValue } = payload;
     const config = {
       configurable: { thread_id: conversationId, user_id: userId },
+      recursionLimit: 150,
     };
 
     const command = new Command({ resume: resumeValue });

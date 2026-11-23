@@ -8,6 +8,7 @@ import {
   richTextToHtml,
   htmlToRichText,
   toggleRichTextFormat,
+  extractRichText,
 } from "../richTextUtils";
 import {
   Lightbulb,
@@ -51,11 +52,17 @@ export function CalloutBlock({
   const editableRef = useRef<HTMLDivElement>(null);
   const isUserEditingRef = useRef(false);
 
-  const content = block.content;
-  if (content.type !== "callout") return null;
-
-  const IconComp = (content.icon && ICON_MAP[content.icon]) || Lightbulb;
-  const color = content.color || "blue";
+  const richText = extractRichText(
+    block.content &&
+      typeof block.content === "object" &&
+      "richText" in block.content
+      ? block.content.richText
+      : block.content,
+    block.plainText,
+  );
+  const iconName = (block.content as any)?.icon || "Lightbulb";
+  const IconComp = ICON_MAP[iconName] || Lightbulb;
+  const color = (block.content as any)?.color || "blue";
 
   // Auto-focus when this block was just created
   useEffect(() => {
@@ -74,12 +81,12 @@ export function CalloutBlock({
   // Sync HTML from store
   useEffect(() => {
     if (!isUserEditingRef.current && editableRef.current) {
-      const html = richTextToHtml(content.richText);
+      const html = richTextToHtml(richText);
       if (editableRef.current.innerHTML !== html) {
         editableRef.current.innerHTML = html;
       }
     }
-  }, [content.richText]);
+  }, [richText]);
 
   const handleFocus = () => {
     isUserEditingRef.current = true;
@@ -92,8 +99,10 @@ export function CalloutBlock({
     if (editableRef.current) {
       const newRichText = htmlToRichText(editableRef.current);
       updateBlockContent(block.blockId, {
-        ...content,
+        type: "callout",
         richText: newRichText,
+        icon: iconName,
+        color,
       });
     }
   };
@@ -162,6 +171,7 @@ export function CalloutBlock({
         ref={editableRef}
         contentEditable
         suppressContentEditableWarning
+        dangerouslySetInnerHTML={{ __html: richTextToHtml(richText) }}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}

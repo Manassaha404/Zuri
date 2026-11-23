@@ -46,6 +46,12 @@ const envSchema = z.object({
   LANGCHAIN_API_KEY: z.string().optional(),
   LANGCHAIN_PROJECT: z.string().optional(),
   COMPOSIO_API_KEY: z.string(),
+  BASE_URL: z.string().default("http://localhost:8000"),
+  JWT_ACCESS_TOKEN_SERECT: z.string(),
+  JWT_REFRESH_TOKEN_SERECT: z.string(),
+  JWT_ACCESS_TOKEN_EXPIRY: z.string(),
+  JWT_REFRESH_TOKEN_EXPIRY: z.string(),
+  MCP_SERVER_URL: z.string().default("http://localhost:9000/mcp"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

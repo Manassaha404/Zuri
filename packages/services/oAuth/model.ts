@@ -11,6 +11,7 @@ export const GoogleUserInfoSchema = z.object({
 
 export const ExchangeCodeSchema = z.object({
   code: z.string(),
+  redirectUri: z.string().optional(),
 });
 
 export const GetGoogleUserInfoSchema = z.object({

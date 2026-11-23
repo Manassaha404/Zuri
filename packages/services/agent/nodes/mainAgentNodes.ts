@@ -5,18 +5,14 @@ import {
   interrupt,
   LangGraphRunnableConfig,
 } from "@langchain/langgraph";
-import { Document } from "@langchain/core/documents";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import ToolService from "../toolService";
-import { MessagesState, RagState } from "../state";
+import { MessagesState } from "../state";
 import { SystemPromptForMessageLLM, RagFinalResponsePrompt } from "../prompt";
 import {
   model,
   nanoModel,
   extractor,
-  evaluatorLLMSchema,
-  tvly,
-  refineLLMSchema,
   router,
   riskJudge,
   ragJudge,
@@ -27,11 +23,9 @@ import {
   lastOfType,
   lastTurnHadToolError,
   processToolOutput,
-  sanitizeToolOutput,
   textOf,
   trimmer,
 } from "../utils";
-import { vectorStore } from "../vectorStore";
 import { ragAgent } from "../graph";
 import { type StructuredToolInterface } from "@langchain/core/tools";
 import { composio } from "../composio";
@@ -39,6 +33,8 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import redis from "@repo/redis";
 import { store } from "../pg-for-agent";
 import { inspectArtifactTool } from "../tools/inspectArtifactTool";
+import { getLiveMCPTools, resolveMcpClient } from "../mcp";
+import { mcpTools as mcpClientTools } from "../tools/MCPTool";
 
 // Decide whether RAG is required based on file attachments or LLM evaluation
 export const decideRag: GraphNode<typeof MessagesState> = async (
@@ -66,7 +62,8 @@ export const decideRag: GraphNode<typeof MessagesState> = async (
         .catch(() => {});
     }
 
-    let ragQuery = query.trim() || "summarize document content and key takeaways";
+    let ragQuery =
+      query.trim() || "summarize document content and key takeaways";
     try {
       const summaryText = state.summery || "(none)";
       const genRes = await ragQueryGenerator.invoke(
@@ -84,7 +81,10 @@ Rules:
         ragQuery = genRes.ragQuery.trim();
       }
     } catch (err) {
-      console.error("[decideRag] error generating rag query for uploaded file:", err);
+      console.error(
+        "[decideRag] error generating rag query for uploaded file:",
+        err,
+      );
     }
 
     return { isRagRequired: true, ragQuery };
@@ -135,15 +135,64 @@ Rules:
       `User query: "${query}"\nRecent conversation summary: "${summaryText}"\nDoes answering this message require searching uploaded files/documents or knowledge base? If so, generate an optimized ragQuery containing ONLY the substantive topic to look up, eliminating all external tool actions (e.g. save to drive, send email) and formatting instructions.`,
     );
     const isRagRequired = Boolean(decision.isRagRequired);
-    const ragQuery = isRagRequired
-      ? decision.ragQuery?.trim() || query
-      : null;
+    const ragQuery = isRagRequired ? decision.ragQuery?.trim() || query : null;
     return { isRagRequired, ragQuery };
   } catch (err) {
     console.error("[ragJudge] error evaluating rag requirement:", err);
     return { isRagRequired: false, ragQuery: null };
   }
 };
+
+// Ensure all assistant messages with tool_calls have matching tool messages to satisfy model API invariants
+export function sanitizeMessageHistory(messages: any[]): any[] {
+  const result: any[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    result.push(msg);
+
+    const isAi =
+      msg instanceof AIMessage ||
+      msg?._getType?.() === "ai" ||
+      msg?.type === "ai";
+    if (isAi) {
+      const toolCalls = msg.tool_calls || [];
+      if (toolCalls.length > 0) {
+        const respondedIds = new Set<string>();
+        let j = i + 1;
+        while (j < messages.length) {
+          const next = messages[j];
+          const isTool =
+            next instanceof ToolMessage ||
+            next?._getType?.() === "tool" ||
+            next?.type === "tool" ||
+            Boolean(next?.tool_call_id);
+          if (isTool) {
+            if (next.tool_call_id) {
+              respondedIds.add(next.tool_call_id);
+            }
+            j++;
+          } else {
+            break;
+          }
+        }
+
+        for (const tc of toolCalls) {
+          if (tc.id && !respondedIds.has(tc.id)) {
+            result.push(
+              new ToolMessage({
+                content:
+                  "Error: Tool execution was interrupted or did not return a response.",
+                tool_call_id: tc.id,
+                name: tc.name || "tool",
+              }),
+            );
+          }
+        }
+      }
+    }
+  }
+  return result;
+}
 
 export const llmCall: GraphNode<typeof MessagesState> = async (
   state,
@@ -159,6 +208,7 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
       ? [lastHumanMsg]
       : [state.messages[state.messages.length - 1]];
   }
+  trimmed = sanitizeMessageHistory(trimmed);
   const lastHuman = lastOfType(state.messages, "human");
   const query = lastHuman ? textOf(lastHuman.content) : "";
 
@@ -189,6 +239,11 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
         .join("\n")
     : "No third-party accounts connected.";
 
+  const mcpServersText = state.mcpServers?.length
+    ? state.mcpServers.join(", ")
+    : "zuriMcp";
+  const conversationIdText = conversationId || "unknown";
+
   let promptValue;
   if (state.isRagRequired) {
     const lastHuman = lastOfType(state.messages, "human");
@@ -210,6 +265,8 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
 
     promptValue = await RagFinalResponsePrompt.invoke({
       date: currentDate,
+      conversationId: conversationIdText,
+      mcpServers: mcpServersText,
       ragAnswer,
       summary: summaryText,
       memories: memoriesText,
@@ -219,6 +276,8 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
   } else {
     promptValue = await SystemPromptForMessageLLM.invoke({
       date: currentDate,
+      conversationId: conversationIdText,
+      mcpServers: mcpServersText,
       summary: summaryText,
       memories: memoriesText,
       connectedAccounts: connectedAccountsText,
@@ -226,12 +285,17 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
     });
   }
 
-  // bind selected tools to model, including INSPECT_TOOL_ARTIFACT if external tools are active
+  // Fetch live MCP server tools (notes_*, etc.) so the LLM can call them directly by name
+  const liveMcpTools = await getLiveMCPTools(conversationId, userId);
+
   const toolSlugs = state.activeTools.length
     ? [...new Set([...state.activeTools, "INSPECT_TOOL_ARTIFACT"])]
     : [];
-  const tools = await resolveTools(userId, toolSlugs);
-  const runnable = tools.length ? model.bindTools(tools) : model;
+  const externalTools = await resolveTools(userId, toolSlugs);
+  const tools = [...liveMcpTools, ...mcpClientTools, ...externalTools];
+  const runnable = tools.length
+    ? model.bindTools(tools, { parallel_tool_calls: true })
+    : model;
 
   // grab response and return
   const response = await runnable.invoke(promptValue);
@@ -437,8 +501,9 @@ Rules for selecting toolkits:
 1. Prioritize user connected toolkits: Always select from "User connected toolkits" first if they can satisfy the request.
 2. Unconnected toolkits constraint: Do NOT select an unconnected toolkit from "Supported toolkits" unless it is strictly essential (the task is impossible to execute without it) or the user explicitly specified that service in their query.
 3. YouTube video Q&A exception: We have a dedicated built-in transcript RAG system for discussing, summarizing, or answering questions about YouTube videos and links. Do NOT select the "youtube" toolkit for talking about or asking questions on YouTube videos. Only select "youtube" if the user explicitly asks to manage their YouTube account (e.g. upload videos, manage playlists, like/comment).
-4. Return an empty toolkits list for general queries, chit-chat, RAG inquiries, or anything needing no external tool.
-5. Also return toolQuery: a short, tool-oriented search phrase for the action needed (e.g. "send an email", "list repositories for authenticated user"). Return empty string if no toolkit is needed.`,
+4. Notes and Notebooks exception: We have a dedicated built-in notes system via internal MCP tools (notes_*). Do NOT select any external toolkit for note-taking, notebook tasks, pages, chapters, or saving notes. Return an empty toolkits list for all note-related tasks unless the user explicitly named an external third-party service.
+5. Return an empty toolkits list for general queries, chit-chat, RAG inquiries, built-in notes tasks, or anything needing no external tool.
+6. Also return toolQuery: a short, tool-oriented search phrase for the action needed (e.g. "send an email", "list repositories for authenticated user"). Return empty string if no toolkit is needed.`,
   );
   const wanted = route.toolkits
     .map((t) => t.toLowerCase())
@@ -808,17 +873,26 @@ export const riskCheck: GraphNode<typeof MessagesState> = async (
     "INSPECT_TOOL_ARTIFACT",
   ]);
 
-  const tools = await resolveTools(
+  const conversationId = config.configurable?.thread_id;
+  const externalTools = await resolveTools(
     userId,
     calls.map((c) => c.name),
   );
+  const mcpTools = await getLiveMCPTools(conversationId, userId);
+  const tools = [...externalTools, ...mcpTools, ...mcpClientTools];
   const descOf = (name: string) =>
     tools.find((t) => t.name === name)?.description ?? "";
 
+  // Zuri MCP tools are internal first-party tools and bypass risk check approval
+  const isZuriMcpTool = (name: string) =>
+    name.startsWith("notes_") ||
+    mcpTools.some((t) => t.name === name) ||
+    mcpClientTools.some((t) => t.name === name);
+
   const verdicts = await Promise.all(
     calls.map((c) =>
-      allAllowedTools.has(c.name)
-        ? Promise.resolve({ needs: false, reason: "" }) // user said "always" earlier or cached in redis
+      allAllowedTools.has(c.name) || isZuriMcpTool(c.name)
+        ? Promise.resolve({ needs: false, reason: "" }) // pre-approved or internal Zuri MCP tool
         : judgeCall(c.name, descOf(c.name), c.args, state.tainted),
     ),
   );
@@ -949,15 +1023,27 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
     );
 
   let ran: any[] = [];
+  const conversationId = config.configurable?.thread_id;
+  let mcpTools: StructuredToolInterface[] = [];
+
   if (approved.length) {
-    const tools = await resolveTools(userId, state.activeTools);
-    // ToolNode runs the tool calls of the last AI message, so give it one with only the approved calls
+    const neededSlugs = [
+      ...new Set([
+        ...state.activeTools,
+        ...approved.map((c) => c.name),
+        "INSPECT_TOOL_ARTIFACT",
+      ]),
+    ];
+    const externalTools = await resolveTools(userId, neededSlugs);
+    mcpTools = await getLiveMCPTools(conversationId, userId);
+    const tools = [...externalTools, ...mcpTools, ...mcpClientTools];
+    // ToolNode runs the tool calls of the last AI message in parallel with error isolation
     const onlyApproved = new AIMessage({
       content: last.content,
       tool_calls: approved,
       id: last.id,
     } as any);
-    const out = await new ToolNode(tools).invoke(
+    const out = await new ToolNode(tools, { handleToolErrors: true }).invoke(
       { ...state, messages: [onlyApproved] },
       config,
     );
@@ -988,8 +1074,61 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
       }),
     );
   }
+  const respondedIds = new Set([
+    ...ran.map((m: any) => m.tool_call_id),
+    ...deniedMsgs.map((m: any) => m.tool_call_id),
+  ]);
+  const lastHuman = lastOfType(state.messages, "human");
+  const query = lastHuman ? textOf(lastHuman.content) : "";
+
+  const unrespondedCalls = calls.filter((c) => c.id && !respondedIds.has(c.id));
+  const fallbackMsgs = await Promise.all(
+    unrespondedCalls.map(async (c) => {
+      // Execute unresponded MCP calls directly via remote client
+      if (
+        c.name.startsWith("notes_") ||
+        mcpTools.some((t) => t.name === c.name)
+      ) {
+        try {
+          const client = await resolveMcpClient(
+            "zuriMcp",
+            conversationId,
+            undefined,
+            userId,
+          );
+          const res = await client.callTool({
+            name: c.name,
+            arguments: c.args ?? {},
+          });
+          const finalContent = await processToolOutput(
+            c.name,
+            JSON.stringify(res),
+            query,
+          );
+          return new ToolMessage({
+            content: finalContent,
+            tool_call_id: c.id!,
+            name: c.name,
+          });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return new ToolMessage({
+            content: `Error executing MCP tool ${c.name}: ${message}`,
+            tool_call_id: c.id!,
+            name: c.name,
+          });
+        }
+      }
+      return new ToolMessage({
+        content: "Error: Tool execution failed to produce a response.",
+        tool_call_id: c.id!,
+        name: c.name,
+      });
+    }),
+  );
+
   return {
-    messages: [...ran, ...deniedMsgs],
+    messages: [...ran, ...deniedMsgs, ...fallbackMsgs],
     tainted: state.tainted || approved.length > 0,
   };
 };
@@ -1008,5 +1147,3 @@ export const afterLlm = (s: typeof MessagesState.State) => {
 
 export const afterRisk = (s: typeof MessagesState.State) =>
   s.pending.length ? "approve" : "tools";
-
-// rag graph nodes

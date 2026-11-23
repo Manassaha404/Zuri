@@ -13,8 +13,6 @@ import {
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
-
-import { encrypt } from "../utils/encryption";
 import { hashToken } from "../utils/tokenHash";
 
 class OauthService {
@@ -43,19 +41,28 @@ class OauthService {
     return candidate;
   }
 
-  public getGoogleAuthUrl(): string {
+  public getGoogleAuthUrl(options?: {
+    redirectUri?: string;
+    state?: string;
+  }): string {
     const params = new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID,
-      redirect_uri: env.GOOGLE_CALLBACK_URL,
+      redirect_uri: options?.redirectUri || env.GOOGLE_CALLBACK_URL,
       response_type: "code",
       scope: "openid email profile",
       access_type: "offline", // to get refresh_token
       prompt: "consent", // force consent to always get refresh_token
     });
+    if (options?.state) {
+      params.set("state", options.state);
+    }
     return `${GOOGLE_AUTH_URL}?${params.toString()}`;
   }
 
-  public async exchangeCodeForTokens({ code }: ExchangeCodeParams): Promise<{
+  public async exchangeCodeForTokens({
+    code,
+    redirectUri,
+  }: ExchangeCodeParams): Promise<{
     access_token: string;
     refresh_token?: string;
   }> {
@@ -66,15 +73,15 @@ class OauthService {
         code,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: env.GOOGLE_CALLBACK_URL,
+        redirect_uri: redirectUri || env.GOOGLE_CALLBACK_URL,
         grant_type: "authorization_code",
       }),
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = (await res.json().catch(() => ({}))) as Record<string, any>;
       throw new AppError(
         "INTERNAL_SERVER_ERROR",
-        `Token exchange failed: ${err.error_description}`,
+        `Token exchange failed: ${err.error_description || err.error || res.statusText}`,
       );
     }
     return res.json();

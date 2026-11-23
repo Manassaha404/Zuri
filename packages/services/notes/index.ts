@@ -333,7 +333,7 @@ export class NoteService {
   public async createChapter(
     userId: string,
     data: {
-      notebookId: string;
+      notebookId?: string;
       title?: string;
       icon?: string;
       color?: string;
@@ -341,14 +341,27 @@ export class NoteService {
       summary?: string;
     },
   ) {
-    await this.verifyNotebookOwner(data.notebookId, userId);
+    let notebookId = data.notebookId;
+    if (!notebookId) {
+      const ws = await this.getWorkspace(userId);
+      const firstNb = ws.notebooks[0];
+      if (!firstNb) {
+        throw new AppError(
+          "NOT_FOUND",
+          "No active notebook found in workspace",
+        );
+      }
+      notebookId = firstNb.notebookId;
+    }
+
+    await this.verifyNotebookOwner(notebookId, userId);
 
     let position = data.position;
     if (!position) {
       const [last] = await db
         .select({ position: chapters.position })
         .from(chapters)
-        .where(eq(chapters.notebookId, data.notebookId))
+        .where(eq(chapters.notebookId, notebookId))
         .orderBy(desc(chapters.position))
         .limit(1);
       position = last?.position ? `${last.position}V` : "a0";
@@ -366,7 +379,7 @@ export class NoteService {
     const [created] = await db
       .insert(chapters)
       .values({
-        notebookId: data.notebookId,
+        notebookId,
         fileDockId: dock?.fileDockId,
         title: data.title?.trim() || "Untitled chapter",
         icon: data.icon,
@@ -485,22 +498,63 @@ export class NoteService {
   public async createPage(
     userId: string,
     data: {
-      chapterId: string;
-      notebookId: string;
+      chapterId?: string;
+      notebookId?: string;
       title?: string;
       summary?: string;
       position?: string;
     },
   ) {
-    await this.verifyChapterOwner(data.chapterId, userId);
-    await this.verifyNotebookOwner(data.notebookId, userId);
+    let chapterId = data.chapterId;
+    let notebookId = data.notebookId;
+
+    if (chapterId) {
+      const chapter = await this.verifyChapterOwner(chapterId, userId);
+      notebookId = notebookId || chapter.notebookId;
+    } else if (notebookId) {
+      await this.verifyNotebookOwner(notebookId, userId);
+      const [firstChapter] = await db
+        .select()
+        .from(chapters)
+        .where(
+          and(
+            eq(chapters.notebookId, notebookId),
+            eq(chapters.isArchived, false),
+          ),
+        )
+        .orderBy(asc(chapters.position))
+        .limit(1);
+
+      if (!firstChapter) {
+        throw new AppError(
+          "NOT_FOUND",
+          "No chapter found in specified notebook",
+        );
+      }
+      chapterId = firstChapter.chapterId;
+    } else {
+      const ws = await this.getWorkspace(userId);
+      const firstNb = ws.notebooks[0];
+      const firstCh = ws.chapters[0];
+      if (!firstNb || !firstCh) {
+        throw new AppError(
+          "NOT_FOUND",
+          "No active notebook or chapter found in workspace",
+        );
+      }
+      notebookId = firstNb.notebookId;
+      chapterId = firstCh.chapterId;
+    }
+
+    await this.verifyChapterOwner(chapterId, userId);
+    await this.verifyNotebookOwner(notebookId, userId);
 
     let position = data.position;
     if (!position) {
       const [last] = await db
         .select({ position: pages.position })
         .from(pages)
-        .where(eq(pages.chapterId, data.chapterId))
+        .where(eq(pages.chapterId, chapterId))
         .orderBy(desc(pages.position))
         .limit(1);
       position = last?.position ? `${last.position}V` : "a0";
@@ -509,8 +563,8 @@ export class NoteService {
     const [created] = await db
       .insert(pages)
       .values({
-        chapterId: data.chapterId,
-        notebookId: data.notebookId,
+        chapterId,
+        notebookId,
         title: data.title?.trim() || "Untitled",
         summary: data.summary,
         position,
@@ -643,11 +697,19 @@ export class NoteService {
   public async getBlocks(pageId: string, userId: string) {
     await this.verifyPageOwner(pageId, userId);
 
-    return await db
+    const rows = await db
       .select()
       .from(blocks)
-      .where(eq(blocks.pageId, pageId))
-      .orderBy(asc(blocks.position));
+      .where(eq(blocks.pageId, pageId));
+
+    return rows.sort((a, b) => {
+      const cmp = a.position.localeCompare(b.position, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      if (cmp !== 0) return cmp;
+      return a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0;
+    });
   }
 
   public async createBlock(

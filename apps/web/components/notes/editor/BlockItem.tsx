@@ -3,7 +3,7 @@
 // Block wrapper — smooth drag & drop motion reordering, beside-block aligned handles, middle formatting toolbar, options dropdown
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Block, BlockType } from "../types";
+import { Block, BlockType, BlockContent } from "../types";
 import { useNotesStore } from "@/store/notesStore";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { BlockFormattingToolbar } from "./BlockFormattingToolbar";
@@ -130,13 +130,10 @@ export function BlockItem({
     ) as HTMLElement | null;
     if (editableEl) {
       const newRichText = htmlToRichText(editableEl);
-      const currContent = block.content;
-      if ("richText" in currContent) {
-        updateBlockContent(block.blockId, {
-          ...currContent,
-          richText: newRichText,
-        });
-      }
+      updateBlockContent(block.blockId, {
+        type: block.type,
+        richText: newRichText,
+      } as BlockContent);
     }
   };
 

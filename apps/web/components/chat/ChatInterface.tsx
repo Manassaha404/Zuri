@@ -232,19 +232,21 @@ export function ChatInterface({
         />
       ) : (
         <div className="ms flex-1 no-scrollbar">
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              darkMode={darkMode}
-              copiedId={copiedId}
-              showAvatar={message.id === lastAssistantMessageId}
-              isStreaming={message.id === streamingMessageId}
-              onCopy={(msg) => void copyMessage(msg)}
-              onPin={(msg) => onPinMessage(msg.content.slice(0, 70))}
-              onRetry={() => void sendMessage()}
-            />
-          ))}
+          {messages
+            .filter((m) => m.content != "")
+            .map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                darkMode={darkMode}
+                copiedId={copiedId}
+                showAvatar={message.id === lastAssistantMessageId}
+                isStreaming={message.id === streamingMessageId}
+                onCopy={(msg) => void copyMessage(msg)}
+                onPin={(msg) => onPinMessage(msg.content.slice(0, 70))}
+                onRetry={() => void sendMessage()}
+              />
+            ))}
 
           {isThinking && (
             <div className="flex items-center gap-2.5 py-1 animate-in fade-in duration-300">
