@@ -21,3 +21,6 @@ export * from "./file-dock/files";
 export * from "./mcp-oauth/clients";
 export * from "./mcp-oauth/codes";
 export * from "./mcp-oauth/tokens";
+
+// Habits
+export * from "./habits";

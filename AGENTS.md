@@ -91,7 +91,9 @@ sequenceDiagram
 
 ### A. Database Schema & Migration Workflow
 
-1. **Edit or create models** in `packages/database/models/<table-name>.ts`.
+- **Table-Per-File Isolation Standard (Zero Exceptions)**: Every database table schema must be defined in its own dedicated file under `packages/database/models/` (or within a domain subdirectory such as `packages/database/models/<domain>/<table-name>.ts`). Agents must **NEVER** combine multiple `pgTable` definitions into a single file. Every model file must exclusively define and export its `pgTable`, its inferred types (`$inferSelect`, `$inferInsert`), and any related table indexes, and be re-exported through `packages/database/models/index.ts`.
+
+1. **Edit or create models** in `packages/database/models/<table-name>.ts` or `packages/database/models/<domain>/<table-name>.ts`.
 2. **Export schemas** in `packages/database/models/index.ts` and `packages/database/schema.ts`.
 3. **Generate migration SQL**:
    ```bash
@@ -103,6 +105,7 @@ sequenceDiagram
    ```
 5. **Always provide default values** for new non-null columns (e.g. `.default(false)`, `.defaultNow()`).
 6. **MCP OAuth Schemas (`packages/database/models/mcp-oauth/`)**: Tables `oauth_clients`, `oauth_codes`, and `oauth_tokens` support RFC-compliant OAuth 2.1 client registration, authorization code grants with PKCE (`S256`), and refresh token management for the remote FastMCP server.
+7. **Habit Tracker Schemas (`packages/database/models/habits/`)**: Tables `habits`, `habit_check_ins`, and `habit_streak_freezes` each defined in dedicated separate files to manage daily routines, numerical tracking, clean counters, and streak freeze protections.
 
 ### B. Service Layer Workflow (`packages/services/`)
 
@@ -110,6 +113,7 @@ sequenceDiagram
 - **Pure Instance Methods Only (Prohibition of Static Wrappers)**: Service classes must define standard instance methods only. Never create duplicate `static` proxy methods or `private static instance` wrappers on service classes.
 - **Service Instantiation in tRPC**: Services must be instantiated and exported as shared instances in `packages/trpc/server/services/index.ts` (e.g. `export const noteService = new NoteService();`). tRPC procedures and consumers must import and call these instances directly (e.g. `noteService.getWorkspace(...)`).
 - **OAuth 2.1 Server Service (`packages/services/mcp-oauth/`)**: `OAuthServerService` manages authorization server workflows for remote MCP access: client registration, PKCE verification (`code_challenge` / `code_verifier`), authorization code exchange, refresh token lifecycles, and session access token generation.
+- **Habit Tracking & Routines Service (`packages/services/habits/`)**: `HabitService` manages complete habit tracking lifecycle: habit creation/updates, status transitions (pause, resume, archive), daily check-in toggles, numeric target progression, negative clean counters, streak freeze protections, and sequential habit stacking routines.
 - **Note Management & Flexible Hierarchy (`packages/services/notes/`)**: `NoteService` methods `createChapter` and `createPage` accept optional `notebookId` and `chapterId`, automatically defaulting to the active workspace container when omitted. `getBlocks` returns blocks ordered via natural alphanumeric sorting (`localeCompare` with `numeric: true`) and tie-breaks duplicate positions by creation timestamp (`createdAt`).
 - Use `db` imported from `@repo/database`.
 - Throw `AppError` from `@repo/error` for predictable application errors.
@@ -131,6 +135,7 @@ sequenceDiagram
    - Always wrap execution in `try / catch` and call `handleRouteError(error)`.
    - Agent procedures: `getUserMemories`, `createUserMemory`, `updateUserMemory`, `deleteUserMemory`, `getAvailableToolkits`, `getToolkitCategories`, `getUserConnectedAccounts`, `initiateToolkitConnection`, `disconnectToolkit`, `checkToolkitConnectionStatus`, `refreshUserConnectedAccounts`, `resumeChatAgent`.
    - Notes procedures (`packages/trpc/server/routes/notes/`): `getWorkspace`, `getNotebooks`, `createNotebook`, `updateNotebook`, `archiveNotebook`, `restoreNotebook`, `deleteNotebookPermanently`, `reorderNotebook`, `getChapters`, `createChapter`, `updateChapter`, `toggleFavoriteChapter`, `archiveChapter`, `restoreChapter`, `deleteChapterPermanently`, `reorderChapter`, `getPages`, `getPageById`, `createPage`, `updatePage`, `togglePinPage`, `movePage`, `archivePage`, `restorePage`, `deletePagePermanently`, `reorderPage`, `getBlocks`, `createBlock`, `updateBlock`, `deleteBlock`, `autosavePage`, `getDiagram`, `saveDiagram`, `deleteDiagram`, `getChapterFileDock`, `addDockFile`, `deleteDockFile`, `createDockFolder`, `deleteDockFolder`, `searchNotes`, `getTrash`, `getLinkPreview`.
+   - Habits procedures (`packages/trpc/server/routes/habits/`): `getWorkspace`, `getHabits`, `getHabitById`, `createHabit`, `updateHabit`, `archiveHabit`, `pauseHabit`, `resumeHabit`, `deleteHabit`, `toggleCheckIn`, `setNumericValue`, `resetCleanStreak`, `applyStreakFreeze`, `addCheckInNote`, `createHabitStack`, `reorderRoutineStack`, `deleteHabitStack`.
    - **Notes System & Atomic Autosave (`packages/services/notes/`)**: `NoteService` provides complete workspace hierarchy management (notebooks, chapters, pages, blocks, diagrams, and chapter file docks). `autosavePage` performs atomic debounced batch reconciliation of page title, summary, and blocks in a single operation. The frontend autosave strategy couples a 1.5s Idle Debounce (1-2s window) with a 6s Max-Wait Throttle (5-10s window) to safeguard continuous typing against browser crashes or network dropouts. When new users initialize `/notes`, `getWorkspace` automatically provisions a default starter notebook, chapter, and blank page. Chapter file docks link directly to `file_docks` and `file_dock_files` to manage Cloudinary attachments, provisioning `file_docks` records on-demand using the chapter name only when a file is uploaded (without folder scaffolding).
    - **User Toolkit Connections & 24h Redis Caching**: User accounts connected to third-party services are managed via `ToolService` (`composio.connectedAccounts`) and cached in Redis under `redis:composio:user_connections:${userId}` with a 24-hour TTL (`86400`s). Initiating a connection, deleting a connection, or detecting an active status change automatically invalidates this key to keep connections synchronized.
    - **Tool Catalog & Isolated Semantic Search Namespaces**: Tool definitions for each toolkit are synced into LangGraph's `PostgresStore` under the per-toolkit namespace `tool-catalog-${toolkit}` with text embeddings for fast, isolated semantic search. If a toolkit is missing from the Postgres store during tool selection or connection resolution, tools are fetched from Composio and automatically synced into the store for subsequent semantic search queries.

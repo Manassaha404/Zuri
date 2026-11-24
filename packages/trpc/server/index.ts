@@ -5,6 +5,7 @@ import { uploadRouter } from "./routes/upload/route";
 import { router } from "./trpc";
 import { agentRouter } from "./routes/agent/route";
 import { notesRouter } from "./routes/notes/route";
+import { habitsRouter } from "./routes/habits/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -12,6 +13,7 @@ export const serverRouter = router({
   upload: uploadRouter,
   agent: agentRouter,
   notes: notesRouter,
+  habits: habitsRouter,
 });
 
 export { createContext } from "./context";

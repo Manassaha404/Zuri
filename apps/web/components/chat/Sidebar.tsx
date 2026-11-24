@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -8,6 +7,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Flame,
   HelpCircle,
   LogOut,
   Moon,
@@ -392,6 +392,7 @@ export function Sidebar({
 
               <Link
                 href="/notes"
+                replace
                 onClick={closeMobile}
                 className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
                 title="Notes & Documentation Workspace"
@@ -399,6 +400,19 @@ export function Sidebar({
                 <div className="flex items-center gap-2">
                   <BookOpen size={14} className="text-[#10b981]" />
                   <span className="font-medium">Notes & Docs</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/habits"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Habit Tracker & Daily Routines"
+              >
+                <div className="flex items-center gap-2">
+                  <Flame size={14} className="text-[#f97316]" />
+                  <span className="font-medium">Habit Tracker</span>
                 </div>
               </Link>
             </div>
@@ -785,11 +799,22 @@ export function Sidebar({
 
                   <Link
                     href="/notes"
+                    replace
                     onClick={() => setUserDropdownOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
                   >
                     <BookOpen size={15} className="text-[#10b981]" />
                     <span>Notes & Docs</span>
+                  </Link>
+
+                  <Link
+                    href="/habits"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Flame size={15} className="text-[#f97316]" />
+                    <span>Habit Tracker</span>
                   </Link>
 
                   <button
@@ -910,11 +935,22 @@ export function Sidebar({
 
               <Link
                 href="/notes"
+                replace
                 onClick={closeMobile}
                 title="Notes & Docs"
                 className="ib flex items-center justify-center no-underline"
               >
                 <BookOpen size={16} className="text-[#10b981]" />
+              </Link>
+
+              <Link
+                href="/habits"
+                replace
+                onClick={closeMobile}
+                title="Habit Tracker"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Flame size={16} className="text-[#f97316]" />
               </Link>
             </div>
 

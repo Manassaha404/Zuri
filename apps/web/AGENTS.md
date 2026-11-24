@@ -188,7 +188,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 > **STRICT ZUSTAND STORE LOCATION RULE (ZERO EXCEPTIONS)**:
 > **EVERY Zustand store in `apps/web` MUST be located directly inside `apps/web/store/` without exception.**
 >
-> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, and `diagramStudioStore.ts`.
+> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, and `habitStore.ts`.
 > - **ABSOLUTELY NO STORES OUTSIDE `apps/web/store/`**: Feature directories and component folders (e.g. `components/notes/`, `components/notes/diagrams/canvas-studio/`, etc.) must **NEVER** contain store files. All state stores must live strictly in `apps/web/store/`.
 > - **Index Export**: Every store must be exported from `apps/web/store/index.ts` and imported across the app via `@/store/<storeName>` or `@/store`.
 > - **Naming Standard**: All stores follow the `<feature>Store.ts` file naming convention with corresponding `use<Feature>Store` hook export.
@@ -212,6 +212,10 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 - **Diagram Studio Store (`apps/web/store/diagramStudioStore.ts`)**:
   - `useDiagramStudioStore` manages canvas state for the diagram canvas: element tree, multi-element selection, pan (`panX`, `panY`), zoom, grid modes (`dots`, `lines`), smart guide alignment calculations (`calculateSmartGuides`), anchor snap targets, and connector routing.
   - Located strictly in `apps/web/store/diagramStudioStore.ts` and exported via `@/store/diagramStudioStore` and `@/store/index.ts`.
+- **Habit Tracker Store (`apps/web/store/habitStore.ts`) & Habit Hooks (`apps/web/hook/habits/`)**:
+  - `useHabitStore` manages habit records, daily check-in histories, numeric target progression, negative clean counters, habit stacking routines, and streak freezes with local storage persistence.
+  - Located strictly in `apps/web/store/habitStore.ts` and exported via `@/store/habitStore` and `@/store/index.ts`.
+  - `useHabits`: Coordinates habit workspace synchronization via `trpc.habits.getWorkspace`, providing typed optimistic local mutations and backend persistence for habits, daily check-ins, numeric counters, streak freezes, and routine stacks.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`, `apps/web/lib/youtube.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
   - YouTube video links can be pasted into the chat composer, attached via the YouTube link button, or pasted within query text. YouTube transcripts are ingested as timestamped RAG documents.

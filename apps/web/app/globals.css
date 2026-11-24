@@ -1268,3 +1268,81 @@ main {
   scrollbar-width: thin;
   scrollbar-color: var(--h) transparent;
 }
+
+/* Habit Tracker & Universal sleek modern scrollbars */
+.habits-app *::-webkit-scrollbar,
+.habits-scrollbar::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.habits-app *::-webkit-scrollbar-track,
+.habits-scrollbar::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.habits-app *::-webkit-scrollbar-thumb,
+.habits-scrollbar::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background-color: var(--h);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.15s ease;
+}
+
+.habits-app *::-webkit-scrollbar-thumb:hover,
+.habits-scrollbar::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--m);
+}
+
+.habits-app,
+.habits-app *,
+.habits-scrollbar,
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--h) transparent;
+}
+
+/* Habit icon picker sleek custom scrollbar */
+.habit-icon-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.habit-icon-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.habit-icon-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--h);
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+.habit-icon-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--m);
+}
+
+.habit-icon-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--h) transparent;
+}
+
+/* Ensure no-scrollbar overrides universal scrollbar rules */
+.no-scrollbar,
+.no-scrollbar * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.no-scrollbar *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

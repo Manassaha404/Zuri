@@ -68,6 +68,7 @@ export function NotesSidebar() {
         <div className="flex flex-col items-center gap-3.5">
           <Link
             href="/"
+            replace
             className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--m)] hover:bg-[var(--bg)] hover:text-[var(--i)] transition-colors shadow-2xs"
             title="Back to AI Chat"
           >
@@ -130,6 +131,7 @@ export function NotesSidebar() {
           {/* Back to AI Chat */}
           <Link
             href="/"
+            replace
             className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold text-[var(--b)] hover:bg-[var(--bg)] hover:text-[var(--i)] transition-colors no-underline"
           >
             <div className="flex items-center gap-2.5">
