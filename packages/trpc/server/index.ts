@@ -6,6 +6,7 @@ import { router } from "./trpc";
 import { agentRouter } from "./routes/agent/route";
 import { notesRouter } from "./routes/notes/route";
 import { habitsRouter } from "./routes/habits/route";
+import { expensesRouter } from "./routes/expenses/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -14,6 +15,7 @@ export const serverRouter = router({
   agent: agentRouter,
   notes: notesRouter,
   habits: habitsRouter,
+  expenses: expensesRouter,
 });
 
 export { createContext } from "./context";

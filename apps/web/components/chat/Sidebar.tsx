@@ -22,6 +22,7 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  Wallet,
   X,
 } from "lucide-react";
 import {
@@ -413,6 +414,19 @@ export function Sidebar({
                 <div className="flex items-center gap-2">
                   <Flame size={14} className="text-[#f97316]" />
                   <span className="font-medium">Habit Tracker</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/expenses"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Personal Expenses & Debt Ledger"
+              >
+                <div className="flex items-center gap-2">
+                  <Wallet size={14} className="text-[#10b981]" />
+                  <span className="font-medium">Expenses & Debts</span>
                 </div>
               </Link>
             </div>
@@ -817,6 +831,16 @@ export function Sidebar({
                     <span>Habit Tracker</span>
                   </Link>
 
+                  <Link
+                    href="/expenses"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Wallet size={15} className="text-[#10b981]" />
+                    <span>Expenses & Debts</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -951,6 +975,16 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Flame size={16} className="text-[#f97316]" />
+              </Link>
+
+              <Link
+                href="/expenses"
+                replace
+                onClick={closeMobile}
+                title="Personal Expenses & Debt Ledger"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Wallet size={16} className="text-[#10b981]" />
               </Link>
             </div>
 

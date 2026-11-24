@@ -234,7 +234,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 > **STRICT ZUSTAND STORE LOCATION RULE (ZERO EXCEPTIONS)**:
 > **EVERY Zustand store in `apps/web` MUST be located directly inside `apps/web/store/` without exception.**
 >
-> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, and `habitStore.ts`.
+> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, `habitStore.ts`, and `expenseStore.ts`.
 > - **ABSOLUTELY NO STORES OUTSIDE `apps/web/store/`**: Feature directories and component folders (e.g. `components/notes/`, `components/notes/diagrams/canvas-studio/`, etc.) must **NEVER** contain store files. All state stores must live strictly in `apps/web/store/`.
 > - **Index Export**: Every store must be exported from `apps/web/store/index.ts` and imported across the app via `@/store/<storeName>` or `@/store`.
 > - **Naming Standard**: All stores follow the `<feature>Store.ts` file naming convention with corresponding `use<Feature>Store` hook export.
@@ -263,6 +263,10 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - Located strictly in `apps/web/store/habitStore.ts` and exported via `@/store/habitStore` and `@/store/index.ts`.
   - `useHabits`: Coordinates habit workspace synchronization via `trpc.habits.getWorkspace`, providing typed optimistic local mutations and backend persistence for habits, daily check-ins, numeric counters, streak freezes, and routine stacks.
   - **Hook-First Data Access Rule (Zero Exceptions)**: When custom hooks are created for a feature domain (such as `useHabits` in `apps/web/hook/habits/`), all components must consume data and dispatch mutations exclusively through the domain hook — never reading or mutating entity data directly from local storage, in-memory state, or raw store entity collections. Zustand stores in persistent domains must only persist UI preferences/session state (e.g. `selectedDate`, `activeFilter`, `activeTab`, `viewMode`) via `partialize`, while entity data and operations flow through dedicated hooks.
+- **Personal Expenses & Debt Ledger Store (`apps/web/store/expenseStore.ts`) & Expenses Hooks (`apps/web/hook/expenses/`)**:
+  - `useExpenseStore` manages cash flow transactions, payment accounts, monthly budgets, debt ledger IOU records, partial repayments, bill splits, and group simplified debts.
+  - Located strictly in `apps/web/store/expenseStore.ts` and exported via `@/store/expenseStore` and `@/store/index.ts`.
+  - `useExpenses`: Coordinates expense workspace synchronization via `trpc.expenses.getWorkspace` and provides optimistic local mutations with full tRPC backend persistence for all transactions, debt entries, accounts, budgets, and bill splits.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`, `apps/web/lib/youtube.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
   - YouTube video links can be pasted into the chat composer, attached via the YouTube link button, or pasted within query text. YouTube transcripts are ingested as timestamped RAG documents.

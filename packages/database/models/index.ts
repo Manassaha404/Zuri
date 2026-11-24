@@ -24,3 +24,6 @@ export * from "./mcp-oauth/tokens";
 
 // Habits
 export * from "./habits";
+
+// Personal Expenses & Debt Ledger
+export * from "./expenses";

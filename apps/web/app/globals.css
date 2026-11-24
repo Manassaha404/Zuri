@@ -1346,3 +1346,15 @@ body {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* Hide number input spinners / scroll indicators */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
