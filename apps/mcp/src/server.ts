@@ -5,8 +5,10 @@ import AuthServices from "@repo/services/auth";
 import { oAuthServerService } from "@repo/services/mcp-oauth";
 import { registerNoteTools } from "@repo/services/agent/mcp/tools/note";
 import { registerHabitTools } from "@repo/services/agent/mcp/tools/habit";
+import { registerExpenseTools } from "@repo/services/agent/mcp/tools/expense";
 import { registerNotePrompts } from "@repo/services/agent/mcp/prompts/notes";
 import { registerHabitPrompts } from "@repo/services/agent/mcp/prompts/habits";
+import { registerExpensePrompts } from "@repo/services/agent/mcp/prompts/expenses";
 import { oauthRoutes } from "./routes/oauth";
 import { authRoutes } from "./routes/auth";
 import logger from "@repo/logger/logger";
@@ -168,10 +170,12 @@ export const mcpServer = new FastMCP<MCPUserSession>({
 // Register tools
 registerNoteTools(mcpServer);
 registerHabitTools(mcpServer);
+registerExpenseTools(mcpServer);
 
 // Register prompts
 registerNotePrompts(mcpServer);
 registerHabitPrompts(mcpServer);
+registerExpensePrompts(mcpServer);
 
 const app = mcpServer.getApp();
 app.use("*", async (c, next) => {
