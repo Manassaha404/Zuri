@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { Habit, MoodType } from "@/components/habits/types";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 import { formatFullDate } from "@/lib/habitUtils";
 
@@ -26,7 +27,8 @@ export function HabitCheckinNoteModal({
   onClose,
   habit,
 }: HabitCheckinNoteModalProps) {
-  const { selectedDate, checkIns, addCheckInNote } = useHabitStore();
+  const selectedDate = useHabitStore((s) => s.selectedDate);
+  const { checkIns, addCheckInNote } = useHabits();
 
   const [note, setNote] = useState("");
   const [skipReason, setSkipReason] = useState("");

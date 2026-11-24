@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useUIStore } from "@/store/uiStore";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore, type HabitWorkspaceTab } from "@/store/habitStore";
 import { getTodayKey } from "@/lib/habitUtils";
 
@@ -26,15 +27,8 @@ interface HabitsHeaderProps {
 
 export function HabitsHeader({ onOpenCreateModal }: HabitsHeaderProps) {
   const { darkMode, toggleTheme } = useUIStore();
-  const {
-    habits,
-    checkIns,
-    streakFreezes,
-    activeTab,
-    setActiveTab,
-    viewMode,
-    setViewMode,
-  } = useHabitStore();
+  const { activeTab, setActiveTab, viewMode, setViewMode } = useHabitStore();
+  const { habits, checkIns, streakFreezes } = useHabits();
 
   const todayKey = getTodayKey();
 

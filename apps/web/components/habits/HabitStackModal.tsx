@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { Habit } from "@/components/habits/types";
 import { HabitIcon } from "./HabitIcon";
-import { useHabitStore } from "@/store/habitStore";
+import { useHabits } from "@/hook/habits";
 
 interface HabitStackModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export function HabitStackModal({
   onClose,
   initialRoutineTitle,
 }: HabitStackModalProps) {
-  const { habits, createHabitStack, reorderRoutineStack } = useHabitStore();
+  const { habits, createHabitStack, reorderRoutineStack } = useHabits();
 
   const [title, setTitle] = useState("");
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);

@@ -376,6 +376,12 @@ export const useHabitStore = create<HabitState>()(
     {
       name: "zuri-habits-storage-v2",
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        selectedDate: state.selectedDate,
+        activeFilter: state.activeFilter,
+        activeTab: state.activeTab,
+        viewMode: state.viewMode,
+      }),
     },
   ),
 );

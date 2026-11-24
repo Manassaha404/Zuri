@@ -3,6 +3,7 @@
 
 import { X, Shield, Sparkles, Check } from "lucide-react";
 import type { Habit } from "@/components/habits/types";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 import { formatFullDate, calculateHabitStats } from "@/lib/habitUtils";
 
@@ -17,8 +18,8 @@ export function HabitFreezeModal({
   onClose,
   habit,
 }: HabitFreezeModalProps) {
-  const { selectedDate, checkIns, streakFreezes, applyStreakFreeze } =
-    useHabitStore();
+  const selectedDate = useHabitStore((s) => s.selectedDate);
+  const { checkIns, streakFreezes, applyStreakFreeze } = useHabits();
 
   if (!isOpen || !habit) return null;
 

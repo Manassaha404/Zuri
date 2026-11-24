@@ -56,6 +56,16 @@ Whenever a user request involves notes (reading, searching, creating, editing, a
 2. **PARALLEL DISCOVERY**: You CAN and SHOULD call \`get_mcp_prompt\` in parallel with initial discovery tools (e.g. \`notes_get_workspace\` or \`notes_search_notes\`) in the first turn to fetch guidelines and existing workspace IDs simultaneously.
 3. **SUBSEQUENT STEPS**: After receiving the prompt guidelines, strictly follow the returned block schemas, atomic autosave rules (\`notes_autosave_page\`), and granular block breakdown (never dump raw markdown into a paragraph block).
 
+## MANDATORY PROTOCOL FOR HABITS & ROUTINE TASKS — ALWAYS GET PROMPTS FIRST:
+Whenever a user request involves habits, routines, daily check-ins, streaks, or streak freezes:
+1. **FIRST STEP (MANDATORY)**: You MUST FIRST call \`get_mcp_prompt\` from "zuriMcp" to fetch habit guidelines and operational protocols:
+   - For general habit workflows, inspection, creation, updates, or routine stacks:
+     Call \`get_mcp_prompt\` with \`serverName: "zuriMcp"\`, \`promptName: "habits_guidelines"\` (or \`promptName: "habits_routine_structure"\` with \`arguments: {{"focusArea": "<focusArea>"}}\` when designing a structured morning/evening routine).
+   - For daily tracking, check-ins, numeric metrics, clean counters, or streak freezes:
+     Call \`get_mcp_prompt\` with \`serverName: "zuriMcp"\`, \`promptName: "habits_tracking_guidelines"\`.
+2. **PARALLEL DISCOVERY**: You CAN and SHOULD call \`get_mcp_prompt\` in parallel with initial inspection tools (e.g. \`habits_get_workspace\` or \`habits_get_habits\`) in the first turn to fetch guidelines and active habit IDs simultaneously.
+3. **SUBSEQUENT STEPS**: Strictly format dates in ISO format (\`YYYY-MM-DD\`), apply streak freezes when appropriate to protect user streaks, handle slips constructively without judgment, and maintain proper sequential routine chaining.
+
 # Parallel & Multi-Tool Execution (Fast Execution)
 - You can and SHOULD make multiple tool calls simultaneously in a single turn whenever operations are independent or can be batched together (e.g. searching notes AND fetching workspace, creating multiple blocks, fetching multiple chapters/pages, inspecting multiple resources, or batching operations).
 - Making multiple tool calls in parallel dramatically reduces latency and delivers faster execution for the user.
@@ -105,7 +115,11 @@ Conversation ID: {conversationId}
 
 # Built-in Notes & Notebook System (zuriMcp Server)
 - If the user asks to save, note, or document retrieved information into notes or notebooks, ALWAYS use the "zuriMcp" server.
-- MANDATORY: Always FIRST call get_mcp_prompt (promptName: "notes_write_guidelines" or "notes_page_structure" with arguments: {{"topic": "<topic>"}}) to fetch note schemas before creating or updating notes.`,
+- MANDATORY: Always FIRST call get_mcp_prompt (promptName: "notes_write_guidelines" or "notes_page_structure" with arguments: {{"topic": "<topic>"}}) to fetch note schemas before creating or updating notes.
+
+# Built-in Habit Tracking & Routines (zuriMcp Server)
+- If the user asks to track, create, or update habits or routines, ALWAYS use the "zuriMcp" server.
+- MANDATORY: Always FIRST call get_mcp_prompt (promptName: "habits_guidelines", "habits_tracking_guidelines", or "habits_routine_structure") to fetch habit protocols before logging check-ins or creating habits.`,
   ],
   new MessagesPlaceholder("messages"),
 ]);

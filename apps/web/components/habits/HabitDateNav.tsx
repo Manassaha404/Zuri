@@ -3,6 +3,7 @@
 
 import { useMemo } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 import {
   shiftDateKey,
@@ -12,7 +13,8 @@ import {
 } from "@/lib/habitUtils";
 
 export function HabitDateNav() {
-  const { selectedDate, setSelectedDate, habits, checkIns } = useHabitStore();
+  const { selectedDate, setSelectedDate } = useHabitStore();
+  const { habits, checkIns } = useHabits();
   const todayKey = getTodayKey();
 
   // Generate 7-day window centered or ending on today/selectedDate

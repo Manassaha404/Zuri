@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Habit } from "@/components/habits/types";
 import { HabitIcon } from "./HabitIcon";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 import { calculateHabitStats } from "@/lib/habitUtils";
 
@@ -37,8 +38,9 @@ export function HabitCard({
   onOpenEditModal,
   onOpenFreezeModal,
 }: HabitCardProps) {
+  const selectedDate = useHabitStore((s) => s.selectedDate);
   const {
-    selectedDate,
+    habits,
     checkIns,
     streakFreezes,
     toggleCheckIn,
@@ -48,8 +50,7 @@ export function HabitCard({
     resumeHabit,
     archiveHabit,
     deleteHabit,
-    habits,
-  } = useHabitStore();
+  } = useHabits();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRelapse, setConfirmRelapse] = useState(false);

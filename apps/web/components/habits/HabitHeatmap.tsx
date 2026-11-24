@@ -11,13 +11,14 @@ import {
   CheckCircle2,
   Filter,
 } from "lucide-react";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 import { generateHeatmapGrid, formatFullDate } from "@/lib/habitUtils";
 import type { HeatmapCell } from "./types";
 
 export function HabitHeatmap() {
-  const { habits, checkIns, streakFreezes, selectedDate, setSelectedDate } =
-    useHabitStore();
+  const { selectedDate, setSelectedDate } = useHabitStore();
+  const { habits, checkIns, streakFreezes } = useHabits();
 
   const [selectedHabitId, setSelectedHabitId] = useState<string>("all");
   const [hoveredCell, setHoveredCell] = useState<HeatmapCell | null>(null);

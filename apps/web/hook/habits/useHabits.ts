@@ -51,18 +51,87 @@ export function useHabits() {
   // Sync server data into Zustand store when logged in
   useEffect(() => {
     if (workspaceQuery.data && "habits" in workspaceQuery.data) {
-      const serverHabits = (workspaceQuery.data.habits ||
-        []) as unknown as Habit[];
-      const serverCheckIns = (workspaceQuery.data.checkIns ||
-        {}) as unknown as Record<string, CheckInRecord>;
-      const serverFreezes = (workspaceQuery.data.streakFreezes ||
-        []) as unknown as StreakFreeze[];
+      const rawHabits = (workspaceQuery.data.habits || []) as any[];
+      const rawCheckIns = (workspaceQuery.data.checkIns || {}) as Record<
+        string,
+        any
+      >;
+      const rawFreezes = (workspaceQuery.data.streakFreezes || []) as any[];
+
+      // Normalize server habits to match frontend Habit interface
+      const normalizedHabits: Habit[] = [];
+      for (const h of rawHabits) {
+        const id = h.habitId || h.id;
+        if (!id) continue;
+        normalizedHabits.push({
+          id,
+          name: h.name,
+          description: h.description || undefined,
+          icon: h.icon || "Sparkles",
+          color: h.color || "#3b82f6",
+          type: h.type || "boolean",
+          frequency: h.frequency || {
+            type: h.frequencyType || "daily",
+            daysOfWeek: h.frequencyDaysOfWeek || undefined,
+            timesPerWeek: h.frequencyTimesPerWeek || undefined,
+          },
+          targetValue: h.targetValue ?? undefined,
+          unit: h.unit || undefined,
+          timeOfDay: h.timeOfDay || "morning",
+          reminderTime: h.reminderTime || undefined,
+          status: h.status || "active",
+          createdAt: h.createdAt
+            ? new Date(h.createdAt).toISOString()
+            : new Date().toISOString(),
+          cleanStartedAt: h.cleanStartedAt
+            ? new Date(h.cleanStartedAt).toISOString()
+            : undefined,
+          stackedAfterHabitId: h.stackedAfterHabitId || undefined,
+          stackRoutineTitle: h.stackRoutineTitle || undefined,
+          graceDaysPerMonth: h.graceDaysPerMonth ?? 2,
+        });
+      }
+
+      // Normalize server check-ins
+      const normalizedCheckIns: Record<string, CheckInRecord> = {};
+      for (const [key, record] of Object.entries(rawCheckIns)) {
+        if (!record) continue;
+        const habitId = record.habitId;
+        const date = record.date;
+        const normalizedKey = key.includes("_") ? key : `${habitId}_${date}`;
+        normalizedCheckIns[normalizedKey] = {
+          id: record.checkInId || record.id || `chk-${habitId}-${date}`,
+          habitId,
+          date,
+          completed: Boolean(record.completed),
+          value: record.value ?? undefined,
+          targetValue: record.targetValue ?? undefined,
+          note: record.note ?? undefined,
+          mood: record.mood ?? undefined,
+          skipReason: record.skipReason ?? undefined,
+          isFreezeUsed: record.isFreezeUsed ?? undefined,
+          updatedAt: record.updatedAt
+            ? new Date(record.updatedAt).toISOString()
+            : new Date().toISOString(),
+        };
+      }
+
+      // Normalize server streak freezes
+      const normalizedFreezes: StreakFreeze[] = rawFreezes.map((f) => ({
+        id: f.freezeId || f.id || `freeze-${f.habitId}-${f.date}`,
+        habitId: f.habitId,
+        date: f.date,
+        reason: f.reason ?? undefined,
+        usedAt: f.usedAt
+          ? new Date(f.usedAt).toISOString()
+          : new Date().toISOString(),
+      }));
 
       // Sync server records to local store
       useHabitStore.setState({
-        habits: serverHabits,
-        checkIns: serverCheckIns,
-        streakFreezes: serverFreezes,
+        habits: normalizedHabits,
+        checkIns: normalizedCheckIns,
+        streakFreezes: normalizedFreezes,
       });
     }
   }, [workspaceQuery.data]);

@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Award,
 } from "lucide-react";
-import { useHabitStore } from "@/store/habitStore";
+import { useHabits } from "@/hook/habits";
 import {
   calculateHabitStats,
   calculateMoodCorrelation,
@@ -25,7 +25,7 @@ import {
 import type { MoodType } from "./types";
 
 export function HabitReportsView() {
-  const { habits, checkIns, streakFreezes } = useHabitStore();
+  const { habits, checkIns, streakFreezes } = useHabits();
   const [reportPeriod, setReportPeriod] = useState<
     "week" | "month" | "quarter"
   >("month");

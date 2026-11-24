@@ -74,8 +74,54 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - Small status chips with `padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid var(--h)`.
 - **Focus Rings**:
   - Subtle 3px ring (`box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08)` / dark: `rgba(255, 255, 255, 0.12)`).
-- **Notes Sleek Scrollbars (`.notes-app`, `.notes-scrollbar`)**:
-  - 6px hairline scrollbar with transparent track, rounded-full thumb styled with `var(--h)`, and subtle hover transition to `var(--m)` for minimal distraction across editorial and canvas surfaces.
+
+### Mandatory Scrollbar Styling Standards
+
+> [!IMPORTANT]
+> **UNIVERSAL SCROLLBAR DESIGN MANDATE (ZERO EXCEPTIONS)**:
+> **Default browser scrollbars are strictly forbidden anywhere in the user interface.**
+> Wherever a scrollable container, list, drawer, modal, preformatted block, or panel can appear or have overflow (`overflow-y-auto`, `overflow-x-auto`, `overflow-auto`), the scrollbar **MUST** be explicitly styled using the design system's sleek hairline standards. Never leave any scrollbar unstyled or fallback to default clunky OS/browser scrollbars.
+
+- **Available Styled Scrollbar Classes**:
+  - `.styled-scrollbar`: General-purpose styled thin scrollbar (`width: 7px; height: 7px; border-radius: 9999px`) with theme-adaptive thumb (`#9ca3af` light, `#52525b` dark) and subtle hover feedback (`#6b7280` light, `#71717a` dark). Use for modals, popovers, virtualized grids, connector catalogs, and code/pre blocks.
+  - `.notes-scrollbar` / `.notes-app`: Editorial workspace 6px hairline scrollbar (`scrollbar-width: thin; scrollbar-color: var(--h) transparent;`) with transparent track, rounded-full thumb styled with hairline token `var(--h)`, and smooth hover transition to muted token `var(--m)`.
+  - `.habits-scrollbar` / `.habits-app`: Habit tracker and universal modern 6px scrollbar (`scrollbar-width: thin; scrollbar-color: var(--h) transparent;`) with transparent track and `var(--h)` / `var(--m)` hover transition.
+  - `.sidebar-scrollbar`: Ultralight 5px minimalist scrollbar with transparent track and low-opacity thumb (`rgba(156, 163, 175, 0.4)` light, `rgba(161, 161, 170, 0.22)` dark) specifically tuned for long sidebar navigation lists.
+  - `.habit-icon-scrollbar`: Compact 4px hairline scrollbar for tight popovers, dropdown lists, and icon pickers.
+  - `.no-scrollbar`: Dedicated utility class when scrollbars must be completely hidden (`scrollbar-width: none !important; ::-webkit-scrollbar { display: none !important; }`).
+- **Standard CSS Properties for Custom Overflow Containers**:
+  - Always couple Firefox/standard properties with WebKit pseudo-elements:
+
+    ```css
+    /* Standard thin scrollbar with hairline tokens */
+    scrollbar-width: thin;
+    scrollbar-color: var(--h) transparent;
+
+    /* WebKit / Chromium */
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--h);
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      background-clip: content-box;
+      transition: background-color 0.15s ease;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: var(--m);
+    }
+    ```
+
+- **Dark and Light Theme Consistency**:
+  - Never hardcode bright or un-themed scrollbar colors. All scrollbar thumbs and tracks must either adapt to `var(--h)` (border hairline) and `var(--m)` (muted zinc/gray) or supply explicit `.dark` / `[data-theme="dark"]` overrides matching the palette tokens.
+  - Ensure contrast is clear yet unobtrusive across both canvas white (`#ffffff`) and deep dark (`#101010`) surfaces.
+- **Rule of Thumb for Components**:
+  - Whenever adding `overflow-y-auto`, `overflow-x-auto`, or `overflow-auto` in Tailwind, **always** append the appropriate scrollbar utility class (e.g. `className="overflow-y-auto styled-scrollbar ..."` or `className="overflow-y-auto notes-scrollbar ..."`).
 
 ---
 
@@ -216,6 +262,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - `useHabitStore` manages habit records, daily check-in histories, numeric target progression, negative clean counters, habit stacking routines, and streak freezes with local storage persistence.
   - Located strictly in `apps/web/store/habitStore.ts` and exported via `@/store/habitStore` and `@/store/index.ts`.
   - `useHabits`: Coordinates habit workspace synchronization via `trpc.habits.getWorkspace`, providing typed optimistic local mutations and backend persistence for habits, daily check-ins, numeric counters, streak freezes, and routine stacks.
+  - **Hook-First Data Access Rule (Zero Exceptions)**: When custom hooks are created for a feature domain (such as `useHabits` in `apps/web/hook/habits/`), all components must consume data and dispatch mutations exclusively through the domain hook — never reading or mutating entity data directly from local storage, in-memory state, or raw store entity collections. Zustand stores in persistent domains must only persist UI preferences/session state (e.g. `selectedDate`, `activeFilter`, `activeTab`, `viewMode`) via `partialize`, while entity data and operations flow through dedicated hooks.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`, `apps/web/lib/youtube.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
   - YouTube video links can be pasted into the chat composer, attached via the YouTube link button, or pasted within query text. YouTube transcripts are ingested as timestamped RAG documents.

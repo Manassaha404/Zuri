@@ -28,8 +28,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Habit } from "@/components/habits/types";
+import type { Habit, CheckInRecord } from "@/components/habits/types";
 import { HabitIcon } from "./HabitIcon";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 
 interface HabitRoutinesViewProps {
@@ -158,6 +159,7 @@ function SortableHabitStep({
 function RoutineStackCard({
   stack,
   selectedDate,
+  checkIns,
   onToggleCheckIn,
   onEditStack,
   onDeleteStack,
@@ -165,13 +167,12 @@ function RoutineStackCard({
 }: {
   stack: RoutineStack;
   selectedDate: string;
+  checkIns: Record<string, CheckInRecord>;
   onToggleCheckIn: (id: string, date: string) => void;
   onEditStack: (title: string) => void;
   onDeleteStack: (title: string) => void;
   onReorderStack: (title: string, habitIds: string[]) => void;
 }) {
-  const { checkIns } = useHabitStore();
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -288,13 +289,14 @@ export function HabitRoutinesView({
   onOpenCreateStackModal,
   onOpenEditStackModal,
 }: HabitRoutinesViewProps) {
+  const selectedDate = useHabitStore((s) => s.selectedDate);
   const {
     habits,
-    selectedDate,
+    checkIns,
     toggleCheckIn,
     reorderRoutineStack,
     deleteHabitStack,
-  } = useHabitStore();
+  } = useHabits();
 
   // Group habits by routine or stacked chains
   const routineStacks: RoutineStack[] = useMemo(() => {
@@ -404,6 +406,7 @@ export function HabitRoutinesView({
               key={stack.id}
               stack={stack}
               selectedDate={selectedDate}
+              checkIns={checkIns}
               onToggleCheckIn={toggleCheckIn}
               onEditStack={onOpenEditStackModal}
               onDeleteStack={deleteHabitStack}

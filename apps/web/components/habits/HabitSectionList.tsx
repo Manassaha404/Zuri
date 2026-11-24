@@ -19,6 +19,7 @@ import {
 import type { Habit, HabitTimeOfDay } from "@/components/habits/types";
 import { HabitCard } from "./HabitCard";
 import { HabitListRow } from "./HabitListRow";
+import { useHabits } from "@/hook/habits";
 import { useHabitStore } from "@/store/habitStore";
 
 interface HabitSectionListProps {
@@ -43,8 +44,8 @@ export function HabitSectionList({
   onOpenFreezeModal,
   onOpenCreateModal,
 }: HabitSectionListProps) {
-  const { habits, selectedDate, checkIns, toggleCheckIn, viewMode } =
-    useHabitStore();
+  const { selectedDate, viewMode } = useHabitStore();
+  const { habits, checkIns, toggleCheckIn } = useHabits();
 
   const [showInactive, setShowInactive] = useState(false);
 
@@ -223,9 +224,9 @@ export function HabitSectionList({
             {/* Habit Items: Grid View or List View */}
             {viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {section.habits.map((habit) => (
+                {section.habits.map((habit, idx) => (
                   <HabitCard
-                    key={habit.id}
+                    key={habit.id || `habit-${section.id}-${idx}`}
                     habit={habit}
                     onOpenNoteModal={onOpenNoteModal}
                     onOpenEditModal={onOpenEditModal}
@@ -235,9 +236,9 @@ export function HabitSectionList({
               </div>
             ) : (
               <div className="flex flex-col gap-2.5">
-                {section.habits.map((habit) => (
+                {section.habits.map((habit, idx) => (
                   <HabitListRow
-                    key={habit.id}
+                    key={habit.id || `habit-${section.id}-${idx}`}
                     habit={habit}
                     onOpenNoteModal={onOpenNoteModal}
                     onOpenEditModal={onOpenEditModal}
@@ -270,9 +271,9 @@ export function HabitSectionList({
             <div className="mt-3">
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {inactiveHabits.map((habit) => (
+                  {inactiveHabits.map((habit, idx) => (
                     <HabitCard
-                      key={habit.id}
+                      key={habit.id || `inactive-habit-${idx}`}
                       habit={habit}
                       onOpenNoteModal={onOpenNoteModal}
                       onOpenEditModal={onOpenEditModal}
@@ -282,9 +283,9 @@ export function HabitSectionList({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
-                  {inactiveHabits.map((habit) => (
+                  {inactiveHabits.map((habit, idx) => (
                     <HabitListRow
-                      key={habit.id}
+                      key={habit.id || `inactive-habit-${idx}`}
                       habit={habit}
                       onOpenNoteModal={onOpenNoteModal}
                       onOpenEditModal={onOpenEditModal}

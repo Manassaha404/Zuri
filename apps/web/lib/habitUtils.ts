@@ -79,7 +79,19 @@ export function formatFullDate(dateKey: string): string {
 export function isHabitScheduledOnDate(habit: Habit, dateKey: string): boolean {
   if (habit.status !== "active") return false;
 
-  const freq = habit.frequency;
+  const freq =
+    habit.frequency || (habit as any).frequencyType
+      ? {
+          type:
+            habit.frequency?.type || (habit as any).frequencyType || "daily",
+          daysOfWeek:
+            habit.frequency?.daysOfWeek || (habit as any).frequencyDaysOfWeek,
+          timesPerWeek:
+            habit.frequency?.timesPerWeek ||
+            (habit as any).frequencyTimesPerWeek,
+        }
+      : { type: "daily" };
+
   if (freq.type === "daily") return true;
 
   const dayOfWeek = getDayOfWeek(dateKey);

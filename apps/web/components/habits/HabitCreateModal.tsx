@@ -14,7 +14,7 @@ import {
   AVAILABLE_HABIT_COLORS,
   HabitIcon,
 } from "./HabitIcon";
-import { useHabitStore } from "@/store/habitStore";
+import { useHabits } from "@/hook/habits";
 
 interface HabitCreateModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export function HabitCreateModal({
   onClose,
   editHabit,
 }: HabitCreateModalProps) {
-  const { createHabit, updateHabit, habits } = useHabitStore();
+  const { createHabit, updateHabit, habits } = useHabits();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -52,9 +52,28 @@ export function HabitCreateModal({
       setIcon(editHabit.icon);
       setColor(editHabit.color);
       setType(editHabit.type);
-      setFrequencyType(editHabit.frequency.type);
-      setDaysOfWeek(editHabit.frequency.daysOfWeek || [1, 2, 3, 4, 5]);
-      setTimesPerWeek(editHabit.frequency.timesPerWeek || 3);
+      const freq =
+        editHabit.frequency || (editHabit as any).frequencyType
+          ? {
+              type:
+                editHabit.frequency?.type ||
+                (editHabit as any).frequencyType ||
+                "daily",
+              daysOfWeek: editHabit.frequency?.daysOfWeek ||
+                (editHabit as any).frequencyDaysOfWeek || [1, 2, 3, 4, 5],
+              timesPerWeek:
+                editHabit.frequency?.timesPerWeek ||
+                (editHabit as any).frequencyTimesPerWeek ||
+                3,
+            }
+          : {
+              type: "daily" as const,
+              daysOfWeek: [1, 2, 3, 4, 5],
+              timesPerWeek: 3,
+            };
+      setFrequencyType(freq.type);
+      setDaysOfWeek(freq.daysOfWeek || [1, 2, 3, 4, 5]);
+      setTimesPerWeek(freq.timesPerWeek || 3);
       setTargetValue(editHabit.targetValue || 8);
       setUnit(editHabit.unit || "units");
       setTimeOfDay(editHabit.timeOfDay);
