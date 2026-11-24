@@ -157,7 +157,39 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 
 ---
 
-## 4. UI & Layout Conventions
+## 4. Dropdown Select & Checklist Input Standards
+
+> [!IMPORTANT]
+> **UNIVERSAL FORM CONTROLS MANDATE (ZERO EXCEPTIONS)**:
+> Default browser-native dropdown arrows, clunky native selects, and unstyled raw OS checkboxes are strictly forbidden. All dropdown select inputs and checklist toggles must be cleanly styled using the design system tokens (`var(--bg)`, `var(--s)`, `var(--h)`, `var(--i)`, `var(--p)`).
+
+### A. Dropdown Select Inputs (`select`, `.select-input`)
+
+- **Appearance & Arrow Reset**:
+  - Reset default browser arrow via `appearance: none; -webkit-appearance: none;`.
+  - Provide a clean, centered custom SVG chevron indicator positioned on the right using design tokens `var(--m)` or `var(--i)` (with `padding-right: 2.25rem`).
+  - Base styling: `bg-[var(--bg)]` or `bg-[var(--s)]`, hairline border `1px solid var(--h)`, rounded 8px (`rounded-lg`), text `var(--i)` / `var(--b)`, font-weight 500.
+- **Interactive Feedback**:
+  - Hover: Subtle border contrast increase (`border-color: var(--m); bg-[var(--s)]`).
+  - Focus: Clear hairline focus ring without default browser outline (`outline: none; border-color: var(--p); box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08)` / dark: `rgba(255, 255, 255, 0.12)`).
+- **Option Tags**:
+  - `option` items must explicitly style `background-color: var(--surface-card)` or `var(--bg)` and `color: var(--i)` to prevent white-on-white or dark-on-dark browser rendering bugs.
+
+### B. Checklist Inputs & Checkboxes (`input[type="checkbox"]`, `.checkbox-input`)
+
+- **Appearance & Geometry**:
+  - Compact, crisp 16px to 18px square dimensions with subtle 4px corner radius (`rounded-md` / `rounded`).
+  - Base: `border: 1.5px solid var(--h); background-color: var(--bg); cursor: pointer;`.
+- **Checked State**:
+  - Solid high-contrast fill (`background-color: var(--p); border-color: var(--p); color: var(--pt);`).
+  - Accent / Checkmark: High-contrast primary text token `var(--pt)` for the check indicator.
+- **Checklist Container Items**:
+  - Checklist groups must be wrapped in structured container panels with hairline separators (`divide-y divide-[var(--h)] border border-[var(--h)] rounded-xl`).
+  - Checklist row labels must offer full-row pointer cursor, subtle hover highlights (`hover:bg-[var(--s)]`), and accessible keyboard focus.
+
+---
+
+## 5. UI & Layout Conventions
 
 ### Sidebar Chats & Hierarchy (`apps/web/components/chat/Sidebar.tsx`)
 

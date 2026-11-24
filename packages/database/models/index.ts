@@ -27,3 +27,6 @@ export * from "./habits";
 
 // Personal Expenses & Debt Ledger
 export * from "./expenses";
+
+// Deadlines & Schedules
+export * from "./deadlines";

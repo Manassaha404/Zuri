@@ -21,6 +21,7 @@ import {
   Settings,
   Sparkles,
   Sun,
+  Timer,
   Trash2,
   Wallet,
   X,
@@ -427,6 +428,19 @@ export function Sidebar({
                 <div className="flex items-center gap-2">
                   <Wallet size={14} className="text-[#10b981]" />
                   <span className="font-medium">Expenses & Debts</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/deadlines"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Deadline Tracker & Schedules"
+              >
+                <div className="flex items-center gap-2">
+                  <Timer size={14} className="text-[#3b82f6]" />
+                  <span className="font-medium">Deadline Tracker</span>
                 </div>
               </Link>
             </div>
@@ -841,6 +855,16 @@ export function Sidebar({
                     <span>Expenses & Debts</span>
                   </Link>
 
+                  <Link
+                    href="/deadlines"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Timer size={15} className="text-[#3b82f6]" />
+                    <span>Deadline Tracker</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -985,6 +1009,16 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Wallet size={16} className="text-[#10b981]" />
+              </Link>
+
+              <Link
+                href="/deadlines"
+                replace
+                onClick={closeMobile}
+                title="Deadline Tracker & Schedules"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Timer size={16} className="text-[#3b82f6]" />
               </Link>
             </div>
 

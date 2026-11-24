@@ -78,6 +78,20 @@
       "when": 1795511989703,
       "tag": "0010_faithful_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795525542275,
+      "tag": "0011_bright_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795526635390,
+      "tag": "0012_far_ulik",
+      "breakpoints": true
     }
   ]
 }
