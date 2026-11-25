@@ -30,3 +30,6 @@ export * from "./expenses";
 
 // Deadlines & Schedules
 export * from "./deadlines";
+
+// Meetings Tracker
+export * from "./meetings";

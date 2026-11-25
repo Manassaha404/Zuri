@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import type { MeetingItem, MeetingType } from "./types";
 
 interface MeetingCardProps {
@@ -31,7 +31,7 @@ export function MeetingCard({
   onEdit,
   onViewDetails,
 }: MeetingCardProps) {
-  const { deleteMeeting, toggleActionItem } = useMeetingStore();
+  const { deleteMeeting, toggleActionItem } = useMeetings();
 
   const isLink = useMemo(() => {
     if (!meeting.locationOrLink) return false;

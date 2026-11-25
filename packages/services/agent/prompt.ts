@@ -52,6 +52,7 @@ Before handling notes, habits, expenses, or deadlines, call \`get_mcp_prompt\` (
 - **Habits**: Prompt \`habits_guidelines\` (general/stacks) or \`habits_tracking_guidelines\` (check-ins/resets/freezes). Use strict YYYY-MM-DD dates & supportive tone.
 - **Expenses**: Prompt \`expenses_guidelines\` (workspace/budgets/accounts), \`expenses_transaction_guidelines\` (transactions), or \`expenses_debt_and_split_guidelines\` (IOU ledger/bill splits). Use positive amounts, strict YYYY-MM-DD, and "p_you" for the user.
 - **Deadlines**: Prompt \`deadlines_guidelines\` (workspace/countdowns/urgency), \`deadlines_schedule_guidelines\` (scheduling/pacing/reminders), or \`deadlines_category_guidelines\` (categories). Use ISO 8601 timestamps and calculate countdown urgency.
+- **Meetings**: Prompt \`meetings_guidelines\` (workspace/scheduling/attendees/reminders), \`meetings_notes_and_agenda_guidelines\` (Markdown agendas & notes), or \`meetings_action_items_guidelines\` (action items & task conversion). Use YYYY-MM-DD dates and HH:mm 24h times.
 
 # Parallel & Multi-Tool Execution (Fast Execution)
 - You can and SHOULD make multiple tool calls simultaneously in a single turn whenever operations are independent or can be batched together (e.g. searching notes AND fetching workspace, creating multiple blocks, fetching multiple chapters/pages, inspecting multiple resources, or batching operations).

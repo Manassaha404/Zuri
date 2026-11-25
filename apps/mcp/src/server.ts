@@ -7,10 +7,12 @@ import { registerNoteTools } from "@repo/services/agent/mcp/tools/note";
 import { registerHabitTools } from "@repo/services/agent/mcp/tools/habit";
 import { registerExpenseTools } from "@repo/services/agent/mcp/tools/expense";
 import { registerDeadlineTools } from "@repo/services/agent/mcp/tools/deadline";
+import { registerMeetingTools } from "@repo/services/agent/mcp/tools/meeting";
 import { registerNotePrompts } from "@repo/services/agent/mcp/prompts/notes";
 import { registerHabitPrompts } from "@repo/services/agent/mcp/prompts/habits";
 import { registerExpensePrompts } from "@repo/services/agent/mcp/prompts/expenses";
 import { registerDeadlinePrompts } from "@repo/services/agent/mcp/prompts/deadlines";
+import { registerMeetingPrompts } from "@repo/services/agent/mcp/prompts/meetings";
 import { oauthRoutes } from "./routes/oauth";
 import { authRoutes } from "./routes/auth";
 import logger from "@repo/logger/logger";
@@ -174,12 +176,14 @@ registerNoteTools(mcpServer);
 registerHabitTools(mcpServer);
 registerExpenseTools(mcpServer);
 registerDeadlineTools(mcpServer);
+registerMeetingTools(mcpServer);
 
 // Register prompts
 registerNotePrompts(mcpServer);
 registerHabitPrompts(mcpServer);
 registerExpensePrompts(mcpServer);
 registerDeadlinePrompts(mcpServer);
+registerMeetingPrompts(mcpServer);
 
 const app = mcpServer.getApp();
 app.use("*", async (c, next) => {

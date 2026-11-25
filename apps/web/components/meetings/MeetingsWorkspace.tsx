@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useInitUIStore } from "@/store/uiStore";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import { MeetingsHeader } from "./MeetingsHeader";
 import { MeetingsListView } from "./MeetingsListView";
 import { MeetingCalendarView } from "./MeetingCalendarView";
@@ -13,7 +13,7 @@ import type { MeetingItem } from "./types";
 
 export function MeetingsWorkspace() {
   useInitUIStore();
-  const { activeTab } = useMeetingStore();
+  const { activeTab } = useMeetings();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<MeetingItem | null>(

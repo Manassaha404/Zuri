@@ -8,6 +8,7 @@ import { notesRouter } from "./routes/notes/route";
 import { habitsRouter } from "./routes/habits/route";
 import { expensesRouter } from "./routes/expenses/route";
 import { deadlinesRouter } from "./routes/deadlines/route";
+import { meetingsRouter } from "./routes/meetings/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -18,6 +19,7 @@ export const serverRouter = router({
   habits: habitsRouter,
   expenses: expensesRouter,
   deadlines: deadlinesRouter,
+  meetings: meetingsRouter,
 });
 
 export { createContext } from "./context";

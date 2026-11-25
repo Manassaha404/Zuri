@@ -21,7 +21,7 @@ import {
   Plus,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import type { MeetingItem } from "./types";
 
 interface MeetingDetailsModalProps {
@@ -44,7 +44,7 @@ export function MeetingDetailsModal({
     addActionItem,
     deleteActionItem,
     convertActionItemToTask,
-  } = useMeetingStore();
+  } = useMeetings();
 
   const [activeSubTab, setActiveSubTab] = useState<"notes" | "agenda">("notes");
   const [newActionText, setNewActionText] = useState("");

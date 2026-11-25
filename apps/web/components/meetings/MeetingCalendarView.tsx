@@ -13,7 +13,7 @@ import {
   Plus,
   ListTodo,
 } from "lucide-react";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import type { MeetingItem, MeetingType } from "./types";
 
 interface MeetingCalendarViewProps {
@@ -27,7 +27,7 @@ export function MeetingCalendarView({
   onViewDetails,
   onOpenCreate,
 }: MeetingCalendarViewProps) {
-  const { meetings } = useMeetingStore();
+  const { meetings } = useMeetings();
 
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<string | null>(() => {

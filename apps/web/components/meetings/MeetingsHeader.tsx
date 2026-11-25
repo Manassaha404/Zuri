@@ -2,7 +2,9 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import {
+  ArrowLeft,
   Calendar,
   Clock,
   CheckCircle2,
@@ -15,7 +17,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useUIStore } from "@/store/uiStore";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import type { MeetingType, MeetingViewTab } from "./types";
 
 interface MeetingsHeaderProps {
@@ -33,7 +35,7 @@ export function MeetingsHeader({ onOpenCreateModal }: MeetingsHeaderProps) {
     setTypeFilter,
     setTagFilter,
     resetFilters,
-  } = useMeetingStore();
+  } = useMeetings();
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
@@ -93,19 +95,29 @@ export function MeetingsHeader({ onOpenCreateModal }: MeetingsHeaderProps) {
     <div className="flex flex-col gap-5 w-full min-w-0">
       {/* Top row: Title, Subtitle, Dark Mode, Create Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--i)] break-words">
-              Meetings Tracker
-            </h1>
-            <span className="badge-pill bg-[var(--s)] text-[var(--m)] border border-[var(--h)] shrink-0">
-              {stats.total} total
-            </span>
+        <div className="flex items-start gap-3 min-w-0">
+          <Link
+            href="/"
+            className="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--h)] bg-[var(--s)] text-[var(--m)] hover:text-[var(--i)] transition-colors shrink-0 mt-0.5"
+            title="Back to Assistant"
+            aria-label="Back to Assistant"
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--i)] break-words">
+                Meetings Tracker
+              </h1>
+              <span className="badge-pill bg-[var(--s)] text-[var(--m)] border border-[var(--h)] shrink-0">
+                {stats.total} total
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-[var(--m)] mt-1 break-words">
+              Organize agendas, Markdown notes, attendees, and convertible
+              action items across your schedule.
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-[var(--m)] mt-1 break-words">
-            Organize agendas, Markdown notes, attendees, and convertible action
-            items across your schedule.
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">

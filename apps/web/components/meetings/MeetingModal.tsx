@@ -16,7 +16,7 @@ import {
   FileText,
   AlignLeft,
 } from "lucide-react";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import type {
   MeetingItem,
   MeetingType,
@@ -36,7 +36,7 @@ export function MeetingModal({
   initialMeeting,
   onClose,
 }: MeetingModalProps) {
-  const { addMeeting, updateMeeting } = useMeetingStore();
+  const { addMeeting, updateMeeting } = useMeetings();
 
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");

@@ -3,7 +3,7 @@
 
 import { useMemo } from "react";
 import { Calendar, Search, Plus, Users, Inbox, FilterX } from "lucide-react";
-import { useMeetingStore } from "@/store/meetingStore";
+import { useMeetings } from "@/hook/meetings";
 import { MeetingCard } from "./MeetingCard";
 import type { MeetingItem } from "./types";
 
@@ -20,7 +20,7 @@ export function MeetingsListView({
   onViewDetails,
   onOpenCreate,
 }: MeetingsListViewProps) {
-  const { meetings, filters, resetFilters } = useMeetingStore();
+  const { meetings, filters, resetFilters } = useMeetings();
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(

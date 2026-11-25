@@ -300,6 +300,10 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
   - `useExpenseStore` manages cash flow transactions, payment accounts, monthly budgets, debt ledger IOU records, partial repayments, bill splits, and group simplified debts.
   - Located strictly in `apps/web/store/expenseStore.ts` and exported via `@/store/expenseStore` and `@/store/index.ts`.
   - `useExpenses`: Coordinates expense workspace synchronization via `trpc.expenses.getWorkspace` and provides optimistic local mutations with full tRPC backend persistence for all transactions, debt entries, accounts, budgets, and bill splits.
+- **Meetings Tracker Store (`apps/web/store/meetingStore.ts`) & Meetings Hooks (`apps/web/hook/meetings/`)**:
+  - `useMeetingStore` manages UI preferences (`activeTab`, `filters`) via `partialize` and hydrated meeting items with zero mock data.
+  - Located strictly in `apps/web/store/meetingStore.ts` and exported via `@/store/meetingStore` and `@/store/index.ts`.
+  - `useMeetings`: Coordinates meeting workspace synchronization via `trpc.meetings.getWorkspace`, providing optimistic local updates and full tRPC backend persistence for meetings, attendees, reminders, and action items. All meeting components consume data exclusively through `useMeetings`.
 - **RAG & File Upload Flow (`apps/web/hook/agent/useAgentUpload.ts`, `apps/web/hook/uploads/useCloudinaryUpload.ts`, `apps/web/lib/youtube.ts`)**:
   - `useAgentUpload` coordinates file selection, uploads files to Cloudinary via `useCloudinaryUpload`, and synchronizes attachment states in `useAgentStore`.
   - YouTube video links can be pasted into the chat composer, attached via the YouTube link button, or pasted within query text. YouTube transcripts are ingested as timestamped RAG documents.

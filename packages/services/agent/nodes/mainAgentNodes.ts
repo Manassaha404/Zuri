@@ -501,8 +501,8 @@ Rules for selecting toolkits:
 1. Prioritize user connected toolkits: Always select from "User connected toolkits" first if they can satisfy the request.
 2. Unconnected toolkits constraint: Do NOT select an unconnected toolkit from "Supported toolkits" unless it is strictly essential (the task is impossible to execute without it) or the user explicitly specified that service in their query.
 3. YouTube video Q&A exception: We have a dedicated built-in transcript RAG system for discussing, summarizing, or answering questions about YouTube videos and links. Do NOT select the "youtube" toolkit for talking about or asking questions on YouTube videos. Only select "youtube" if the user explicitly asks to manage their YouTube account (e.g. upload videos, manage playlists, like/comment).
-4. Notes, Habits, Expenses and Deadlines exception: We have dedicated built-in notes, habit tracking, personal expense/debt ledger, and deadline tracking systems via internal MCP tools (notes_*, habits_*, expenses_*, and deadlines_*). Do NOT select any external toolkit for note-taking, notebook tasks, pages, chapters, habits, routines, streak tracking, check-ins, expenses, transactions, budgets, debt ledger, bill splitting, accounts, deadlines, reminders, countdowns, or commitments. Return an empty toolkits list for all note, habit, expense, and deadline tasks unless the user explicitly named an external third-party service.
-5. Return an empty toolkits list for general queries, chit-chat, RAG inquiries, built-in notes tasks, built-in habit tasks, built-in expense tasks, built-in deadline tasks, or anything needing no external tool.
+4. Notes, Habits, Expenses, Deadlines and Meetings exception: We have dedicated built-in notes, habit tracking, personal expense/debt ledger, deadline tracking, and meetings tracking systems via internal MCP tools (notes_*, habits_*, expenses_*, deadlines_*, and meetings_*). Do NOT select any external toolkit for note-taking, notebook tasks, pages, chapters, habits, routines, streak tracking, check-ins, expenses, transactions, budgets, debt ledger, bill splitting, accounts, deadlines, reminders, countdowns, commitments, meetings, agendas, meeting notes, or action items. Return an empty toolkits list for all note, habit, expense, deadline, and meeting tasks unless the user explicitly named an external third-party service.
+5. Return an empty toolkits list for general queries, chit-chat, RAG inquiries, built-in notes tasks, built-in habit tasks, built-in expense tasks, built-in deadline tasks, built-in meeting tasks, or anything needing no external tool.
 6. Also return toolQuery: a short, tool-oriented search phrase for the action needed (e.g. "send an email", "list repositories for authenticated user"). Return empty string if no toolkit is needed.`,
   );
   const wanted = route.toolkits
@@ -889,6 +889,7 @@ export const riskCheck: GraphNode<typeof MessagesState> = async (
     name.startsWith("habits_") ||
     name.startsWith("expenses_") ||
     name.startsWith("deadlines_") ||
+    name.startsWith("meetings_") ||
     mcpTools.some((t) => t.name === name) ||
     mcpClientTools.some((t) => t.name === name);
 
@@ -1093,6 +1094,7 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
         c.name.startsWith("habits_") ||
         c.name.startsWith("expenses_") ||
         c.name.startsWith("deadlines_") ||
+        c.name.startsWith("meetings_") ||
         mcpTools.some((t) => t.name === c.name)
       ) {
         try {
