@@ -16,6 +16,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useExpenses } from "@/hook/expenses";
+import { useContacts } from "@/hook/contacts";
 import type { DebtType } from "./types";
 
 interface DebtEntryModalProps {
@@ -40,12 +41,21 @@ export function DebtEntryModal({
     currency,
   } = useExpenses();
 
+  const { contacts } = useContacts();
   const [mode, setMode] = useState<
     "lent" | "borrowed" | "they_paid" | "i_paid"
   >(defaultAction);
   const eligiblePeople = people.filter((p) => p.id !== "p_you");
+  const unregisteredContacts = contacts.filter(
+    (c) =>
+      !eligiblePeople.some(
+        (p) => p.name.toLowerCase() === c.name.toLowerCase(),
+      ),
+  );
   const [personId, setPersonId] = useState<string>(
-    preselectedPersonId || eligiblePeople[0]?.id || "",
+    preselectedPersonId ||
+      eligiblePeople[0]?.id ||
+      (unregisteredContacts[0] ? `contact:${unregisteredContacts[0].id}` : ""),
   );
   const [newPersonName, setNewPersonName] = useState("");
   const [isAddingNewPerson, setIsAddingNewPerson] = useState(false);
@@ -93,6 +103,17 @@ export function DebtEntryModal({
     }
 
     let targetPersonId = personId;
+    if (!isAddingNewPerson && targetPersonId.startsWith("contact:")) {
+      const contactId = targetPersonId.replace("contact:", "");
+      const matchedContact = contacts.find((c) => c.id === contactId);
+      if (matchedContact) {
+        targetPersonId = await addPerson({
+          name: matchedContact.name,
+          phone: matchedContact.phone,
+          email: matchedContact.email,
+        });
+      }
+    }
     if (isAddingNewPerson || !targetPersonId) {
       if (!newPersonName.trim()) {
         alert(
@@ -304,7 +325,9 @@ export function DebtEntryModal({
               </button>
             </div>
 
-            {isAddingNewPerson || eligiblePeople.length === 0 ? (
+            {isAddingNewPerson ||
+            (eligiblePeople.length === 0 &&
+              unregisteredContacts.length === 0) ? (
               <div className="flex flex-col gap-1">
                 <input
                   type="text"
@@ -314,12 +337,13 @@ export function DebtEntryModal({
                   onChange={(e) => setNewPersonName(e.target.value)}
                   className="px-3 py-2 bg-[var(--surface-card)] border border-[var(--h)] rounded-lg text-xs font-medium text-[var(--i)] focus:outline-hidden focus:border-[var(--i)]"
                 />
-                {eligiblePeople.length === 0 && (
-                  <span className="text-[10px] text-[var(--m)]">
-                    No contacts recorded yet. Adding a name will automatically
-                    register them.
-                  </span>
-                )}
+                {eligiblePeople.length === 0 &&
+                  unregisteredContacts.length === 0 && (
+                    <span className="text-[10px] text-[var(--m)]">
+                      No contacts recorded yet. Adding a name will automatically
+                      register them.
+                    </span>
+                  )}
               </div>
             ) : (
               <select
@@ -330,6 +354,11 @@ export function DebtEntryModal({
                 {eligiblePeople.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} {p.phone ? `(${p.phone})` : ""}
+                  </option>
+                ))}
+                {unregisteredContacts.map((c) => (
+                  <option key={`contact:${c.id}`} value={`contact:${c.id}`}>
+                    {c.name} (Contact{c.phone ? ` · ${c.phone}` : ""})
                   </option>
                 ))}
               </select>

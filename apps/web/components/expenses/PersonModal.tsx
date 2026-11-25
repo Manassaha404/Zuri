@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { X, UserPlus, Plus, Users, Trash2 } from "lucide-react";
 import { useExpenses } from "@/hook/expenses";
+import { useContacts } from "@/hook/contacts";
 
 interface PersonModalProps {
   isOpen: boolean;
@@ -17,6 +18,10 @@ export function PersonModal({
   onPersonAdded,
 }: PersonModalProps) {
   const { people, addPerson, deletePerson } = useExpenses();
+  const { contacts } = useContacts();
+  const unregisteredContacts = contacts.filter(
+    (c) => !people.some((p) => p.name.toLowerCase() === c.name.toLowerCase()),
+  );
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,6 +95,34 @@ export function PersonModal({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 styled-scrollbar">
+          {/* Quick Add from Shared Contacts */}
+          {unregisteredContacts.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--m)]">
+                Quick Add from Contacts
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {unregisteredContacts.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() =>
+                      addPerson({
+                        name: c.name,
+                        phone: c.phone,
+                        email: c.email,
+                      })
+                    }
+                    className="badge-pill bg-[var(--surface-card)] border-[var(--h)] text-[var(--i)] hover:bg-[var(--s)] cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Plus size={11} />
+                    <span>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Existing People List */}
           <div className="flex flex-col gap-2.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--m)]">

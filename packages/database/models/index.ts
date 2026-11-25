@@ -33,3 +33,12 @@ export * from "./deadlines";
 
 // Meetings Tracker
 export * from "./meetings";
+
+// Contacts
+export * from "./contacts";
+
+// Tasks Tracker
+export * from "./tasks";
+
+// Projects & Kanban Boards
+export * from "./projects";

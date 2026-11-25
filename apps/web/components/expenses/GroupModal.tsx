@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { X, Users, Plus, Check } from "lucide-react";
 import { useExpenses } from "@/hook/expenses";
+import { useContacts } from "@/hook/contacts";
 
 interface GroupModalProps {
   isOpen: boolean;
@@ -24,12 +25,16 @@ const GROUP_ICONS = ["Users", "Home", "Compass", "Briefcase", "Car"];
 
 export function GroupModal({ isOpen, onClose }: GroupModalProps) {
   const { people, addGroup, addPerson } = useExpenses();
+  const { contacts } = useContacts();
 
   // Combine You with other people and filter out any accidental "You" records from backend
   const allGroupPeopleOptions = [
     { id: "p_you", name: "You" },
     ...people.filter((p) => p.id !== "p_you" && p.name !== "You"),
   ];
+  const unregisteredContacts = contacts.filter(
+    (c) => !people.some((p) => p.name.toLowerCase() === c.name.toLowerCase()),
+  );
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -228,6 +233,35 @@ export function GroupModal({ isOpen, onClose }: GroupModalProps) {
                 >
                   Add
                 </button>
+              </div>
+            )}
+
+            {/* Shared Contacts quick-add */}
+            {unregisteredContacts.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[var(--h)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--m)] w-full">
+                  From Contacts
+                </span>
+                {unregisteredContacts.map((c) => (
+                  <button
+                    key={`contact-${c.id}`}
+                    type="button"
+                    onClick={async () => {
+                      const newId = await addPerson({
+                        name: c.name,
+                        phone: c.phone,
+                        email: c.email,
+                      });
+                      if (newId) {
+                        setSelectedMemberIds((prev) => [...prev, newId]);
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-full border border-dashed border-[var(--h)] bg-[var(--bg)] text-[11px] font-medium text-[var(--m)] hover:text-[var(--i)] flex items-center gap-1 transition-all"
+                  >
+                    <Plus size={10} />
+                    <span>{c.name}</span>
+                  </button>
+                ))}
               </div>
             )}
 

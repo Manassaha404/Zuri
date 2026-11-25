@@ -9,6 +9,9 @@ import { habitsRouter } from "./routes/habits/route";
 import { expensesRouter } from "./routes/expenses/route";
 import { deadlinesRouter } from "./routes/deadlines/route";
 import { meetingsRouter } from "./routes/meetings/route";
+import { contactsRouter } from "./routes/contacts/route";
+import { tasksRouter } from "./routes/tasks/route";
+import { projectsRouter } from "./routes/projects/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -20,6 +23,9 @@ export const serverRouter = router({
   expenses: expensesRouter,
   deadlines: deadlinesRouter,
   meetings: meetingsRouter,
+  contacts: contactsRouter,
+  tasks: tasksRouter,
+  projects: projectsRouter,
 });
 
 export { createContext } from "./context";

@@ -20,6 +20,11 @@ This document defines the architectural patterns, code style, UI standards, and 
   - `useNotesStore`: Notebooks, chapters, pages, blocks, attachments, and visual diagrams.
   - `useDiagramStudioStore`: Hand-crafted diagram canvas elements, pan/zoom, connectors, and smart guides.
   - `useMeetingStore`: Meeting items, types, Markdown agenda/notes, action items, tags, and calendar/timeline views.
+  - `useTaskStore`: Task tracker items, subtasks/checklists, projects/lists, tags, recurring rules, reminders, natural language quick-add, and Pomodoro focus timer.
+  - `useTasks` (`apps/web/hook/tasks/`): Synchronizes task workspace via `trpc.tasks.getWorkspace` with optimistic updates and tRPC persistence.
+  - `useProjectBoardStore`: Kanban boards, customizable columns with WIP limits, fractional-index card ordering, swimlanes, sprints, milestones, burndown charts, and project boards connected to `useTaskStore` projects.
+  - `useProjectBoard` (`apps/web/hook/projects/`): Synchronizes board workspace via `trpc.projects.getWorkspace` with optimistic updates and tRPC persistence.
+  - `useContactStore` & `useContacts` (`apps/web/hook/contacts/`): Shared contacts directory synchronized via `trpc.contacts.getContacts` and integrated with Project card assignees and Expense Tracker selectors.
 - **Styling**: Tailwind CSS v4 + Vanilla CSS Tokens in `app/globals.css`.
 - **Icons**: `lucide-react` (SVG icons, size-controlled, minimal) and `simple-icons` (brand and cloud architecture icons in Canvas Studio).
 - **API & Data Layer**: tRPC client (`apps/web/trpc/`) with `@tanstack/react-query`.
@@ -267,7 +272,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 > **STRICT ZUSTAND STORE LOCATION RULE (ZERO EXCEPTIONS)**:
 > **EVERY Zustand store in `apps/web` MUST be located directly inside `apps/web/store/` without exception.**
 >
-> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, `habitStore.ts`, and `expenseStore.ts`.
+> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, `habitStore.ts`, `expenseStore.ts`, `deadlineStore.ts`, `meetingStore.ts`, `taskStore.ts`, `projectBoardStore.ts`, and `contactStore.ts`.
 > - **ABSOLUTELY NO STORES OUTSIDE `apps/web/store/`**: Feature directories and component folders (e.g. `components/notes/`, `components/notes/diagrams/canvas-studio/`, etc.) must **NEVER** contain store files. All state stores must live strictly in `apps/web/store/`.
 > - **Index Export**: Every store must be exported from `apps/web/store/index.ts` and imported across the app via `@/store/<storeName>` or `@/store`.
 > - **Naming Standard**: All stores follow the `<feature>Store.ts` file naming convention with corresponding `use<Feature>Store` hook export.

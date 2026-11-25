@@ -5,10 +5,12 @@ import {
   BookOpen,
   Brain,
   Check,
+  CheckSquare,
   ChevronDown,
   ChevronUp,
   Flame,
   HelpCircle,
+  Kanban,
   LogOut,
   Moon,
   PanelLeft,
@@ -23,6 +25,7 @@ import {
   Sun,
   Timer,
   Trash2,
+  Users,
   Video,
   Wallet,
   X,
@@ -457,6 +460,45 @@ export function Sidebar({
                   <span className="font-medium">Meetings Tracker</span>
                 </div>
               </Link>
+
+              <Link
+                href="/tasks"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Task Tracker & Focus"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckSquare size={14} className="text-[#10b981]" />
+                  <span className="font-medium">Task Tracker</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/projects"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Projects & Kanban Boards"
+              >
+                <div className="flex items-center gap-2">
+                  <Kanban size={14} className="text-[#f59e0b]" />
+                  <span className="font-medium">Projects &amp; Boards</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/contacts"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Shared Contacts"
+              >
+                <div className="flex items-center gap-2">
+                  <Users size={14} className="text-[#ec4899]" />
+                  <span className="font-medium">Contacts</span>
+                </div>
+              </Link>
             </div>
 
             {/* Scrollable Conversation List */}
@@ -889,6 +931,36 @@ export function Sidebar({
                     <span>Meetings Tracker</span>
                   </Link>
 
+                  <Link
+                    href="/tasks"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <CheckSquare size={15} className="text-[#10b981]" />
+                    <span>Task Tracker</span>
+                  </Link>
+
+                  <Link
+                    href="/projects"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Kanban size={15} className="text-[#f59e0b]" />
+                    <span>Projects &amp; Boards</span>
+                  </Link>
+
+                  <Link
+                    href="/contacts"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Users size={15} className="text-[#ec4899]" />
+                    <span>Contacts</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1053,6 +1125,36 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Video size={16} className="text-[#8b5cf6]" />
+              </Link>
+
+              <Link
+                href="/tasks"
+                replace
+                onClick={closeMobile}
+                title="Task Tracker & Focus"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <CheckSquare size={16} className="text-[#10b981]" />
+              </Link>
+
+              <Link
+                href="/projects"
+                replace
+                onClick={closeMobile}
+                title="Projects & Kanban Boards"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Kanban size={16} className="text-[#f59e0b]" />
+              </Link>
+
+              <Link
+                href="/contacts"
+                replace
+                onClick={closeMobile}
+                title="Shared Contacts"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Users size={16} className="text-[#ec4899]" />
               </Link>
             </div>
 

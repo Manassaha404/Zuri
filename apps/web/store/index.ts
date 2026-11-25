@@ -7,3 +7,6 @@ export * from "./habitStore";
 export * from "./expenseStore";
 export * from "./deadlineStore";
 export * from "./meetingStore";
+export * from "./taskStore";
+export * from "./projectBoardStore";
+export * from "./contactStore";
