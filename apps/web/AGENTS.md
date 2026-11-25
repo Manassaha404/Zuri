@@ -19,6 +19,7 @@ This document defines the architectural patterns, code style, UI standards, and 
   - `useAgentStore`: Agent chat, streaming tokens, interrupt handling, file attachments.
   - `useNotesStore`: Notebooks, chapters, pages, blocks, attachments, and visual diagrams.
   - `useDiagramStudioStore`: Hand-crafted diagram canvas elements, pan/zoom, connectors, and smart guides.
+  - `useMeetingStore`: Meeting items, types, Markdown agenda/notes, action items, tags, and calendar/timeline views.
 - **Styling**: Tailwind CSS v4 + Vanilla CSS Tokens in `app/globals.css`.
 - **Icons**: `lucide-react` (SVG icons, size-controlled, minimal) and `simple-icons` (brand and cloud architecture icons in Canvas Studio).
 - **API & Data Layer**: tRPC client (`apps/web/trpc/`) with `@tanstack/react-query`.

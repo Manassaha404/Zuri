@@ -5,3 +5,5 @@ export * from "./notesStore";
 export * from "./diagramStudioStore";
 export * from "./habitStore";
 export * from "./expenseStore";
+export * from "./deadlineStore";
+export * from "./meetingStore";

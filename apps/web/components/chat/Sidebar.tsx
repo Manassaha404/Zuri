@@ -23,6 +23,7 @@ import {
   Sun,
   Timer,
   Trash2,
+  Video,
   Wallet,
   X,
 } from "lucide-react";
@@ -441,6 +442,19 @@ export function Sidebar({
                 <div className="flex items-center gap-2">
                   <Timer size={14} className="text-[#3b82f6]" />
                   <span className="font-medium">Deadline Tracker</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/meetings"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Meetings Tracker & Schedules"
+              >
+                <div className="flex items-center gap-2">
+                  <Video size={14} className="text-[#8b5cf6]" />
+                  <span className="font-medium">Meetings Tracker</span>
                 </div>
               </Link>
             </div>
@@ -865,6 +879,16 @@ export function Sidebar({
                     <span>Deadline Tracker</span>
                   </Link>
 
+                  <Link
+                    href="/meetings"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Video size={15} className="text-[#8b5cf6]" />
+                    <span>Meetings Tracker</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1019,6 +1043,16 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Timer size={16} className="text-[#3b82f6]" />
+              </Link>
+
+              <Link
+                href="/meetings"
+                replace
+                onClick={closeMobile}
+                title="Meetings Tracker & Schedules"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Video size={16} className="text-[#8b5cf6]" />
               </Link>
             </div>
 

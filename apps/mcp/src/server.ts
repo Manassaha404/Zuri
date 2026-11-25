@@ -6,9 +6,11 @@ import { oAuthServerService } from "@repo/services/mcp-oauth";
 import { registerNoteTools } from "@repo/services/agent/mcp/tools/note";
 import { registerHabitTools } from "@repo/services/agent/mcp/tools/habit";
 import { registerExpenseTools } from "@repo/services/agent/mcp/tools/expense";
+import { registerDeadlineTools } from "@repo/services/agent/mcp/tools/deadline";
 import { registerNotePrompts } from "@repo/services/agent/mcp/prompts/notes";
 import { registerHabitPrompts } from "@repo/services/agent/mcp/prompts/habits";
 import { registerExpensePrompts } from "@repo/services/agent/mcp/prompts/expenses";
+import { registerDeadlinePrompts } from "@repo/services/agent/mcp/prompts/deadlines";
 import { oauthRoutes } from "./routes/oauth";
 import { authRoutes } from "./routes/auth";
 import logger from "@repo/logger/logger";
@@ -171,11 +173,13 @@ export const mcpServer = new FastMCP<MCPUserSession>({
 registerNoteTools(mcpServer);
 registerHabitTools(mcpServer);
 registerExpenseTools(mcpServer);
+registerDeadlineTools(mcpServer);
 
 // Register prompts
 registerNotePrompts(mcpServer);
 registerHabitPrompts(mcpServer);
 registerExpensePrompts(mcpServer);
+registerDeadlinePrompts(mcpServer);
 
 const app = mcpServer.getApp();
 app.use("*", async (c, next) => {

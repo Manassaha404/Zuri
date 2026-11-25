@@ -21,7 +21,7 @@ Comprehensive personal cash flow, expense tracking, monthly budgets, debt ledger
 - Debt Ledger: expenses_add_debt_entry, expenses_add_debt_repayment, expenses_settle_person_debts, expenses_delete_debt_entry.
 - Bill Splitting: expenses_add_bill_split, expenses_toggle_split_item_paid, expenses_delete_bill_split.
 - Groups: expenses_add_group, expenses_delete_group.
-- Settings: expenses_set_currency.
+- Settings: expenses_set_preferred_currency.
 
 ## 3. General Principles & Rules
 - Dates: Strict YYYY-MM-DD format using current system date.
@@ -80,7 +80,7 @@ Workflows for managing IOUs, debt repayments, settlements, and shared bill split
   - Authenticated user is represented by personId: "p_you" (name: "You").
   - Other participants use personId from contacts or custom participant names.
 - Paid Status:
-  - Toggle item status using expenses_toggle_split_item_paid({ itemId, isPaid }).
+  - Toggle item status using expenses_toggle_split_item_paid({ splitId, personId }).
 - Groups:
   - Group expenses simplify debts across roommates, trips, or projects via expenses_add_group.
 `;
