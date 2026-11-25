@@ -2,7 +2,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type {
   FitnessWorkspaceTab,
   WeightUnit,
@@ -35,57 +34,43 @@ interface FitnessStoreState {
   tickRestTimer: () => void;
 }
 
-export const useFitnessStore = create<FitnessStoreState>()(
-  persist(
-    (set) => ({
-      activeTab: "workout",
-      unit: "kg",
-      isDeloadWeek: false,
-      showRpeTempo: true,
-      activeWorkout: null,
+export const useFitnessStore = create<FitnessStoreState>()((set) => ({
+  activeTab: "workout",
+  unit: "kg",
+  isDeloadWeek: false,
+  showRpeTempo: true,
+  activeWorkout: null,
 
-      restTimerSeconds: 0,
-      restTimerTotal: 90,
-      restTimerRunning: false,
+  restTimerSeconds: 0,
+  restTimerTotal: 90,
+  restTimerRunning: false,
 
-      setActiveTab: (activeTab) => set({ activeTab }),
-      setUnit: (unit) => set({ unit }),
-      toggleDeloadWeek: () => set((s) => ({ isDeloadWeek: !s.isDeloadWeek })),
-      toggleShowRpeTempo: () => set((s) => ({ showRpeTempo: !s.showRpeTempo })),
-      setActiveWorkout: (activeWorkout) => set({ activeWorkout }),
+  setActiveTab: (activeTab) => set({ activeTab }),
+  setUnit: (unit) => set({ unit }),
+  toggleDeloadWeek: () => set((s) => ({ isDeloadWeek: !s.isDeloadWeek })),
+  toggleShowRpeTempo: () => set((s) => ({ showRpeTempo: !s.showRpeTempo })),
+  setActiveWorkout: (activeWorkout) => set({ activeWorkout }),
 
-      startRestTimer: (seconds) =>
-        set({
-          restTimerSeconds: seconds,
-          restTimerTotal: seconds,
-          restTimerRunning: true,
-        }),
-      pauseRestTimer: () => set({ restTimerRunning: false }),
-      resumeRestTimer: () =>
-        set((s) => (s.restTimerSeconds > 0 ? { restTimerRunning: true } : s)),
-      resetRestTimer: () =>
-        set((s) => ({
-          restTimerSeconds: s.restTimerTotal,
-          restTimerRunning: false,
-        })),
-      tickRestTimer: () =>
-        set((s) => {
-          if (!s.restTimerRunning) return s;
-          if (s.restTimerSeconds <= 1) {
-            return { restTimerSeconds: 0, restTimerRunning: false };
-          }
-          return { restTimerSeconds: s.restTimerSeconds - 1 };
-        }),
+  startRestTimer: (seconds) =>
+    set({
+      restTimerSeconds: seconds,
+      restTimerTotal: seconds,
+      restTimerRunning: true,
     }),
-    {
-      name: "zuri-fitness-ui-v2",
-      partialize: (state) => ({
-        activeTab: state.activeTab,
-        unit: state.unit,
-        isDeloadWeek: state.isDeloadWeek,
-        showRpeTempo: state.showRpeTempo,
-        activeWorkout: state.activeWorkout,
-      }),
-    },
-  ),
-);
+  pauseRestTimer: () => set({ restTimerRunning: false }),
+  resumeRestTimer: () =>
+    set((s) => (s.restTimerSeconds > 0 ? { restTimerRunning: true } : s)),
+  resetRestTimer: () =>
+    set((s) => ({
+      restTimerSeconds: s.restTimerTotal,
+      restTimerRunning: false,
+    })),
+  tickRestTimer: () =>
+    set((s) => {
+      if (!s.restTimerRunning) return s;
+      if (s.restTimerSeconds <= 1) {
+        return { restTimerSeconds: 0, restTimerRunning: false };
+      }
+      return { restTimerSeconds: s.restTimerSeconds - 1 };
+    }),
+}));
