@@ -33,6 +33,7 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import redis from "@repo/redis";
 import { store } from "../pg-for-agent";
 import { inspectArtifactTool } from "../tools/inspectArtifactTool";
+import { webSearchTool } from "../tools/webSearchTool";
 import { getLiveMCPTools, resolveMcpClient } from "../mcp";
 import { mcpTools as mcpClientTools } from "../tools/MCPTool";
 
@@ -285,14 +286,34 @@ export const llmCall: GraphNode<typeof MessagesState> = async (
     });
   }
 
-  // Fetch live MCP server tools (notes_*, etc.) so the LLM can call them directly by name
-  const liveMcpTools = await getLiveMCPTools(conversationId, userId);
+  const lastMsg = state.messages.at(-1) as any;
+  const isAfterToolTurn =
+    lastMsg instanceof ToolMessage ||
+    lastMsg?._getType?.() === "tool" ||
+    lastMsg?.type === "tool" ||
+    Boolean(lastMsg?.tool_call_id);
+  const lastAi = lastOfType(state.messages, "ai") as AIMessage | undefined;
+  const lastAiToolCallIds = (lastAi?.tool_calls ?? [])
+    .map((c) => c.id)
+    .filter((id): id is string => Boolean(id));
+  const allLastToolsDenied =
+    isAfterToolTurn &&
+    lastAiToolCallIds.length > 0 &&
+    state.denied.length > 0 &&
+    lastAiToolCallIds.every((id) => state.denied.includes(id));
 
-  const toolSlugs = state.activeTools.length
-    ? [...new Set([...state.activeTools, "INSPECT_TOOL_ARTIFACT"])]
-    : [];
-  const externalTools = await resolveTools(userId, toolSlugs);
-  const tools = [...liveMcpTools, ...mcpClientTools, ...externalTools];
+  // Do not bind tools if the user denied every tool call in this turn so the LLM cannot retry with another tool
+  let tools: StructuredToolInterface[] = [];
+  if (!allLastToolsDenied) {
+    // Fetch live MCP server tools (notes_*, etc.) so the LLM can call them directly by name
+    const liveMcpTools = await getLiveMCPTools(conversationId, userId);
+
+    const toolSlugs = state.activeTools.length
+      ? [...new Set([...state.activeTools, "INSPECT_TOOL_ARTIFACT"])]
+      : [];
+    const externalTools = await resolveTools(userId, toolSlugs);
+    tools = [webSearchTool, ...liveMcpTools, ...mcpClientTools, ...externalTools];
+  }
   const runnable = tools.length
     ? model.bindTools(tools, { parallel_tool_calls: true })
     : model;
@@ -787,6 +808,8 @@ const resolveTools = async (
   for (const slug of slugs) {
     if (slug === "INSPECT_TOOL_ARTIFACT") {
       builtinTools.push(inspectArtifactTool);
+    } else if (slug === "web_search") {
+      builtinTools.push(webSearchTool);
     } else {
       externalSlugs.push(slug);
     }
@@ -871,6 +894,7 @@ export const riskCheck: GraphNode<typeof MessagesState> = async (
     ...state.allowedTools,
     ...cachedAllowedTools,
     "INSPECT_TOOL_ARTIFACT",
+    "web_search",
   ]);
 
   const conversationId = config.configurable?.thread_id;
@@ -879,7 +903,7 @@ export const riskCheck: GraphNode<typeof MessagesState> = async (
     calls.map((c) => c.name),
   );
   const mcpTools = await getLiveMCPTools(conversationId, userId);
-  const tools = [...externalTools, ...mcpTools, ...mcpClientTools];
+  const tools = [webSearchTool, ...externalTools, ...mcpTools, ...mcpClientTools];
   const descOf = (name: string) =>
     tools.find((t) => t.name === name)?.description ?? "";
 
@@ -1024,7 +1048,7 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
       (c) =>
         new ToolMessage({
           content:
-            "The user denied this action. Do not retry it unless the user asks again. Tell the user it was not done.",
+            "The user explicitly denied this action. Do NOT retry it, do NOT attempt the same goal using another tool, workaround, or different arguments, and do NOT ask for approval again unless the user explicitly asks in a new message. Tell the user it was not done.",
           tool_call_id: c.id!,
           name: c.name,
         }),
@@ -1044,7 +1068,7 @@ export const toolsNode: GraphNode<typeof MessagesState> = async (
     ];
     const externalTools = await resolveTools(userId, neededSlugs);
     mcpTools = await getLiveMCPTools(conversationId, userId);
-    const tools = [...externalTools, ...mcpTools, ...mcpClientTools];
+    const tools = [webSearchTool, ...externalTools, ...mcpTools, ...mcpClientTools];
     // ToolNode runs the tool calls of the last AI message in parallel with error isolation
     const onlyApproved = new AIMessage({
       content: last.content,
