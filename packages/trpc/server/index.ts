@@ -12,6 +12,7 @@ import { meetingsRouter } from "./routes/meetings/route";
 import { contactsRouter } from "./routes/contacts/route";
 import { tasksRouter } from "./routes/tasks/route";
 import { projectsRouter } from "./routes/projects/route";
+import { fileDockRouter } from "./routes/file-dock/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -26,6 +27,7 @@ export const serverRouter = router({
   contacts: contactsRouter,
   tasks: tasksRouter,
   projects: projectsRouter,
+  fileDock: fileDockRouter,
 });
 
 export { createContext } from "./context";

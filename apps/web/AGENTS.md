@@ -25,6 +25,7 @@ This document defines the architectural patterns, code style, UI standards, and 
   - `useProjectBoardStore`: Kanban boards, customizable columns with WIP limits, fractional-index card ordering, swimlanes, sprints, milestones, burndown charts, and project boards connected to `useTaskStore` projects.
   - `useProjectBoard` (`apps/web/hook/projects/`): Synchronizes board workspace via `trpc.projects.getWorkspace` with optimistic updates and tRPC persistence.
   - `useContactStore` & `useContacts` (`apps/web/hook/contacts/`): Shared contacts directory synchronized via `trpc.contacts.getContacts` and integrated with Project card assignees and Expense Tracker selectors.
+  - `useFileDockStore` & `useFileDock` (`apps/web/hook/file-dock/`): File Dock & Saved Files workspace (`/files`) synchronized via `trpc.fileDock.getWorkspace` with Cloudinary uploads, nestable folders, grid/list views, and in-app previews.
 - **Styling**: Tailwind CSS v4 + Vanilla CSS Tokens in `app/globals.css`.
 - **Icons**: `lucide-react` (SVG icons, size-controlled, minimal) and `simple-icons` (brand and cloud architecture icons in Canvas Studio).
 - **API & Data Layer**: tRPC client (`apps/web/trpc/`) with `@tanstack/react-query`.
@@ -36,18 +37,18 @@ This document defines the architectural patterns, code style, UI standards, and 
 
 All colors and core surfaces are driven by CSS variables in `apps/web/app/globals.css`, following a clean, high-contrast, editorial design standard:
 
-| Token            | Light Theme (`.L`, `[data-theme="light"]`) | Dark / Black Theme (`.D`, `.dark`, `[data-theme="dark"]`) | Description                             |
-| ---------------- | ------------------------------------------ | --------------------------------------------------------- | --------------------------------------- |
-| `--bg`           | `#ffffff` (Canvas white)                   | `#101010` (Deep near-black)                               | Main background canvas surface          |
-| `--s`            | `#f8f9fa` (Soft surface)                   | `#141414` (Elevated dark surface)                         | Sidebar & secondary containers          |
-| `--surface-card` | `#f5f5f5` (Card background)                | `#18181b` (Dark card background)                          | Feature cards, modal surfaces & wells   |
-| `--h`            | `#e5e7eb` (Hairline border)                | `#27272a` (Dark hairline border)                          | Subtle 1px borders & dividers           |
-| `--i`            | `#111111` (Ink black)                      | `#ffffff` (Pure white)                                    | Display headings & high-contrast titles |
-| `--b`            | `#374151` (Body charcoal)                  | `#d4d4d8` (Body light zinc)                               | Body & descriptive text                 |
-| `--m`            | `#6b7280` (Muted gray)                     | `#a1a1aa` (Dark muted zinc)                               | Secondary captions, badges & icons      |
-| `--p`            | `#111111` (Solid black)                    | `#ffffff` (Solid white)                                   | Primary interactive buttons & badges    |
-| `--pt`           | `#ffffff` (Pure white)                     | `#111111` (Ink black)                                     | Primary button label text               |
-| `--accent`       | `#3b82f6` (System blue)                    | `#3b82f6` (System blue)                                   | Informational badges & active accents   |
+| Token            | Light Theme (`.L`, `[data-theme="light"]`) | Dark Theme (`.D`, `.dark`, `[data-theme="dark"]`) | Description                             |
+| ---------------- | ------------------------------------------ | ------------------------------------------------- | --------------------------------------- |
+| `--bg`           | `#faf9f6` (Powder white)                   | `#1a1b1e` (Asphalt black)                         | Main background canvas surface          |
+| `--s`            | `#f3f1ec` (Soft powder surface)            | `#212226` (Elevated asphalt surface)              | Sidebar & secondary containers          |
+| `--surface-card` | `#ece9e2` (Powder card shade)              | `#282a2f` (Asphalt card shade)                    | Feature cards, modal surfaces & wells   |
+| `--h`            | `#e2dfd7` (Hairline border)                | `#32343b` (Dark hairline border)                  | Subtle 1px borders & dividers           |
+| `--i`            | `#1c1d1f` (Deep asphalt ink)               | `#f3f2ee` (Powder white text)                     | Display headings & high-contrast titles |
+| `--b`            | `#374151` (Body charcoal)                  | `#cbd5e1` (Body light slate)                      | Body & descriptive text                 |
+| `--m`            | `#64748b` (Muted slate)                    | `#94a3b8` (Dark muted slate)                      | Secondary captions, badges & icons      |
+| `--p`            | `#1f2124` (Asphalt button)                 | `#eae8e3` (Powder white button)                   | Primary interactive buttons & badges    |
+| `--pt`           | `#faf9f6` (Powder white)                   | `#1a1b1e` (Asphalt black)                         | Primary button label text               |
+| `--accent`       | `#3b82f6` (System blue)                    | `#3b82f6` (System blue)                           | Informational badges & active accents   |
 
 > [!IMPORTANT]
 > **DARK & LIGHT MODE ACCESSIBILITY RULE**:
@@ -272,7 +273,7 @@ All colors and core surfaces are driven by CSS variables in `apps/web/app/global
 > **STRICT ZUSTAND STORE LOCATION RULE (ZERO EXCEPTIONS)**:
 > **EVERY Zustand store in `apps/web` MUST be located directly inside `apps/web/store/` without exception.**
 >
-> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, `habitStore.ts`, `expenseStore.ts`, `deadlineStore.ts`, `meetingStore.ts`, `taskStore.ts`, `projectBoardStore.ts`, and `contactStore.ts`.
+> - **Current Stores**: `uiStore.ts`, `userInfoStore.ts`, `agentStore.ts`, `notesStore.ts`, `diagramStudioStore.ts`, `habitStore.ts`, `expenseStore.ts`, `deadlineStore.ts`, `meetingStore.ts`, `taskStore.ts`, `projectBoardStore.ts`, `contactStore.ts`, and `fileDockStore.ts`.
 > - **ABSOLUTELY NO STORES OUTSIDE `apps/web/store/`**: Feature directories and component folders (e.g. `components/notes/`, `components/notes/diagrams/canvas-studio/`, etc.) must **NEVER** contain store files. All state stores must live strictly in `apps/web/store/`.
 > - **Index Export**: Every store must be exported from `apps/web/store/index.ts` and imported across the app via `@/store/<storeName>` or `@/store`.
 > - **Naming Standard**: All stores follow the `<feature>Store.ts` file naming convention with corresponding `use<Feature>Store` hook export.

@@ -10,3 +10,4 @@ export * from "./meetingStore";
 export * from "./taskStore";
 export * from "./projectBoardStore";
 export * from "./contactStore";
+export * from "./fileDockStore";

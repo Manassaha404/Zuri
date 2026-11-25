@@ -367,20 +367,12 @@ export class NoteService {
       position = last?.position ? `${last.position}V` : "a0";
     }
 
-    // Automatically create a dedicated File Dock for this chapter
-    const [dock] = await db
-      .insert(fileDocks)
-      .values({
-        userId,
-        name: `${data.title || "Untitled"} Files`,
-      })
-      .returning();
-
+    // File dock is created on-demand only when a file is uploaded to the chapter
     const [created] = await db
       .insert(chapters)
       .values({
         notebookId,
-        fileDockId: dock?.fileDockId,
+        fileDockId: null,
         title: data.title?.trim() || "Untitled chapter",
         icon: data.icon,
         color: data.color,

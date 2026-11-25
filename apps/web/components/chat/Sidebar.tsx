@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
+  HardDrive,
   HelpCircle,
   Kanban,
   LogOut,
@@ -499,6 +500,19 @@ export function Sidebar({
                   <span className="font-medium">Contacts</span>
                 </div>
               </Link>
+
+              <Link
+                href="/files"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="File Dock & Saved Files"
+              >
+                <div className="flex items-center gap-2">
+                  <HardDrive size={14} className="text-[#3b82f6]" />
+                  <span className="font-medium">File Dock</span>
+                </div>
+              </Link>
             </div>
 
             {/* Scrollable Conversation List */}
@@ -961,6 +975,16 @@ export function Sidebar({
                     <span>Contacts</span>
                   </Link>
 
+                  <Link
+                    href="/files"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <HardDrive size={15} className="text-[#3b82f6]" />
+                    <span>File Dock</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1155,6 +1179,16 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Users size={16} className="text-[#ec4899]" />
+              </Link>
+
+              <Link
+                href="/files"
+                replace
+                onClick={closeMobile}
+                title="File Dock & Saved Files"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <HardDrive size={16} className="text-[#3b82f6]" />
               </Link>
             </div>
 
