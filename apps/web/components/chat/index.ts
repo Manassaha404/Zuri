@@ -5,7 +5,7 @@ export { EmptyState } from "./EmptyState";
 export { MessageBubble } from "./MessageBubble";
 export { ChatComposer } from "./ChatComposer";
 export { ChatInterface } from "./ChatInterface";
-export { Sidebar } from "./Sidebar";
+export { Sidebar, type SidebarFeatureId } from "./Sidebar";
 export { DeleteConversationModal } from "./DeleteConversationModal";
 export { MemoryModal } from "./MemoryModal";
 export { ConnectorsModal } from "./ConnectorsModal";

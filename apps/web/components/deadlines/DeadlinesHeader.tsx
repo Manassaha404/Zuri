@@ -89,17 +89,8 @@ export function DeadlinesHeader({
     <header className="flex flex-col gap-5 bg-[var(--surface-card)] border border-[var(--h)] rounded-2xl p-5 shadow-xs">
       {/* Top Bar: Title, Navigation, Theme & Action */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--h)]">
-        {/* Left: Back button & Title */}
+        {/* Left: Title */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.replace("/")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--h)] hover:bg-[var(--s)] text-[var(--m)] hover:text-[var(--i)] transition-colors"
-            title="Return to Assistant"
-          >
-            <ArrowLeft size={16} />
-          </button>
-
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-[var(--p)] text-[var(--pt)] flex items-center justify-center shadow-xs">
               <Timer size={20} />

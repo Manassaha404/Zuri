@@ -85,17 +85,6 @@ export function HabitsHeader({ onOpenCreateModal }: HabitsHeaderProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Title and Workspace Branding */}
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            replace
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--h)] bg-[var(--s)] text-xs font-semibold text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline shadow-2xs shrink-0"
-            title="Back to AI Chat"
-          >
-            <ArrowLeft size={14} className="text-[var(--m)]" />
-            <MessageSquare size={14} className="text-[#3b82f6]" />
-            <span className="hidden sm:inline">Back to Chat</span>
-          </Link>
-
           <div className="w-10 h-10 rounded-2xl bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/20 flex items-center justify-center shrink-0">
             <Flame size={22} />
           </div>

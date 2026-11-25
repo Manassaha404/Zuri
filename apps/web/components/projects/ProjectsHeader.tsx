@@ -110,14 +110,6 @@ export function ProjectsHeader({
       {/* Row 1: Title & Primary Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/"
-            className="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--h)] bg-[var(--s)] text-[var(--m)] hover:text-[var(--i)] transition-colors shrink-0"
-            title="Back to Assistant"
-            aria-label="Back to Assistant"
-          >
-            <ArrowLeft size={16} />
-          </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--i)] truncate">

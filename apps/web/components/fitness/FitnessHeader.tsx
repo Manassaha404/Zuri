@@ -74,15 +74,6 @@ export function FitnessHeader({ onOpenCalculators }: FitnessHeaderProps) {
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--h)]">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.replace("/")}
-            className="w-9 h-9 rounded-xl bg-[var(--s)] border border-[var(--h)] flex items-center justify-center text-[var(--m)] hover:text-[var(--i)] hover:border-[var(--m)] transition-all shrink-0 shadow-2xs cursor-pointer"
-            title="Back to AI Assistant"
-          >
-            <ArrowLeft size={16} />
-          </button>
-
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-[var(--accent)] border border-blue-500/20 flex items-center justify-center shrink-0">
             <Activity size={20} />
           </div>

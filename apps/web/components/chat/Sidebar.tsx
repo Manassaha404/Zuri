@@ -45,6 +45,97 @@ import { MemoryModal } from "./MemoryModal";
 import { ConnectorsModal } from "./ConnectorsModal";
 import { ZuriLogo } from "@/components/ui/avatar-logo/ZuriLogo";
 
+export type SidebarFeatureId =
+  | "notes"
+  | "habits"
+  | "expenses"
+  | "deadlines"
+  | "meetings"
+  | "tasks"
+  | "projects"
+  | "fitness"
+  | "contacts"
+  | "files";
+
+const SIDEBAR_FEATURES: Array<{
+  id: SidebarFeatureId;
+  label: string;
+  title: string;
+  icon: typeof BookOpen;
+  colorClass: string;
+}> = [
+  {
+    id: "notes",
+    label: "Notes",
+    title: "Notes & Documentation Workspace",
+    icon: BookOpen,
+    colorClass: "text-[#10b981]",
+  },
+  {
+    id: "habits",
+    label: "Habits",
+    title: "Habit Tracker & Daily Routines",
+    icon: Flame,
+    colorClass: "text-[#f97316]",
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    title: "Personal Expenses & Debt Ledger",
+    icon: Wallet,
+    colorClass: "text-[#10b981]",
+  },
+  {
+    id: "deadlines",
+    label: "Deadlines",
+    title: "Deadline Tracker & Schedules",
+    icon: Timer,
+    colorClass: "text-[#3b82f6]",
+  },
+  {
+    id: "meetings",
+    label: "Meetings",
+    title: "Meetings Tracker & Schedules",
+    icon: Video,
+    colorClass: "text-[#8b5cf6]",
+  },
+  {
+    id: "tasks",
+    label: "Tasks",
+    title: "Task Tracker & Focus",
+    icon: CheckSquare,
+    colorClass: "text-[#10b981]",
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    title: "Projects & Kanban Boards",
+    icon: Kanban,
+    colorClass: "text-[#f59e0b]",
+  },
+  {
+    id: "fitness",
+    label: "Fitness",
+    title: "Fitness Tracker & Nutrition",
+    icon: Dumbbell,
+    colorClass: "text-[#3b82f6]",
+  },
+  {
+    id: "contacts",
+    label: "Contacts",
+    title: "Shared Contacts",
+    icon: Users,
+    colorClass: "text-[#ec4899]",
+  },
+  {
+    id: "files",
+    label: "File Dock",
+    title: "File Dock & Saved Files",
+    icon: HardDrive,
+    colorClass: "text-[#3b82f6]",
+  },
+];
+
 interface SidebarProps {
   mobileOpen?: boolean;
   setMobileOpen?: (value: boolean) => void;
@@ -78,6 +169,8 @@ interface SidebarProps {
   memory: string;
   setMemory: React.Dispatch<React.SetStateAction<string>>;
   isLoadingConversations?: boolean;
+  activeFeature?: SidebarFeatureId | null;
+  onSelectFeature?: (feature: SidebarFeatureId | null) => void;
 }
 
 export function Sidebar({
@@ -102,6 +195,8 @@ export function Sidebar({
   memory,
   setMemory,
   isLoadingConversations,
+  activeFeature = null,
+  onSelectFeature,
 }: SidebarProps) {
   const {
     isMobile,
@@ -305,7 +400,10 @@ export function Sidebar({
             <Link
               href="/"
               className="lg flex items-center justify-start text-[var(--i)] font-semibold text-xl tracking-tight no-underline group"
-              onClick={closeMobile}
+              onClick={() => {
+                onSelectFeature?.(null);
+                closeMobile();
+              }}
             >
               <ZuriLogo
                 size={58}
@@ -334,7 +432,10 @@ export function Sidebar({
           <div className="flex flex-col items-center gap-2.5 mb-3">
             <Link
               href="/"
-              onClick={closeMobile}
+              onClick={() => {
+                onSelectFeature?.(null);
+                closeMobile();
+              }}
               className="flex items-center justify-center group"
               title="Zuri"
             >
@@ -398,135 +499,34 @@ export function Sidebar({
                 </button>
               </div>
 
-              <Link
-                href="/notes"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Notes & Documentation Workspace"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen size={14} className="text-[#10b981]" />
-                  <span className="font-medium">Notes & Docs</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/habits"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Habit Tracker & Daily Routines"
-              >
-                <div className="flex items-center gap-2">
-                  <Flame size={14} className="text-[#f97316]" />
-                  <span className="font-medium">Habit Tracker</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/expenses"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Personal Expenses & Debt Ledger"
-              >
-                <div className="flex items-center gap-2">
-                  <Wallet size={14} className="text-[#10b981]" />
-                  <span className="font-medium">Expenses & Debts</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/deadlines"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Deadline Tracker & Schedules"
-              >
-                <div className="flex items-center gap-2">
-                  <Timer size={14} className="text-[#3b82f6]" />
-                  <span className="font-medium">Deadline Tracker</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/meetings"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Meetings Tracker & Schedules"
-              >
-                <div className="flex items-center gap-2">
-                  <Video size={14} className="text-[#8b5cf6]" />
-                  <span className="font-medium">Meetings Tracker</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/tasks"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Task Tracker & Focus"
-              >
-                <div className="flex items-center gap-2">
-                  <CheckSquare size={14} className="text-[#10b981]" />
-                  <span className="font-medium">Task Tracker</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/projects"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Projects & Kanban Boards"
-              >
-                <div className="flex items-center gap-2">
-                  <Kanban size={14} className="text-[#f59e0b]" />
-                  <span className="font-medium">Projects &amp; Boards</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/fitness"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Fitness Tracker & Nutrition"
-              >
-                <div className="flex items-center gap-2">
-                  <Dumbbell size={14} className="text-[#3b82f6]" />
-                  <span className="font-medium">Fitness Tracker</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/contacts"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="Shared Contacts"
-              >
-                <div className="flex items-center gap-2">
-                  <Users size={14} className="text-[#ec4899]" />
-                  <span className="font-medium">Contacts</span>
-                </div>
-              </Link>
-
-              <Link
-                href="/files"
-                replace
-                onClick={closeMobile}
-                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
-                title="File Dock & Saved Files"
-              >
-                <div className="flex items-center gap-2">
-                  <HardDrive size={14} className="text-[#3b82f6]" />
-                  <span className="font-medium">File Dock</span>
-                </div>
-              </Link>
+              <div className="grid grid-cols-2 gap-1.5">
+                {SIDEBAR_FEATURES.map((feature) => {
+                  const Icon = feature.icon;
+                  const isActive = activeFeature === feature.id;
+                  return (
+                    <button
+                      key={feature.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectFeature?.(feature.id);
+                        closeMobile();
+                      }}
+                      className={`bt !h-8 !px-2 text-[11px] font-medium justify-start gap-1.5 overflow-hidden transition-colors ${
+                        isActive
+                          ? "!bg-[var(--h)] !border-[var(--accent)]/60 text-[var(--i)] font-semibold"
+                          : "text-[var(--i)] hover:bg-[var(--h)]"
+                      }`}
+                      title={feature.title}
+                    >
+                      <Icon
+                        size={13}
+                        className={`shrink-0 ${feature.colorClass}`}
+                      />
+                      <span className="truncate">{feature.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Scrollable Conversation List */}
@@ -909,105 +909,27 @@ export function Sidebar({
                     <span>Settings</span>
                   </Link>
 
-                  <Link
-                    href="/notes"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <BookOpen size={15} className="text-[#10b981]" />
-                    <span>Notes & Docs</span>
-                  </Link>
-
-                  <Link
-                    href="/habits"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Flame size={15} className="text-[#f97316]" />
-                    <span>Habit Tracker</span>
-                  </Link>
-
-                  <Link
-                    href="/expenses"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Wallet size={15} className="text-[#10b981]" />
-                    <span>Expenses & Debts</span>
-                  </Link>
-
-                  <Link
-                    href="/deadlines"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Timer size={15} className="text-[#3b82f6]" />
-                    <span>Deadline Tracker</span>
-                  </Link>
-
-                  <Link
-                    href="/meetings"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Video size={15} className="text-[#8b5cf6]" />
-                    <span>Meetings Tracker</span>
-                  </Link>
-
-                  <Link
-                    href="/tasks"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <CheckSquare size={15} className="text-[#10b981]" />
-                    <span>Task Tracker</span>
-                  </Link>
-
-                  <Link
-                    href="/projects"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Kanban size={15} className="text-[#f59e0b]" />
-                    <span>Projects &amp; Boards</span>
-                  </Link>
-
-                  <Link
-                    href="/fitness"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Dumbbell size={15} className="text-[#3b82f6]" />
-                    <span>Fitness Tracker</span>
-                  </Link>
-
-                  <Link
-                    href="/contacts"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <Users size={15} className="text-[#ec4899]" />
-                    <span>Contacts</span>
-                  </Link>
-
-                  <Link
-                    href="/files"
-                    replace
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
-                  >
-                    <HardDrive size={15} className="text-[#3b82f6]" />
-                    <span>File Dock</span>
-                  </Link>
+                  {SIDEBAR_FEATURES.map((feature) => {
+                    const Icon = feature.icon;
+                    const isActive = activeFeature === feature.id;
+                    return (
+                      <button
+                        key={feature.id}
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onSelectFeature?.(feature.id);
+                          closeMobile();
+                        }}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors text-left ${
+                          isActive ? "bg-[var(--s)] font-semibold" : ""
+                        }`}
+                      >
+                        <Icon size={15} className={feature.colorClass} />
+                        <span>{feature.label}</span>
+                      </button>
+                    );
+                  })}
 
                   <button
                     type="button"
@@ -1125,105 +1047,28 @@ export function Sidebar({
                 <Brain size={16} className="text-[#8b5cf6]" />
               </button>
 
-              <Link
-                href="/notes"
-                replace
-                onClick={closeMobile}
-                title="Notes & Docs"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <BookOpen size={16} className="text-[#10b981]" />
-              </Link>
-
-              <Link
-                href="/habits"
-                replace
-                onClick={closeMobile}
-                title="Habit Tracker"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Flame size={16} className="text-[#f97316]" />
-              </Link>
-
-              <Link
-                href="/expenses"
-                replace
-                onClick={closeMobile}
-                title="Personal Expenses & Debt Ledger"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Wallet size={16} className="text-[#10b981]" />
-              </Link>
-
-              <Link
-                href="/deadlines"
-                replace
-                onClick={closeMobile}
-                title="Deadline Tracker & Schedules"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Timer size={16} className="text-[#3b82f6]" />
-              </Link>
-
-              <Link
-                href="/meetings"
-                replace
-                onClick={closeMobile}
-                title="Meetings Tracker & Schedules"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Video size={16} className="text-[#8b5cf6]" />
-              </Link>
-
-              <Link
-                href="/tasks"
-                replace
-                onClick={closeMobile}
-                title="Task Tracker & Focus"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <CheckSquare size={16} className="text-[#10b981]" />
-              </Link>
-
-              <Link
-                href="/projects"
-                replace
-                onClick={closeMobile}
-                title="Projects & Kanban Boards"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Kanban size={16} className="text-[#f59e0b]" />
-              </Link>
-
-              <Link
-                href="/fitness"
-                replace
-                onClick={closeMobile}
-                title="Fitness Tracker & Nutrition"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Dumbbell size={16} className="text-[#3b82f6]" />
-              </Link>
-
-              <Link
-                href="/contacts"
-                replace
-                onClick={closeMobile}
-                title="Shared Contacts"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <Users size={16} className="text-[#ec4899]" />
-              </Link>
-
-              <Link
-                href="/files"
-                replace
-                onClick={closeMobile}
-                title="File Dock & Saved Files"
-                className="ib flex items-center justify-center no-underline"
-              >
-                <HardDrive size={16} className="text-[#3b82f6]" />
-              </Link>
+              {SIDEBAR_FEATURES.map((feature) => {
+                const Icon = feature.icon;
+                const isActive = activeFeature === feature.id;
+                return (
+                  <button
+                    key={feature.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectFeature?.(feature.id);
+                      closeMobile();
+                    }}
+                    title={feature.title}
+                    className={`ib flex items-center justify-center ${
+                      isActive
+                        ? "!bg-[var(--h)] ring-1 ring-[var(--accent)]/50"
+                        : ""
+                    }`}
+                  >
+                    <Icon size={16} className={feature.colorClass} />
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex flex-col items-center gap-3">

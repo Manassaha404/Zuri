@@ -12,7 +12,7 @@ import { DiagramModal } from "./diagrams/DiagramModal";
 import { ChapterFileDock } from "./attachments/ChapterFileDock";
 import { SearchModal } from "./search/SearchModal";
 
-export function NotesWorkspace() {
+export function NotesWorkspace({ embedded = false }: { embedded?: boolean }) {
   useInitUIStore();
   useNotes();
   useNoteAutosave();
@@ -20,7 +20,11 @@ export function NotesWorkspace() {
   const { activeView } = useNotesStore();
 
   return (
-    <div className="notes-app flex h-screen w-screen overflow-hidden bg-[var(--bg)] text-[var(--b)] font-sans antialiased">
+    <div
+      className={`notes-app flex ${
+        embedded ? "h-full w-full" : "h-screen w-screen"
+      } overflow-hidden bg-[var(--bg)] text-[var(--b)] font-sans antialiased`}
+    >
       {/* Sidebar Navigation */}
       <NotesSidebar />
 

@@ -72,18 +72,8 @@ export function ExpensesHeader({
     <header className="flex flex-col gap-5 bg-[var(--surface-card)] border border-[var(--h)] rounded-2xl p-5 shadow-xs">
       {/* Top Bar: Back to AI Assistant, Branding, and Global Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--h)]">
-        {/* Left: Back button & Title */}
+        {/* Left: Title */}
         <div className="flex items-center gap-3">
-          {/* Back to AI Assistant Chat Button (replaces route to /) */}
-          <button
-            type="button"
-            onClick={() => router.replace("/")}
-            className="w-9 h-9 rounded-xl bg-[var(--s)] border border-[var(--h)] flex items-center justify-center text-[var(--m)] hover:text-[var(--i)] hover:border-[var(--m)] transition-all shrink-0 shadow-2xs"
-            title="Back to AI Assistant"
-          >
-            <ArrowLeft size={16} />
-          </button>
-
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
             <Wallet size={20} />
           </div>

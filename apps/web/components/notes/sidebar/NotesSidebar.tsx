@@ -66,14 +66,6 @@ export function NotesSidebar() {
     return (
       <aside className="w-16 shrink-0 border-r border-[var(--h)] bg-[var(--s)] flex flex-col items-center py-5 justify-between transition-all select-none">
         <div className="flex flex-col items-center gap-3.5">
-          <Link
-            href="/"
-            replace
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--m)] hover:bg-[var(--bg)] hover:text-[var(--i)] transition-colors shadow-2xs"
-            title="Back to AI Chat"
-          >
-            <MessageSquare className="h-5 w-5 text-[#3b82f6]" />
-          </Link>
           <button
             type="button"
             onClick={() => setIsCollapsed(false)}
@@ -128,19 +120,6 @@ export function NotesSidebar() {
 
         {/* Quick Actions & Navigation */}
         <div className="p-3 space-y-1.5 border-b border-[var(--h)]">
-          {/* Back to AI Chat */}
-          <Link
-            href="/"
-            replace
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold text-[var(--b)] hover:bg-[var(--bg)] hover:text-[var(--i)] transition-colors no-underline"
-          >
-            <div className="flex items-center gap-2.5">
-              <MessageSquare className="h-4 w-4 text-[#3b82f6]" />
-              <span>Back to AI Chat</span>
-            </div>
-            <span className="text-xs text-[var(--m)] font-mono">Chat</span>
-          </Link>
-
           <button
             type="button"
             onClick={() => openSearch()}

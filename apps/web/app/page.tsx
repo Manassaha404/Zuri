@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { Menu } from "lucide-react";
 import {
   ChatHeader,
   ChatInterface,
@@ -10,8 +11,19 @@ import {
   type ChatGroup,
   type Connector,
   type PinnedMessage,
+  type SidebarFeatureId,
   type User,
 } from "@/components/chat";
+import { NotesWorkspace } from "@/components/notes/NotesWorkspace";
+import { HabitsWorkspace } from "@/components/habits/HabitsWorkspace";
+import { ExpensesWorkspace } from "@/components/expenses/ExpensesWorkspace";
+import { DeadlinesWorkspace } from "@/components/deadlines";
+import { MeetingsWorkspace } from "@/components/meetings";
+import { TasksWorkspace } from "@/components/tasks";
+import { ProjectsWorkspace } from "@/components/projects";
+import { FitnessWorkspace } from "@/components/fitness/FitnessWorkspace";
+import { ContactsWorkspace } from "@/components/contacts";
+import { FileDockWorkspace } from "@/components/file-dock";
 import { useUIStore, useInitUIStore } from "@/store/uiStore";
 import { useUserInfoStore } from "@/store/userInfoStore";
 import { useAgentStore } from "@/store/agentStore";
@@ -24,7 +36,10 @@ import {
 
 export default function DashboardPage() {
   useInitUIStore();
-  const { darkMode } = useUIStore();
+  const { darkMode, setSidebarOpen } = useUIStore();
+  const [activeFeature, setActiveFeature] = useState<SidebarFeatureId | null>(
+    null,
+  );
   const { fullName, username, email: userEmail } = useUserInfoStore();
   const {
     conversations,
@@ -110,12 +125,14 @@ export default function DashboardPage() {
   }, [agentTitle, selectedChat]);
 
   function newChat() {
+    setActiveFeature(null);
     useAgentStore.getState().reset();
     setActiveSessionId(crypto.randomUUID());
     setSelectedChat("New chat");
   }
 
   function selectChat(title: string, conversationId?: string) {
+    setActiveFeature(null);
     if (
       title === selectedChat &&
       (!conversationId ||
@@ -200,46 +217,84 @@ export default function DashboardPage() {
         memory={memory}
         setMemory={setMemory}
         isLoadingConversations={isConversationsLoading}
+        activeFeature={activeFeature}
+        onSelectFeature={setActiveFeature}
       />
 
-      <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
-        {/* Top Header with animated chat topic on the left and reload button on the right */}
-        <ChatHeader
-          selectedChat={selectedChat}
-          isTitleUpdating={isTitleUpdating}
-          darkMode={darkMode}
-          loading={isAgentThinking}
-          onReload={handleReload}
-          onNewChat={newChat}
-          isPinned={isCurrentChatPinned}
-          canPin={Boolean(currentConversationId)}
-          canManage={Boolean(currentConversationId)}
-          onTogglePin={() => {
-            if (currentConversationId) {
-              void handleTogglePin(currentConversationId, !isCurrentChatPinned);
-            }
-          }}
-          onRename={(newTitle) => {
-            if (currentConversationId) {
-              void handleRenameConversation(currentConversationId, newTitle);
-            }
-          }}
-          onDelete={() => {
-            if (currentConversationId) {
-              void handleDeleteConversation(currentConversationId);
-            }
-          }}
-          className="pt-3.5 pb-2.5 sm:pt-4 sm:pb-3"
-        />
+      <div className="relative flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+        {activeFeature ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              className="ib fixed top-3 left-3 z-30 lg:hidden bg-[var(--bg)]/90 backdrop-blur-sm shadow-sm"
+            >
+              <Menu size={18} />
+            </button>
+            {activeFeature === "notes" ? (
+              <NotesWorkspace embedded />
+            ) : (
+              <div className="flex-1 h-full w-full overflow-y-auto overflow-x-hidden styled-scrollbar">
+                {activeFeature === "habits" && <HabitsWorkspace />}
+                {activeFeature === "expenses" && <ExpensesWorkspace />}
+                {activeFeature === "deadlines" && <DeadlinesWorkspace />}
+                {activeFeature === "meetings" && <MeetingsWorkspace />}
+                {activeFeature === "tasks" && <TasksWorkspace />}
+                {activeFeature === "projects" && <ProjectsWorkspace />}
+                {activeFeature === "fitness" && <FitnessWorkspace />}
+                {activeFeature === "contacts" && <ContactsWorkspace />}
+                {activeFeature === "files" && <FileDockWorkspace />}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Top Header with animated chat topic on the left and reload button on the right */}
+            <ChatHeader
+              selectedChat={selectedChat}
+              isTitleUpdating={isTitleUpdating}
+              darkMode={darkMode}
+              loading={isAgentThinking}
+              onReload={handleReload}
+              onNewChat={newChat}
+              isPinned={isCurrentChatPinned}
+              canPin={Boolean(currentConversationId)}
+              canManage={Boolean(currentConversationId)}
+              onTogglePin={() => {
+                if (currentConversationId) {
+                  void handleTogglePin(
+                    currentConversationId,
+                    !isCurrentChatPinned,
+                  );
+                }
+              }}
+              onRename={(newTitle) => {
+                if (currentConversationId) {
+                  void handleRenameConversation(
+                    currentConversationId,
+                    newTitle,
+                  );
+                }
+              }}
+              onDelete={() => {
+                if (currentConversationId) {
+                  void handleDeleteConversation(currentConversationId);
+                }
+              }}
+              className="pt-3.5 pb-2.5 sm:pt-4 sm:pb-3"
+            />
 
-        {/* Main chat interface */}
-        <ChatInterface
-          key={`${activeSessionId}-${reloadKey}`}
-          selectedChat={selectedChat}
-          darkMode={darkMode}
-          onPinMessage={pinMessage}
-          userName={user.name}
-        />
+            {/* Main chat interface */}
+            <ChatInterface
+              key={`${activeSessionId}-${reloadKey}`}
+              selectedChat={selectedChat}
+              darkMode={darkMode}
+              onPinMessage={pinMessage}
+              userName={user.name}
+            />
+          </>
+        )}
       </div>
     </div>
   );

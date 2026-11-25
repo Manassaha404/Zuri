@@ -11,6 +11,7 @@ import { registerMeetingTools } from "@repo/services/agent/mcp/tools/meeting";
 import { registerProjectTools } from "@repo/services/agent/mcp/tools/project";
 import { registerTaskTools } from "@repo/services/agent/mcp/tools/task";
 import { registerContactTools } from "@repo/services/agent/mcp/tools/contact";
+import { registerFitnessTools } from "@repo/services/agent/mcp/tools/fitness";
 import { registerNotePrompts } from "@repo/services/agent/mcp/prompts/notes";
 import { registerHabitPrompts } from "@repo/services/agent/mcp/prompts/habits";
 import { registerExpensePrompts } from "@repo/services/agent/mcp/prompts/expenses";
@@ -19,6 +20,7 @@ import { registerMeetingPrompts } from "@repo/services/agent/mcp/prompts/meeting
 import { registerProjectPrompts } from "@repo/services/agent/mcp/prompts/projects";
 import { registerTaskPrompts } from "@repo/services/agent/mcp/prompts/tasks";
 import { registerContactPrompts } from "@repo/services/agent/mcp/prompts/contacts";
+import { registerFitnessPrompts } from "@repo/services/agent/mcp/prompts/fitness";
 import { oauthRoutes } from "./routes/oauth";
 import { authRoutes } from "./routes/auth";
 import logger from "@repo/logger/logger";
@@ -186,6 +188,7 @@ registerMeetingTools(mcpServer);
 registerProjectTools(mcpServer);
 registerTaskTools(mcpServer);
 registerContactTools(mcpServer);
+registerFitnessTools(mcpServer);
 
 // Register prompts
 registerNotePrompts(mcpServer);
@@ -196,6 +199,7 @@ registerMeetingPrompts(mcpServer);
 registerProjectPrompts(mcpServer);
 registerTaskPrompts(mcpServer);
 registerContactPrompts(mcpServer);
+registerFitnessPrompts(mcpServer);
 
 const app = mcpServer.getApp();
 app.use("*", async (c, next) => {
