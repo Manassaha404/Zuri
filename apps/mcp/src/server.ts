@@ -8,11 +8,17 @@ import { registerHabitTools } from "@repo/services/agent/mcp/tools/habit";
 import { registerExpenseTools } from "@repo/services/agent/mcp/tools/expense";
 import { registerDeadlineTools } from "@repo/services/agent/mcp/tools/deadline";
 import { registerMeetingTools } from "@repo/services/agent/mcp/tools/meeting";
+import { registerProjectTools } from "@repo/services/agent/mcp/tools/project";
+import { registerTaskTools } from "@repo/services/agent/mcp/tools/task";
+import { registerContactTools } from "@repo/services/agent/mcp/tools/contact";
 import { registerNotePrompts } from "@repo/services/agent/mcp/prompts/notes";
 import { registerHabitPrompts } from "@repo/services/agent/mcp/prompts/habits";
 import { registerExpensePrompts } from "@repo/services/agent/mcp/prompts/expenses";
 import { registerDeadlinePrompts } from "@repo/services/agent/mcp/prompts/deadlines";
 import { registerMeetingPrompts } from "@repo/services/agent/mcp/prompts/meetings";
+import { registerProjectPrompts } from "@repo/services/agent/mcp/prompts/projects";
+import { registerTaskPrompts } from "@repo/services/agent/mcp/prompts/tasks";
+import { registerContactPrompts } from "@repo/services/agent/mcp/prompts/contacts";
 import { oauthRoutes } from "./routes/oauth";
 import { authRoutes } from "./routes/auth";
 import logger from "@repo/logger/logger";
@@ -177,6 +183,9 @@ registerHabitTools(mcpServer);
 registerExpenseTools(mcpServer);
 registerDeadlineTools(mcpServer);
 registerMeetingTools(mcpServer);
+registerProjectTools(mcpServer);
+registerTaskTools(mcpServer);
+registerContactTools(mcpServer);
 
 // Register prompts
 registerNotePrompts(mcpServer);
@@ -184,6 +193,9 @@ registerHabitPrompts(mcpServer);
 registerExpensePrompts(mcpServer);
 registerDeadlinePrompts(mcpServer);
 registerMeetingPrompts(mcpServer);
+registerProjectPrompts(mcpServer);
+registerTaskPrompts(mcpServer);
+registerContactPrompts(mcpServer);
 
 const app = mcpServer.getApp();
 app.use("*", async (c, next) => {
