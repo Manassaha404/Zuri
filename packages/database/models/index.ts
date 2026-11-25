@@ -42,3 +42,6 @@ export * from "./tasks";
 
 // Projects & Kanban Boards
 export * from "./projects";
+
+// Fitness Tracker
+export * from "./fitness";

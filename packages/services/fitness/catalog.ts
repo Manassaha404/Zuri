@@ -1,0 +1,895 @@
+// Comprehensive default exercise catalog and famous workout templates
+
+export interface DefaultExerciseSeed {
+  slug: string;
+  name: string;
+  muscleGroup: string;
+  secondaryMuscles?: string[];
+  equipment: string;
+  defaultRestSeconds: number;
+}
+
+export interface DefaultTemplateSeed {
+  slug: string;
+  name: string;
+  category: string;
+  description: string;
+  estimatedMinutes: number;
+  exercises: Array<{
+    exerciseSlug: string;
+    targetSets: number;
+    targetReps: string;
+    restSeconds: number;
+    supersetGroupId?: string;
+  }>;
+}
+
+export const DEFAULT_EXERCISES: DefaultExerciseSeed[] = [
+  // Chest
+  {
+    slug: "ex-bb-bench-press",
+    name: "Barbell Bench Press",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps", "Shoulders"],
+    equipment: "Barbell",
+    defaultRestSeconds: 150,
+  },
+  {
+    slug: "ex-incline-bb-bench",
+    name: "Incline Barbell Bench Press",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Shoulders", "Triceps"],
+    equipment: "Barbell",
+    defaultRestSeconds: 150,
+  },
+  {
+    slug: "ex-decline-bb-bench",
+    name: "Decline Barbell Bench Press",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-db-bench-press",
+    name: "Dumbbell Bench Press",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps", "Shoulders"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-incline-db-press",
+    name: "Incline Dumbbell Press",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Shoulders", "Triceps"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-db-fly",
+    name: "Dumbbell Chest Fly",
+    muscleGroup: "Chest",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-cable-fly",
+    name: "Cable Chest Fly",
+    muscleGroup: "Chest",
+    equipment: "Cable",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-low-cable-fly",
+    name: "Low-to-High Cable Fly",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Shoulders"],
+    equipment: "Cable",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-pec-deck",
+    name: "Pec Deck Machine Fly",
+    muscleGroup: "Chest",
+    equipment: "Machine",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-chest-press-machine",
+    name: "Seated Chest Press Machine",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps"],
+    equipment: "Machine",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-push-up",
+    name: "Push-Up",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps", "Core"],
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-chest-dip",
+    name: "Weighted Chest Dip",
+    muscleGroup: "Chest",
+    secondaryMuscles: ["Triceps", "Shoulders"],
+    equipment: "Bodyweight",
+    defaultRestSeconds: 120,
+  },
+
+  // Back
+  {
+    slug: "ex-deadlift",
+    name: "Conventional Deadlift",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Hamstrings", "Glutes"],
+    equipment: "Barbell",
+    defaultRestSeconds: 180,
+  },
+  {
+    slug: "ex-barbell-row",
+    name: "Barbell Bent-Over Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-pendlay-row",
+    name: "Pendlay Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-tbar-row",
+    name: "T-Bar Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Machine",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-db-row",
+    name: "Single-Arm Dumbbell Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-chest-supported-row",
+    name: "Chest-Supported Dumbbell Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-pull-up",
+    name: "Pull-Up",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Bodyweight",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-chin-up",
+    name: "Chin-Up",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Bodyweight",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-lat-pulldown",
+    name: "Lat Pulldown",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Cable",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-seated-cable-row",
+    name: "Seated Cable Row",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Biceps"],
+    equipment: "Cable",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-straight-arm-pulldown",
+    name: "Straight-Arm Cable Pulldown",
+    muscleGroup: "Back",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-back-extension",
+    name: "Back Extension",
+    muscleGroup: "Back",
+    secondaryMuscles: ["Glutes", "Hamstrings"],
+    equipment: "Bodyweight",
+    defaultRestSeconds: 75,
+  },
+
+  // Shoulders
+  {
+    slug: "ex-ohp",
+    name: "Overhead Barbell Press",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Triceps"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-seated-db-ohp",
+    name: "Seated Dumbbell Shoulder Press",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Triceps"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-arnold-press",
+    name: "Arnold Press",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Triceps"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-db-lateral-raise",
+    name: "Dumbbell Lateral Raise",
+    muscleGroup: "Shoulders",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-cable-lateral-raise",
+    name: "Cable Lateral Raise",
+    muscleGroup: "Shoulders",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-front-raise",
+    name: "Dumbbell Front Raise",
+    muscleGroup: "Shoulders",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-reverse-pec-deck",
+    name: "Reverse Pec Deck Fly",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Back"],
+    equipment: "Machine",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-face-pull",
+    name: "Cable Face Pull",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Back"],
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-upright-row",
+    name: "Barbell Upright Row",
+    muscleGroup: "Shoulders",
+    equipment: "Barbell",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-band-pull-apart",
+    name: "Band Pull-Apart",
+    muscleGroup: "Shoulders",
+    secondaryMuscles: ["Back"],
+    equipment: "Band",
+    defaultRestSeconds: 45,
+  },
+
+  // Quads
+  {
+    slug: "ex-back-squat",
+    name: "Barbell Back Squat",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes", "Core"],
+    equipment: "Barbell",
+    defaultRestSeconds: 180,
+  },
+  {
+    slug: "ex-front-squat",
+    name: "Barbell Front Squat",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Core", "Glutes"],
+    equipment: "Barbell",
+    defaultRestSeconds: 180,
+  },
+  {
+    slug: "ex-goblet-squat",
+    name: "Goblet Squat",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-leg-press",
+    name: "Leg Press",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Machine",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-hack-squat",
+    name: "Hack Squat Machine",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Machine",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-leg-extension",
+    name: "Leg Extension",
+    muscleGroup: "Quads",
+    equipment: "Machine",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-bulgarian-split-squat",
+    name: "Bulgarian Split Squat",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-walking-lunge",
+    name: "Dumbbell Walking Lunge",
+    muscleGroup: "Quads",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 90,
+  },
+
+  // Hamstrings & Glutes
+  {
+    slug: "ex-rdl",
+    name: "Romanian Deadlift",
+    muscleGroup: "Hamstrings",
+    secondaryMuscles: ["Glutes", "Back"],
+    equipment: "Barbell",
+    defaultRestSeconds: 150,
+  },
+  {
+    slug: "ex-db-rdl",
+    name: "Dumbbell Romanian Deadlift",
+    muscleGroup: "Hamstrings",
+    secondaryMuscles: ["Glutes"],
+    equipment: "Dumbbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-lying-leg-curl",
+    name: "Lying Leg Curl",
+    muscleGroup: "Hamstrings",
+    equipment: "Machine",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-seated-leg-curl",
+    name: "Seated Leg Curl",
+    muscleGroup: "Hamstrings",
+    equipment: "Machine",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-nordic-curl",
+    name: "Nordic Hamstring Curl",
+    muscleGroup: "Hamstrings",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-hip-thrust",
+    name: "Barbell Hip Thrust",
+    muscleGroup: "Glutes",
+    secondaryMuscles: ["Hamstrings"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-cable-kickback",
+    name: "Cable Glute Kickback",
+    muscleGroup: "Glutes",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-glute-bridge",
+    name: "Single-Leg Glute Bridge",
+    muscleGroup: "Glutes",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+
+  // Biceps
+  {
+    slug: "ex-bb-curl",
+    name: "Barbell Curl",
+    muscleGroup: "Biceps",
+    equipment: "Barbell",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-ez-curl",
+    name: "EZ-Bar Curl",
+    muscleGroup: "Biceps",
+    equipment: "Barbell",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-db-curl",
+    name: "Alternating Dumbbell Curl",
+    muscleGroup: "Biceps",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-incline-db-curl",
+    name: "Incline Dumbbell Curl",
+    muscleGroup: "Biceps",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-hammer-curl",
+    name: "Dumbbell Hammer Curl",
+    muscleGroup: "Biceps",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-preacher-curl",
+    name: "Preacher Curl Machine",
+    muscleGroup: "Biceps",
+    equipment: "Machine",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-cable-curl",
+    name: "Cable Bicep Curl",
+    muscleGroup: "Biceps",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+
+  // Triceps
+  {
+    slug: "ex-tricep-pushdown",
+    name: "Cable Tricep Pushdown",
+    muscleGroup: "Triceps",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-rope-overhead-ext",
+    name: "Overhead Cable Rope Extension",
+    muscleGroup: "Triceps",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-skullcrusher",
+    name: "EZ-Bar Skullcrusher",
+    muscleGroup: "Triceps",
+    equipment: "Barbell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-close-grip-bench",
+    name: "Close-Grip Barbell Bench Press",
+    muscleGroup: "Triceps",
+    secondaryMuscles: ["Chest"],
+    equipment: "Barbell",
+    defaultRestSeconds: 120,
+  },
+  {
+    slug: "ex-db-overhead-ext",
+    name: "Dumbbell Overhead Tricep Extension",
+    muscleGroup: "Triceps",
+    equipment: "Dumbbell",
+    defaultRestSeconds: 75,
+  },
+  {
+    slug: "ex-bench-dip",
+    name: "Tricep Bench Dip",
+    muscleGroup: "Triceps",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+
+  // Calves & Core & Full Body
+  {
+    slug: "ex-standing-calf-raise",
+    name: "Standing Calf Raise",
+    muscleGroup: "Calves",
+    equipment: "Machine",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-seated-calf-raise",
+    name: "Seated Calf Raise",
+    muscleGroup: "Calves",
+    equipment: "Machine",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-hanging-leg-raise",
+    name: "Hanging Leg Raise",
+    muscleGroup: "Core",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-cable-crunch",
+    name: "Kneeling Cable Crunch",
+    muscleGroup: "Core",
+    equipment: "Cable",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-ab-wheel",
+    name: "Ab Wheel Rollout",
+    muscleGroup: "Core",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-plank",
+    name: "Weighted Plank",
+    muscleGroup: "Core",
+    equipment: "Bodyweight",
+    defaultRestSeconds: 60,
+  },
+  {
+    slug: "ex-kb-swing",
+    name: "Kettlebell Swing",
+    muscleGroup: "Full Body",
+    secondaryMuscles: ["Glutes", "Hamstrings"],
+    equipment: "Kettlebell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-kb-turkish-getup",
+    name: "Kettlebell Turkish Get-Up",
+    muscleGroup: "Full Body",
+    secondaryMuscles: ["Core", "Shoulders"],
+    equipment: "Kettlebell",
+    defaultRestSeconds: 90,
+  },
+  {
+    slug: "ex-clean-and-press",
+    name: "Barbell Clean & Press",
+    muscleGroup: "Full Body",
+    secondaryMuscles: ["Shoulders", "Back"],
+    equipment: "Barbell",
+    defaultRestSeconds: 150,
+  },
+];
+
+export const FAMOUS_TEMPLATES: DefaultTemplateSeed[] = [
+  {
+    slug: "tpl-ppl-push",
+    name: "Push Day (Chest / Shoulders / Triceps)",
+    category: "Push/Pull/Legs",
+    description:
+      "Classic push hypertrophy & strength session hitting chest, anterior/lateral delts, and triceps.",
+    estimatedMinutes: 55,
+    exercises: [
+      {
+        exerciseSlug: "ex-bb-bench-press",
+        targetSets: 3,
+        targetReps: "6-8",
+        restSeconds: 150,
+      },
+      {
+        exerciseSlug: "ex-ohp",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-incline-db-press",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 90,
+      },
+      {
+        exerciseSlug: "ex-db-lateral-raise",
+        targetSets: 3,
+        targetReps: "12-15",
+        restSeconds: 60,
+        supersetGroupId: "SS-A",
+      },
+      {
+        exerciseSlug: "ex-tricep-pushdown",
+        targetSets: 3,
+        targetReps: "12-15",
+        restSeconds: 60,
+        supersetGroupId: "SS-A",
+      },
+    ],
+  },
+  {
+    slug: "tpl-ppl-pull",
+    name: "Pull Day (Back / Rear Delts / Biceps)",
+    category: "Push/Pull/Legs",
+    description:
+      "Vertical and horizontal pulling paired with rear delt prehab and bicep isolation.",
+    estimatedMinutes: 55,
+    exercises: [
+      {
+        exerciseSlug: "ex-pull-up",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-barbell-row",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-seated-cable-row",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 90,
+      },
+      {
+        exerciseSlug: "ex-face-pull",
+        targetSets: 3,
+        targetReps: "15",
+        restSeconds: 60,
+      },
+      {
+        exerciseSlug: "ex-ez-curl",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 75,
+      },
+    ],
+  },
+  {
+    slug: "tpl-ppl-legs",
+    name: "Leg Day (Quads / Hamstrings / Calves)",
+    category: "Push/Pull/Legs",
+    description:
+      "Squat and hip-hinge foundation with machine isolation and calf work.",
+    estimatedMinutes: 60,
+    exercises: [
+      {
+        exerciseSlug: "ex-back-squat",
+        targetSets: 3,
+        targetReps: "5-8",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-rdl",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 150,
+      },
+      {
+        exerciseSlug: "ex-leg-press",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-seated-leg-curl",
+        targetSets: 3,
+        targetReps: "12",
+        restSeconds: 90,
+      },
+      {
+        exerciseSlug: "ex-standing-calf-raise",
+        targetSets: 4,
+        targetReps: "12-15",
+        restSeconds: 60,
+      },
+    ],
+  },
+  {
+    slug: "tpl-upper-body",
+    name: "Upper Body Strength",
+    category: "Upper/Lower",
+    description:
+      "Balanced upper-body push and pull compounds for Upper/Lower splits.",
+    estimatedMinutes: 55,
+    exercises: [
+      {
+        exerciseSlug: "ex-bb-bench-press",
+        targetSets: 4,
+        targetReps: "6-8",
+        restSeconds: 150,
+      },
+      {
+        exerciseSlug: "ex-barbell-row",
+        targetSets: 4,
+        targetReps: "6-8",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-seated-db-ohp",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-lat-pulldown",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 90,
+      },
+      {
+        exerciseSlug: "ex-hammer-curl",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 60,
+        supersetGroupId: "SS-A",
+      },
+      {
+        exerciseSlug: "ex-rope-overhead-ext",
+        targetSets: 3,
+        targetReps: "10-12",
+        restSeconds: 60,
+        supersetGroupId: "SS-A",
+      },
+    ],
+  },
+  {
+    slug: "tpl-lower-body",
+    name: "Lower Body Power",
+    category: "Upper/Lower",
+    description: "Heavy posterior & anterior chain lower-body session.",
+    estimatedMinutes: 55,
+    exercises: [
+      {
+        exerciseSlug: "ex-back-squat",
+        targetSets: 4,
+        targetReps: "5-6",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-rdl",
+        targetSets: 3,
+        targetReps: "8",
+        restSeconds: 150,
+      },
+      {
+        exerciseSlug: "ex-bulgarian-split-squat",
+        targetSets: 3,
+        targetReps: "10",
+        restSeconds: 90,
+      },
+      {
+        exerciseSlug: "ex-lying-leg-curl",
+        targetSets: 3,
+        targetReps: "12",
+        restSeconds: 75,
+      },
+      {
+        exerciseSlug: "ex-hanging-leg-raise",
+        targetSets: 3,
+        targetReps: "12-15",
+        restSeconds: 60,
+      },
+    ],
+  },
+  {
+    slug: "tpl-full-body",
+    name: "Full Body Essentials",
+    category: "Full Body",
+    description:
+      "High-efficiency 3-day full-body routine hitting every major pattern.",
+    estimatedMinutes: 50,
+    exercises: [
+      {
+        exerciseSlug: "ex-back-squat",
+        targetSets: 3,
+        targetReps: "6-8",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-bb-bench-press",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 150,
+      },
+      {
+        exerciseSlug: "ex-barbell-row",
+        targetSets: 3,
+        targetReps: "8-10",
+        restSeconds: 120,
+      },
+      {
+        exerciseSlug: "ex-db-lateral-raise",
+        targetSets: 3,
+        targetReps: "12-15",
+        restSeconds: 60,
+      },
+      {
+        exerciseSlug: "ex-cable-crunch",
+        targetSets: 3,
+        targetReps: "12-15",
+        restSeconds: 60,
+      },
+    ],
+  },
+  {
+    slug: "tpl-5x5-a",
+    name: "5×5 Strength — Day A",
+    category: "Program",
+    description:
+      "Classic 5×5 linear strength session: Squat, Bench Press, Barbell Row.",
+    estimatedMinutes: 50,
+    exercises: [
+      {
+        exerciseSlug: "ex-back-squat",
+        targetSets: 5,
+        targetReps: "5",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-bb-bench-press",
+        targetSets: 5,
+        targetReps: "5",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-barbell-row",
+        targetSets: 5,
+        targetReps: "5",
+        restSeconds: 150,
+      },
+    ],
+  },
+  {
+    slug: "tpl-5x5-b",
+    name: "5×5 Strength — Day B",
+    category: "Program",
+    description:
+      "Classic 5×5 alternating session: Squat, Overhead Press, Deadlift.",
+    estimatedMinutes: 50,
+    exercises: [
+      {
+        exerciseSlug: "ex-back-squat",
+        targetSets: 5,
+        targetReps: "5",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-ohp",
+        targetSets: 5,
+        targetReps: "5",
+        restSeconds: 180,
+      },
+      {
+        exerciseSlug: "ex-deadlift",
+        targetSets: 1,
+        targetReps: "5",
+        restSeconds: 180,
+      },
+    ],
+  },
+];

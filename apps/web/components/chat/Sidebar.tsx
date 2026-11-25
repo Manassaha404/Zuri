@@ -8,6 +8,7 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronUp,
+  Dumbbell,
   Flame,
   HardDrive,
   HelpCircle,
@@ -489,6 +490,19 @@ export function Sidebar({
               </Link>
 
               <Link
+                href="/fitness"
+                replace
+                onClick={closeMobile}
+                className="bt text-xs font-medium justify-between px-3 text-[var(--i)] hover:bg-[var(--h)] transition-colors no-underline"
+                title="Fitness Tracker & Nutrition"
+              >
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={14} className="text-[#3b82f6]" />
+                  <span className="font-medium">Fitness Tracker</span>
+                </div>
+              </Link>
+
+              <Link
                 href="/contacts"
                 replace
                 onClick={closeMobile}
@@ -966,6 +980,16 @@ export function Sidebar({
                   </Link>
 
                   <Link
+                    href="/fitness"
+                    replace
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-[var(--i)] hover:bg-[var(--s)] transition-colors no-underline"
+                  >
+                    <Dumbbell size={15} className="text-[#3b82f6]" />
+                    <span>Fitness Tracker</span>
+                  </Link>
+
+                  <Link
                     href="/contacts"
                     replace
                     onClick={() => setUserDropdownOpen(false)}
@@ -1169,6 +1193,16 @@ export function Sidebar({
                 className="ib flex items-center justify-center no-underline"
               >
                 <Kanban size={16} className="text-[#f59e0b]" />
+              </Link>
+
+              <Link
+                href="/fitness"
+                replace
+                onClick={closeMobile}
+                title="Fitness Tracker & Nutrition"
+                className="ib flex items-center justify-center no-underline"
+              >
+                <Dumbbell size={16} className="text-[#3b82f6]" />
               </Link>
 
               <Link

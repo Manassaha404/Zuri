@@ -11,3 +11,4 @@ export * from "./taskStore";
 export * from "./projectBoardStore";
 export * from "./contactStore";
 export * from "./fileDockStore";
+export * from "./fitnessStore";

@@ -13,6 +13,7 @@ import { contactsRouter } from "./routes/contacts/route";
 import { tasksRouter } from "./routes/tasks/route";
 import { projectsRouter } from "./routes/projects/route";
 import { fileDockRouter } from "./routes/file-dock/route";
+import { fitnessRouter } from "./routes/fitness/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -28,6 +29,7 @@ export const serverRouter = router({
   tasks: tasksRouter,
   projects: projectsRouter,
   fileDock: fileDockRouter,
+  fitness: fitnessRouter,
 });
 
 export { createContext } from "./context";
