@@ -22,7 +22,6 @@ import { useUIStore } from "@/store/uiStore";
 import { useTasks } from "@/hook/tasks";
 import { parseQuickAddTask } from "@/lib/taskQuickAdd";
 import type { TaskPriority, TaskViewTab } from "./types";
-
 interface TasksHeaderProps {
   onOpenCreateModal: () => void;
 }
@@ -244,76 +243,6 @@ export function TasksHeader({ onOpenCreateModal }: TasksHeaderProps) {
           </div>
         </div>
       </div>
-
-      {/* Natural Language Quick Add */}
-      <form
-        onSubmit={handleQuickAddSubmit}
-        className="flex flex-col gap-2 p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--h)]"
-      >
-        <div className="flex items-center gap-2.5">
-          <Sparkles size={16} className="text-[var(--accent)] shrink-0" />
-          <input
-            type="text"
-            value={quickInput}
-            onChange={(e) => setQuickInput(e.target.value)}
-            placeholder='Quick add: e.g. "pay rent tomorrow 5pm #finance !high ~15m"'
-            className="flex-1 bg-transparent text-sm text-[var(--i)] placeholder:text-[var(--m)] focus:outline-none min-w-0"
-          />
-          <button
-            type="submit"
-            disabled={!quickInput.trim()}
-            className="bt p text-xs px-3 py-1.5 disabled:opacity-40"
-          >
-            Add
-          </button>
-        </div>
-
-        {parsedPreview && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[var(--h)] text-[11px]">
-            <span className="text-[var(--m)] font-medium">Parsed:</span>
-            <span className="px-2 py-0.5 rounded-full bg-[var(--s)] border border-[var(--h)] text-[var(--i)] font-medium truncate max-w-[220px]">
-              {parsedPreview.title}
-            </span>
-            {parsedPreview.dueDate && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium">
-                {parsedPreview.dueDate}
-                {parsedPreview.dueTime ? ` ${parsedPreview.dueTime}` : ""}
-              </span>
-            )}
-            {parsedPreview.priority && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-medium uppercase">
-                {parsedPreview.priority}
-              </span>
-            )}
-            {parsedPreview.projectName && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-medium">
-                @{parsedPreview.projectName}
-              </span>
-            )}
-            {parsedPreview.estimateMinutes && (
-              <span className="px-2 py-0.5 rounded-full bg-[var(--s)] border border-[var(--h)] text-[var(--b)]">
-                ~{parsedPreview.estimateMinutes}m
-              </span>
-            )}
-            {parsedPreview.recurrence && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium">
-                <Repeat size={10} />
-                {parsedPreview.recurrence}
-              </span>
-            )}
-            {parsedPreview.tags.map((t) => (
-              <span
-                key={t}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--s)] border border-[var(--h)] text-[var(--m)]"
-              >
-                <Tag size={10} />
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
-      </form>
-
       {/* View Tabs & Filter Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full min-w-0">
         <div className="nav-pill-group flex items-center gap-1 overflow-x-auto styled-scrollbar max-w-full">
